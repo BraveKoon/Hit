@@ -1,0 +1,11 @@
+{
+  "code": 200, "success": true,
+  "result": { "game": {
+    "gameId": "20261029SSHT02026", "categoryId": "kbo", "gameDate": "2026-10-29",
+    "gameDateTime": "2026-10-29T18:30:00", "stadium": "광주",
+    "homeTeamCode": "HT", "homeTeamName": "KIA", "homeTeamScore": 0,
+    "awayTeamCode": "SS", "awayTeamName": "삼성", "awayTeamScore": 0,
+    "statusCode": "BEFORE", "statusInfo": "경기전", "cancel": false, "suspended": false,
+    "homeStarterName": "시라카와", "awayStarterName": "최원태", "broadChannel": "KBS2"
+  } }
+}

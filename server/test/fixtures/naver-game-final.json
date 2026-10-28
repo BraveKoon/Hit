@@ -1,0 +1,13 @@
+{
+  "code": 200, "success": true,
+  "result": { "game": {
+    "gameId": "20261026HTSS02026", "categoryId": "kbo", "gameDate": "2026-10-26",
+    "gameDateTime": "2026-10-26T18:30:00", "stadium": "대구",
+    "homeTeamCode": "SS", "homeTeamName": "삼성", "homeTeamScore": 1,
+    "awayTeamCode": "HT", "awayTeamName": "KIA", "awayTeamScore": 5,
+    "statusCode": "RESULT", "statusInfo": "경기종료", "winner": "AWAY",
+    "cancel": false, "suspended": false,
+    "homeStarterName": "페덱", "awayStarterName": "네일",
+    "awayTeamRheb": [5, 9, 0, 3], "homeTeamRheb": [1, 4, 1, 2]
+  } }
+}

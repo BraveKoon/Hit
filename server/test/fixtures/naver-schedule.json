@@ -1,0 +1,22 @@
+{
+  "code": 200,
+  "success": true,
+  "result": {
+    "games": [
+      {
+        "gameId": "20261029SSHT02026", "categoryId": "kbo", "gameDate": "2026-10-29",
+        "gameDateTime": "2026-10-29T18:30:00", "stadium": "",
+        "homeTeamCode": "HT", "homeTeamName": "KIA", "homeTeamScore": 0,
+        "awayTeamCode": "SS", "awayTeamName": "삼성", "awayTeamScore": 0,
+        "winner": null, "statusCode": "BEFORE", "statusInfo": "경기전",
+        "cancel": false, "suspended": false
+      },
+      {
+        "gameId": "20261029LTNC0", "categoryId": "kbaseball_futures", "gameDate": "2026-10-29",
+        "gameDateTime": "2026-10-29T13:00:00", "homeTeamCode": "NC", "homeTeamName": "NC",
+        "homeTeamScore": 3, "awayTeamCode": "LT", "awayTeamName": "롯데", "awayTeamScore": 1,
+        "statusCode": "RESULT", "statusInfo": "경기종료", "cancel": false, "suspended": false
+      }
+    ]
+  }
+}

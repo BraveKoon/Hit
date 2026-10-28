@@ -1,0 +1,12 @@
+{
+  "code": 200, "success": true,
+  "result": { "game": {
+    "gameId": "20261027HTSS02026", "categoryId": "kbo", "gameDate": "2026-10-27",
+    "gameDateTime": "2026-10-27T18:30:00", "stadium": "대구",
+    "homeTeamCode": "SS", "homeTeamName": "삼성", "homeTeamScore": 4,
+    "awayTeamCode": "HT", "awayTeamName": "KIA", "awayTeamScore": 1,
+    "statusCode": "STARTED", "statusInfo": "3회말", "currentInning": "3회말",
+    "cancel": false, "suspended": false,
+    "homeStarterName": "후라도", "awayStarterName": "올러"
+  } }
+}

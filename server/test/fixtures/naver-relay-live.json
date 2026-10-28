@@ -1,0 +1,57 @@
+{
+  "code": 200, "success": true,
+  "result": { "textRelayData": {
+    "category": "kbo", "gameId": "20261027HTSS02026", "no": 31, "inn": 3, "homeOrAway": "1",
+    "inningScore": { "away": { "1": "0", "2": "0", "3": "1" }, "home": { "1": "0", "2": "0", "3": "4" } },
+    "currentGameState": {
+      "homeScore": "4", "awayScore": "1", "homeHit": "4", "awayHit": "3", "homeError": "0", "awayError": "0",
+      "homeBallFour": "1", "awayBallFour": "0", "pitcher": "P_OLLER", "batter": "B_KANG",
+      "ball": "1", "strike": "2", "out": "2", "base1": "0", "base2": "0", "base3": "0"
+    },
+    "homeLineup": {
+      "batter": [
+        { "name": "김지찬", "pcode": "B_KJC", "posName": "중견수", "batOrder": 1, "seqno": 1 },
+        { "name": "박승규", "pcode": "B_PSG", "posName": "좌익수", "batOrder": 2, "seqno": 2 },
+        { "name": "구자욱", "pcode": "B_KJW", "posName": "우익수", "batOrder": 3, "seqno": 3 },
+        { "name": "디아즈", "pcode": "B_DIAZ", "posName": "1루수", "batOrder": 4, "seqno": 4, "ab": 2, "hit": 1, "hr": 1, "rbi": 2, "seasonHra": 0.301 },
+        { "name": "강민호", "pcode": "B_KANG", "posName": "포수", "batOrder": 5, "seqno": 5, "ab": 1, "hit": 0, "seasonHra": 0.27 },
+        { "name": "대타선수", "pcode": "B_SUB", "posName": "포수", "batOrder": 5, "seqno": 9 }
+      ],
+      "pitcher": [ { "name": "후라도", "pcode": "P_HURADO", "inn": "3", "ballCount": 41, "kk": 3, "er": 1 } ]
+    },
+    "awayLineup": {
+      "batter": [ { "name": "하주석", "pcode": "B_HJS", "posName": "유격수", "batOrder": 1, "seqno": 1 } ],
+      "pitcher": [ { "name": "올러", "pcode": "P_OLLER", "inn": "2.2", "ballCount": 58, "kk": 2, "er": 4 } ]
+    },
+    "homeEntry": { "batter": [], "pitcher": [] },
+    "awayEntry": { "batter": [], "pitcher": [] },
+    "textRelays": [
+      {
+        "title": "5번타자 강민호", "no": 31, "inn": 3, "homeOrAway": "1",
+        "textOptions": [
+          { "text": "5번타자 강민호", "type": 8, "seqno": 300 },
+          { "text": "1구 볼", "type": 1, "seqno": 301, "pitchNum": 1, "pitchResult": "B", "stuff": "슬라이더", "speed": "134" },
+          { "text": "2구 스트라이크", "type": 1, "seqno": 302, "pitchNum": 2, "pitchResult": "T", "stuff": "직구", "speed": "148" },
+          { "text": "3구 헛스윙", "type": 1, "seqno": 303, "pitchNum": 3, "pitchResult": "S", "stuff": "포크", "speed": "135" }
+        ],
+        "ptsOptions": [
+          { "ballcount": 1, "crossPlateX": -1.2, "crossPlateY": 1.417, "topSz": 3.3, "bottomSz": 1.5,
+            "y0": 50, "vy0": -130, "ay": 28, "z0": 6, "vz0": -4, "az": -25 },
+          { "ballcount": 2, "crossPlateX": 0.1, "topSz": 3.3, "bottomSz": 1.5,
+            "y0": 50, "vy0": -135, "ay": 28, "z0": 6, "vz0": -5, "az": -16 }
+        ],
+        "metricOption": { "homeTeamWinRate": 78.4, "awayTeamWinRate": 21.6 }
+      },
+      {
+        "title": "4번타자 디아즈", "no": 30, "inn": 3, "homeOrAway": "1",
+        "textOptions": [
+          { "text": "4번타자 디아즈", "type": 8, "seqno": 290 },
+          { "text": "1구 타격", "type": 1, "seqno": 291, "pitchNum": 1, "pitchResult": "H", "stuff": "직구", "speed": "146" },
+          { "text": "디아즈 : 우중간 담장 넘어가는 홈런 (비거리 125M)", "type": 13, "seqno": 292 },
+          { "text": "1루주자 구자욱 : 홈인", "type": 14, "seqno": 293 },
+          { "text": "=====================================", "type": 7, "seqno": 294 }
+        ]
+      }
+    ]
+  } }
+}

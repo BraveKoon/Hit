@@ -1,0 +1,8 @@
+{
+  "code": 200, "success": true,
+  "result": { "seasonTeamStats": [
+    { "teamId": "SS", "teamName": "삼성", "ranking": 2, "wra": 0.589, "gameCount": 144, "winGameCount": 83, "drawnGameCount": 3, "loseGameCount": 58, "gameBehind": 8.0, "continuousGameResult": "2승", "lastFiveGames": "WWLWW" },
+    { "teamId": "KT", "teamName": "KT", "ranking": 1, "wra": 0.647, "gameCount": 144, "winGameCount": 90, "drawnGameCount": 5, "loseGameCount": 49, "gameBehind": 0, "continuousGameResult": "1패", "lastFiveGames": "WWWWL" },
+    { "teamId": "XX", "teamName": "SSG", "teamShortName": "SSG", "ranking": 6, "wra": 0.468, "gameCount": 144, "winGameCount": 65, "drawnGameCount": 5, "loseGameCount": 74, "gameBehind": 25.0 }
+  ] }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "hit-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HIT 야구 알림 서버: KBO 경기를 지켜보다 APNs 푸시와 라이브 액티비티를 보낸다",
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/index.js",
+    "replay": "HIT_PROVIDER=replay node --disable-warning=ExperimentalWarning src/index.js",
+    "smoke": "node --disable-warning=ExperimentalWarning scripts/smoke.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  }
+}
