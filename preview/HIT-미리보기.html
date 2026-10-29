@@ -674,6 +674,35 @@ ol.steps{margin:0;padding-left:1.3em;font-size:13.5px;color:var(--ink-2);line-he
 #view button:not(:disabled),#overlay button:not(:disabled){transition:transform .18s cubic-bezier(.3,.7,.4,1),opacity .18s}
 #view button:not(:disabled):active,#overlay button:not(:disabled):active{transform:scale(.97);opacity:.85}
 .ftab button:active{transform:scale(.94)}
+
+/* 구장 날씨 */
+.wx .hd,.news .hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}.wx .hd b{font-size:17px;font-weight:800}.wx .hd small{font-size:12px;color:var(--mu)}
+.wx .now{display:flex;align-items:center;gap:12px}.wx .now .ic{font-size:34px;line-height:1}.wx .now .t{flex:1;display:flex;flex-direction:column}
+.wx .now .t b{font-family:var(--round);font-size:30px;font-weight:700}.wx .now .t small{font-size:12px;color:var(--mu)}
+.wx .rk{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.wx .rk b{font-size:14px}
+.wx .rk em{font-style:normal;font-size:11px;font-weight:800;padding:4px 8px;border-radius:99px}.wx em.ok{color:#36d583;background:rgba(54,213,131,.14)}.wx em.mid{color:#f5c542;background:rgba(245,197,66,.14)}.wx em.bad{color:#ff6b61;background:rgba(226,84,74,.16)}
+.wx .hrs{display:flex;margin-top:14px}.wx .hrs span{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}.wx .hrs small{font-size:11px;color:var(--mu)}.wx .hrs i{font-style:normal;font-size:17px}
+.wx .hrs b{font-size:13px;font-variant-numeric:tabular-nums}.wx .hrs em{font-style:normal;font-size:11px;font-weight:700;color:var(--mu)}.wx .hrs em.wet{color:#6bb7ff}
+.wx .src{margin:12px 0 0;font-size:11px;color:var(--mu)}
+/* 키플레이어 */
+.kps{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kp{display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;border-radius:20px;background:var(--sf);border:1px solid var(--ln);color:#fff;font:inherit;cursor:pointer;text-align:center}
+.kp .wrap2{position:relative}.kp .wrap2 .emb{position:absolute;right:-2px;bottom:-2px}.kp b{font-size:16px}
+.kp em{font-style:normal;font-size:11px;font-weight:800;color:var(--tc);background:color-mix(in srgb,var(--tc) 16%,transparent);padding:3px 8px;border-radius:99px}
+.kp small{font-size:12px;color:var(--mu);line-height:1.35}
+/* 내 팀 소식 */
+.news .nrow{display:flex;flex-direction:column;gap:7px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06)}.news .nrow:last-of-type{border-bottom:0}
+.news .nrow i{display:block;height:11px;border-radius:6px;background:rgba(255,255,255,.08)}.news .nrow i.s{height:8px;background:rgba(255,255,255,.05)}
+.news p{margin:10px 0 0;font-size:11.5px;color:var(--mu);line-height:1.5}
+/* 커뮤니티 필터 · 검색 · 차단 */
+.fbar{display:flex;gap:8px;margin:2px 0 4px}
+.fbar .seg{display:flex;padding:3px;border-radius:99px;background:var(--sf)}
+.fbar .seg button{width:52px;height:32px;border-radius:99px;border:0;background:none;color:var(--mu);font:inherit;font-size:13px;cursor:pointer}
+.fbar .seg button[aria-pressed="true"]{background:rgba(255,255,255,.14);color:#fff;font-weight:800}
+.fbar .srch{flex:1;min-width:0;overflow:hidden;display:flex;align-items:center;gap:6px;height:38px;padding:0 12px;border-radius:99px;background:var(--sf);color:var(--mu)}
+.fbar .srch svg{width:14px;height:14px}.fbar .srch input{flex:1;min-width:0;border:0;background:none;color:#fff;font:inherit;font-size:13.5px;outline:none}
+.blist{background:var(--sf);border-radius:20px;overflow:hidden}.brow{display:flex;align-items:center;justify-content:space-between;height:54px;padding:0 16px;border-bottom:1px solid var(--sf2)}.brow:last-child{border-bottom:0}
+.brow button{border:0;background:none;color:var(--am);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 </style>
 
 <div class="wrap">
@@ -909,7 +938,7 @@ var PREFS = [['pregame','경기 시작 10분 전','선발 투수와 중계 채�
 /* ── 상태 ── */
 var S = {screen:'auth', back:'auth', tab:'home', sub:null, hist:[], anim:'screen', scores:{}, popId:null, rec:'team', q:'', pid:null, fav:[], mound:{}, user:null, my:null, ob:{step:0,pick:null},
   day:TODAY, seg:'po3', dtab:'live', pitches:false, la:false,
-  on:{pregame:true,starters:true,lineup:true,start:true,score:true,homerun:true,lead:true,extra:true,end:true,cancel:true,liveActivity:true,players:true,hit:false,walk:false},
+  on:{pregame:true,starters:true,lineup:true,start:true,score:true,homerun:true,lead:true,extra:true,end:true,cancel:true,liveActivity:true,players:true,hit:false,walk:false,comments:true},
   diary:[{id:'po2',mode:'stadium',seat:'1루 블루존',memo:'디아즈 투런 직관!',verified:true},{id:'po1',mode:'home',seat:'집',memo:''}], cal:'2026-10', bk:'stadium', dgame:null, dmode:'stadium',
   mvp:{}, mvpRe:null, chat:{}, pred:{}, lt:'navy', board:'', notifs:[], replay:'idle', po2:null, cur:0, timer:null, overlay:null};
 
@@ -1027,6 +1056,7 @@ function vHome(){
   else if (games.length && !mine.length) h+='<div class="card restcard">'+emb(S.my,40)+'<span style="color:var(--mu)">'+esc(team.n)+'는 이날 경기가 없어요</span></div>';
   mine.forEach(function(g){ h+=hero(g); });
   if (others.length){ h+='<div class="sh"><h3>다른 경기</h3><span>'+others.length+'경기</span></div>'; others.forEach(function(g){ h+=gcard(g); }); }
+  h+=newsSection();
   // 대진표는 오늘 경기 아래 (가장 궁금한 내 팀 경기가 첫 화면에 오도록)
   if (isToday) h+='<div class="sh"><h3>2026 포스트시즌</h3><span>플레이오프</span></div>'+bracket();
   return h+favStrip()+'</div>';
@@ -1165,6 +1195,8 @@ function previewTab(g){
   var tv='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1.5" y="3" width="13" height="9" rx="2"/><path d="M5 14.5h6"/></svg>';
   var h='<div class="ichips"><span>'+cal+g.date.slice(5).replace('-','.')+' ('+wd+') '+g.time+'</span><span>'+pin+esc(g.park)+'</span>'+(BROADCAST[g.id]?'<span>'+tv+BROADCAST[g.id]+'</span>':'')+'</div>';
   h+=predCard(g);
+  if (g.status!=='final') h+=weatherCard(g);
+  h+=keyPlayersCard(g);
   // 선발 맞대결
   var a=SP_STATS[g.sp.a], b=SP_STATS[g.sp.h];
   function face(name,team,col){ return '<div class="fc"><div class="ph" style="background:'+rgba(col.length===7?col:'#888888',.25)+'"><b>'+esc((name||'?').charAt(0))+'</b><span class="eb">'+emb(team,30)+'</span></div><strong>'+esc(name||'미정')+'</strong><small>'+esc(T[team].s)+'</small></div>'; }
@@ -1446,7 +1478,7 @@ function vMy(){
   h+='<div class="sh"><h3>관심 선수</h3>'+(S.fav.length?'<span>'+S.fav.length+'명</span>':'')+'</div>';
   if (S.fav.length) h+='<div class="plist" style="margin-top:0">'+S.fav.map(function(id){ return prow(rosterById(id)); }).join('')+'</div>';
   h+='<button class="addbtn" data-act="search">+ 선수 찾아서 추가</button>';
-  h+='<div class="sh"><h3>설정</h3></div><div class="setrows"><button data-act="noti"><span>알림 설정</span>›</button><button data-act="theme"><span>잠금화면 테마</span><small style="color:var(--mu)">'+THEMES.filter(function(t){ return t[0]===(S.lt||'navy'); })[0][1]+'</small>›</button>'+(S.user?
+  h+='<div class="sh"><h3>설정</h3></div><div class="setrows"><button data-act="noti"><span>알림 설정</span>›</button>'+(S.user?'<button data-act="blocks"><span>차단한 사용자</span><small style="color:var(--mu)">'+((S.blocked||[]).length||'')+'</small>›</button>':'')+'<button data-act="theme"><span>잠금화면 테마</span><small style="color:var(--mu)">'+THEMES.filter(function(t){ return t[0]===(S.lt||'navy'); })[0][1]+'</small>›</button>'+(S.user?
       '<button data-act="logout"><span>로그아웃</span>›</button><button class="red" data-act="delete"><span>회원 탈퇴</span>›</button>':
       '<button class="amb" data-act="logout"><span>로그인 · 회원가입</span>›</button>')+'</div>';
   return h+'<p class="gfoot" style="margin-top:12px">경기 기록·구단 엠블럼·선수 사진은 네이버 스포츠의 KBO 데이터를 가져와 보여줍니다.</p></div>';
@@ -1521,8 +1553,12 @@ function vCommunity(){
   var boards=[['','전체']].concat(mine?[[mine,T[mine].s]]:[]).concat(PICK.filter(function(k){ return k!==mine; }).map(function(k){ return [k,T[k].s]; }));
   var h='<div class="pad">'+appHeader('커뮤니티')+'<div class="chips" role="tablist">'+boards.map(function(b){
     return '<button class="pchip" data-act="board" data-v="'+b[0]+'" aria-pressed="'+(board===b[0])+'">'+esc(b[1])+'</button>'; }).join('')+'</div>';
-  var list=posts().filter(function(p){ return !board||p.team===board; });
-  if (!list.length) h+='<p class="mnone" style="text-align:center;padding:60px 0">아직 글이 없어요. 첫 글을 남겨 보세요</p>';
+  h+='<div class="fbar"><span class="seg"><button data-act="hot" data-v="0" aria-pressed="'+!S.hot+'">최신</button><button data-act="hot" data-v="1" aria-pressed="'+!!S.hot+'">인기</button></span>'+
+    '<label class="srch">'+ICON.search+'<input id="cq" placeholder="글 검색" value="'+esc(S.cq||'')+'" autocomplete="off"></label></div>';
+  var bl=S.blocked||[], q=(S.cq||'').trim();
+  var list=posts().filter(function(p){ return (!board||p.team===board) && bl.indexOf(p.nick)<0 && (!q||(p.title+' '+p.body+' '+(p.player||'')).indexOf(q)>=0) && (!S.hot||p.likes+p.cmts.length>0); });
+  if (S.hot) list=list.slice().sort(function(x,y){ return (y.likes*2+y.cmts.length)-(x.likes*2+x.cmts.length); });
+  if (!list.length) h+='<p class="mnone" style="text-align:center;padding:60px 0">'+(q?'\''+esc(q)+'\' 검색 결과가 없어요':'아직 글이 없어요. 첫 글을 남겨 보세요')+'</p>';
   h+='<div class="plist2">'+list.map(function(p){
     return '<button class="prow2" data-act="post" data-v="'+p.id+'"><span class="tx"><b>'+esc(p.title)+'</b>'+(p.body?'<small class="pv">'+esc(p.body.replace(/\s+/g,' ').slice(0,80))+'</small>':'')+
       '<span class="meta">'+bchip(p.team,p.player)+'<span class="nk">'+esc(p.nick)+'</span>·<span>'+esc(p.at)+'</span><i></i>'+
@@ -1536,11 +1572,11 @@ function vPost(){
   var p=postById(S.pid2);
   if (!p) return nav('커뮤니티')+'<div class="pad"><p class="mnone" style="text-align:center;padding:60px 0">볼 수 없는 글이에요</p></div>';
   var h=nav(T[p.team].s)+'<div class="pad post">'+bchip(p.team,p.player)+'<h2>'+esc(p.title)+'</h2>'+
-    '<div class="by">'+(p.mine?ava(p.nick,S.my,22):emb(p.team,22))+'<b>'+esc(p.nick)+'</b><small>'+esc(p.at)+'</small>'+(p.mine?'<button class="pdel" data-act="pdel">삭제</button>':'')+'</div>'+
+    '<div class="by">'+(p.mine?ava(p.nick,S.my,22):emb(p.team,22))+'<b>'+esc(p.nick)+'</b><small>'+esc(p.at)+'</small>'+(p.mine?'<button class="pdel" data-act="pdel">삭제</button>':S.user?'<button class="pdel" data-act="block" data-v="'+esc(p.nick)+'">차단</button>':'')+'</div>'+
     (p.body?'<p class="bd">'+esc(p.body)+'</p>':'')+(p.img?'<div class="pimg">'+thumb(p,320)+'</div>':'')+
     '<div class="acts"><button class="lkbtn'+(p.liked?' on':'')+'" data-act="like"'+(S.user?'':' disabled')+'>'+(p.liked?'♥':'♡')+' '+p.likes+'</button><span>'+ICON.chat+p.cmts.length+'</span></div>'+
     '<div class="sh"><h3>댓글</h3><span>'+p.cmts.length+'</span></div>'+
-    (p.cmts.length?p.cmts.map(function(c){ return '<div class="cmt">'+(c[2]?emb(c[2],26):ava(c[0],S.my,26))+'<div><b>'+esc(c[0])+'</b><p>'+esc(c[1])+'</p></div></div>'; }).join(''):'<p class="mnone">첫 댓글을 남겨 보세요</p>')+
+    (p.cmts.length?p.cmts.filter(function(c){ return (S.blocked||[]).indexOf(c[0])<0; }).map(function(c){ return '<div class="cmt">'+(c[2]?emb(c[2],26):ava(c[0],S.my,26))+'<div><b>'+esc(c[0])+'</b><p>'+esc(c[1])+'</p></div></div>'; }).join(''):'<p class="mnone">첫 댓글을 남겨 보세요</p>')+
     (S.postErr?'<p class="cerr">'+esc(S.postErr)+'</p>':'')+
     (S.user?'<div class="cin"><input id="cmt-in" maxlength="300" placeholder="댓글 (300자)" autocomplete="off"><button data-act="cmt" aria-label="댓글 달기">↑</button></div>'
       :'<p class="mnone" style="text-align:center;padding:12px 0">로그인하면 댓글을 달 수 있어요</p>');
@@ -1618,6 +1654,45 @@ function vTheme(){
     }).join('')+'<button class="btn amber" style="margin-top:12px" data-act="close" data-done="1">완료</button></div></div>';
 }
 
+
+/* 구장 날씨 (앱 WeatherCard). 미리보기는 예보를 받을 수 없어 예시 값 — 앱은 Open-Meteo 시간별 예보 */
+var WX_SAMPLE = {po3:{stadium:'광주-기아 챔피언스필드',temp:14,label:'구름 조금',sky:'⛅',wind:3,pop:20,risk:'low',
+  hours:[['17',15,'⛅',10],['18',14,'⛅',20],['19',13,'☁️',30],['20',12,'☁️',30],['21',12,'☁️',20]]}};
+function weatherCard(g){
+  var w=WX_SAMPLE[g.id]; if (!w) return '';
+  var risk={dome:['돔구장 · 비 걱정 없음','ok'],high:['우천 취소 가능성 높음','bad'],medium:['비 소식 · 취소 가능성 있음','mid'],low:['우천 걱정 없음','ok']}[w.risk];
+  return '<div class="card wx"><div class="hd"><b>구장 날씨</b><small>'+esc(w.stadium)+'</small></div>'+
+    '<div class="now"><span class="ic">'+w.sky+'</span><span class="t"><b>'+w.temp+'°</b><small>'+esc(w.label)+' · 바람 '+w.wind+'m/s</small></span>'+
+    '<span class="rk"><b>강수 '+w.pop+'%</b><em class="'+risk[1]+'">'+risk[0]+'</em></span></div>'+
+    '<div class="hrs">'+w.hours.map(function(h){ return '<span><small>'+h[0]+'시</small><i>'+h[2]+'</i><b>'+h[1]+'°</b><em class="'+(h[3]>=40?'wet':'')+'">'+h[3]+'%</em></span>'; }).join('')+'</div>'+
+    '<p class="src">미리보기는 예시 날씨예요 · 앱은 Open-Meteo 예보로 경기 시작 1시간 전부터 보여 줘요</p></div>';
+}
+/* 오늘의 키플레이어 (앱 KeyPlayersCard). 앱은 오늘 라인업 OPS 1위 또는 팀 타자 WAR 1위, 미리보기는 기사로 확인한 시즌 기록 */
+var KEY_PICK = {SS:'gjw',HT:'kdy'};
+function keyPlayersCard(g){
+  var a=rosterById(KEY_PICK[g.a]), b=rosterById(KEY_PICK[g.h]); if (!a&&!b) return '';
+  function col(p,code){
+    if (!p) return '<div class="kp"><span style="color:var(--mu);font-size:12px">기록이 없어요</span></div>';
+    return '<button class="kp" data-act="player" data-v="'+p.id+'"><span class="wrap2">'+ava(p.name,code,72)+emb(code,24)+'</span><b>'+esc(p.name)+'</b>'+
+      '<em style="--tc:'+tint(code)+'">팀 타자 키플레이어</em><small>'+esc(p.facts[0])+'</small></button>';
+  }
+  return '<div class="sh"><h3>오늘의 키플레이어</h3><span>시즌 기록 기준</span></div><div class="kps">'+col(a,g.a)+col(b,g.h)+'</div>';
+}
+/* 내 팀 소식 (앱 TeamNewsSection). 미리보기는 기사를 불러올 수 없어 자리만 */
+function newsSection(){
+  if (!S.my) return '';
+  return '<div class="sh"><h3>'+esc(T[S.my].s)+' 소식</h3><span>더보기 ›</span></div><div class="card news">'+
+    [0,1,2].map(function(){ return '<div class="nrow"><i style="width:86%"></i><i style="width:60%"></i><i class="s" style="width:34%"></i></div>'; }).join('')+
+    '<p>앱에서는 네이버 뉴스 검색으로 '+esc(T[S.my].n)+' 최신 기사가 나와요. 이적·계약·부상 기사엔 꼬리표가 붙고, 오프시즌엔 홈 맨 위로 올라와요. 미리보기에서는 기사를 불러올 수 없어요.</p></div>';
+}
+function vBlocks(){
+  var list=S.blocked||[];
+  return '<div class="overlay" data-act="close"><div class="sheet" data-stop="1"><div class="grab"></div><h4>차단한 사용자</h4>'+
+    (list.length?'<div class="blist">'+list.map(function(n){ return '<div class="brow"><span>'+esc(n)+'</span><button data-act="unblock" data-v="'+esc(n)+'">차단 해제</button></div>'; }).join('')+'</div>'
+      :'<p class="mnone" style="text-align:center;padding:20px 0">차단한 사용자가 없어요</p>')+
+    '<p class="vnote">차단한 사람의 글·댓글·응원톡은 보이지 않아요.</p><button class="btn amber" style="margin-top:12px" data-act="close" data-done="1">완료</button></div></div>';
+}
+
 /* ── 덮개 ── */
 // 응원톡 자동 검열 (서버 moderation.js 와 같은 규칙을 줄여 옮김)
 var CHAT_ALLOW=['시발점','시발역','십자가','새끼손가락','새끼발가락','개나리'];
@@ -1644,12 +1719,14 @@ function vOverlay(){
   if (S.overlay==='chat') return vChat();
   if (S.overlay==='write') return vWrite();
   if (S.overlay==='theme') return vTheme();
+  if (S.overlay==='blocks') return vBlocks();
   if (S.overlay==='diary') return vDiarySheet();
   if (S.overlay==='sheet') return '<div class="overlay" data-act="close"><div class="sheet" data-stop="1"><div class="grab"></div><h4>응원 팀</h4><div class="tgrid">'+
     PICK.map(function(k){ return '<button class="tcard" data-act="setteam" data-v="'+k+'" aria-pressed="'+(S.my===k)+'" style="--tc:'+T[k].c+'">'+emb(k,40)+'<span><b>'+esc(T[k].n)+'</b><small>'+esc(T[k].h)+'</small></span></button>'; }).join('')+'</div></div></div>';
   if (S.overlay==='noti') return '<div class="overlay" data-act="close"><div class="sheet" data-stop="1"><div class="grab"></div><h4>알림 설정</h4>'+
     '<div class="glabel">내 팀 경기</div><div class="grp">'+PREFS.map(function(p){ return toggle(p[0],p[1],p[2]); }).join('')+'</div>'+
     '<div class="glabel">관심 선수</div><div class="grp">'+toggle('players','관심 선수 알림','타자는 타석 결과마다, 투수는 등판·강판 때')+'</div>'+
+    '<div class="glabel">커뮤니티</div><div class="grp">'+toggle('comments','내 글에 댓글','누가 내 글에 댓글을 달면')+'</div>'+
     '<div class="glabel">실시간 현황</div><div class="grp">'+toggle('liveActivity','경기 시작 때 잠금화면에 자동으로','실시간 점수판이 잠금화면과 다이내믹 아일랜드에 떠요')+'</div>'+
     '<button class="btn amber" style="margin-top:16px" data-act="close" data-done="1">완료</button></div></div>';
   if (S.overlay==='delete') return '<div class="overlay" data-act="close"><div class="dialog" data-stop="1"><div class="box"><div class="msg"><b>정말 탈퇴할까요?</b>계정과 응원 팀·알림 설정이 모두 지워지고 알림도 더 이상 오지 않아요.</div>'+
@@ -1881,6 +1958,10 @@ document.getElementById('screen').addEventListener('click',function(e){
       render(); break;
     case 'predict': var pg=gameById(S.seg); if (pg.status==='scheduled'&&S.user){ S.pred[pg.id]=v; render(); } break;
     case 'theme': S.overlay='theme'; render(); break;
+    case 'hot': S.hot=v==='1'; if (S.hot) S.cq=''; S.anim='fade'; render(); break;
+    case 'block': (S.blocked=S.blocked||[]).push(v); S.sub=S.hist.length?S.hist.pop():null; S.anim='pop'; render(); break;
+    case 'blocks': S.overlay='blocks'; render(); break;
+    case 'unblock': S.blocked=(S.blocked||[]).filter(function(n){ return n!==v; }); render(); break;
     case 'settheme': S.lt=v; render(); break;
     case 'chatsend2': var c2=document.getElementById('chat-in2'), v2=(c2.value||'').replace(/\s+/g,' ').trim();
       if (v2){ var why2=screenChat(v2), gid2=gameById(S.seg).id; S.chatErr=why2;
@@ -1909,6 +1990,7 @@ document.getElementById('screen').addEventListener('change',function(e){
 function navTo(sub){ if (S.sub) S.hist.push(S.sub); S.sub=sub; S.anim='push'; render(); document.getElementById('view').scrollTop=0;
   if (sub==='search'){ var q=document.getElementById('q'); if (q) q.focus(); } }
 document.getElementById('screen').addEventListener('keydown',function(e){
+  if (e.target.id==='cq' && e.key==='Enter' && !e.isComposing){ e.preventDefault(); S.cq=e.target.value; S.hot=false; render(); var cq=document.getElementById('cq'); if (cq){ cq.focus(); cq.setSelectionRange(cq.value.length,cq.value.length); } }
   if ((e.target.id==='chat-in2'||e.target.id==='cmt-in') && e.key==='Enter' && !e.isComposing){ e.preventDefault(); var b2=document.querySelector(e.target.id==='cmt-in'?'[data-act="cmt"]':'[data-act="chatsend2"]'); if (b2) b2.click(); }
   if (e.target.id==='chat-in' && e.key==='Enter' && !e.isComposing){ e.preventDefault(); var b=document.querySelector('[data-act="chatsend"]'); if (b) b.click(); }
 });

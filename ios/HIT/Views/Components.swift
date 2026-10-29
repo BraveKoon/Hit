@@ -392,6 +392,7 @@ struct RouteView: View {
         case .player(let id): PlayerDetailView(playerId: id)
         case .search: PlayerSearchView()
         case .post(let id): PostDetailView(postId: id)
+        case .news: NewsListView()
         }
     }
 }

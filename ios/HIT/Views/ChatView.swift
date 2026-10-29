@@ -87,6 +87,9 @@ struct ChatSheet: View {
                 if canWrite {
                     Button(role: .destructive) { report(m) } label: { Label("신고하기", systemImage: "exclamationmark.bubble") }
                 }
+                if canWrite {
+                    Button(role: .destructive) { block(m) } label: { Label("\(m.nickname) 차단", systemImage: "hand.raised") }
+                }
                 Button { hidden.insert(m.id) } label: { Label("이 메시지 가리기", systemImage: "eye.slash") }
             }
         }
@@ -141,6 +144,16 @@ struct ChatSheet: View {
                 notice = nil
             } catch {
                 notice = error.localizedDescription
+            }
+        }
+    }
+
+    /// 차단하면 그 사람 메시지를 지금 목록에서도 바로 지운다
+    private func block(_ m: ChatMessage) {
+        let name = m.nickname, team = m.team
+        Task {
+            if (try? await APIClient().block(.chat(m.id))) != nil {
+                messages.removeAll { $0.nickname == name && $0.team == team && !$0.mine }
             }
         }
     }

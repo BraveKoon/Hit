@@ -14,6 +14,7 @@ enum Route: Hashable {
     case player(String)
     case search
     case post(Int)
+    case news
 }
 
 /// 앱 전체 상태: 응원 팀, 알림 설정, 탭·내비게이션.
@@ -138,6 +139,11 @@ final class AppModel {
     func finishOnboarding() {
         onboarded = true
         defaults.set(true, forKey: "onboarded")
+    }
+
+    func open(postId: Int) {
+        tab = .community
+        communityPath = [.post(postId)]
     }
 
     func open(gameId: String, inning: Int? = nil) {

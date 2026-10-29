@@ -132,11 +132,48 @@ struct APIClient {
 
     // MARK: 커뮤니티
 
-    func posts(team: String?, before: Int? = nil) async throws -> PostsResponse {
+    /// hot: 최근 3일 인기 글, query: 제목·내용·선수 태그 검색
+    func posts(team: String?, before: Int? = nil, hot: Bool = false, query: String? = nil) async throws -> PostsResponse {
         var q: [URLQueryItem] = []
         if let team { q.append(URLQueryItem(name: "team", value: team)) }
         if let before { q.append(URLQueryItem(name: "before", value: String(before))) }
+        if hot { q.append(URLQueryItem(name: "sort", value: "hot")) }
+        if let query, !query.isEmpty { q.append(URLQueryItem(name: "q", value: query)) }
         return try await send("GET", "v1/posts", query: q)
+    }
+
+    enum BlockTarget { case post(Int), comment(Int), chat(Int) }
+
+    /// 그 글·댓글·응원톡을 쓴 사람 차단
+    func block(_ target: BlockTarget) async throws -> BlockResult {
+        struct Body: Encodable { var post: Int?; var comment: Int?; var chat: Int? }
+        let body: Body = switch target {
+        case .post(let id): Body(post: id)
+        case .comment(let id): Body(comment: id)
+        case .chat(let id): Body(chat: id)
+        }
+        return try await send("POST", "v1/blocks", body: body)
+    }
+
+    func blocks() async throws -> BlocksResponse {
+        try await send("GET", "v1/me/blocks")
+    }
+
+    func unblock(userId: Int) async throws {
+        struct Deleted: Decodable { let deleted: Bool }
+        let _: Deleted = try await send("DELETE", "v1/me/blocks/\(userId)")
+    }
+
+    // MARK: 날씨 · 소식
+
+    func weather(gameId: String) async throws -> GameWeather {
+        try await send("GET", "v1/games/\(gameId)/weather")
+    }
+
+    func news(team: String, tag: String? = nil) async throws -> NewsResponse {
+        var q = [URLQueryItem(name: "team", value: team)]
+        if let tag { q.append(URLQueryItem(name: "tag", value: tag)) }
+        return try await send("GET", "v1/news", query: q)
     }
 
     func post(id: Int) async throws -> CommunityPost {

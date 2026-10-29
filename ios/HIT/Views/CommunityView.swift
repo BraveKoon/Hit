@@ -12,6 +12,9 @@ struct CommunityView: View {
     @State private var loading = false
     @State private var failed = false
     @State private var writing = false
+    @State private var hot = false           // 최신 · 인기(최근 3일)
+    @State private var query = ""            // 입력 중인 검색어
+    @State private var searched = ""         // 검색한 말 (엔터를 눌러야 찾는다)
     private var auth: AuthManager { AuthManager.shared }
 
     private var boards: [(String, String)] {
@@ -28,7 +31,9 @@ struct CommunityView: View {
                     AppHeader(title: "커뮤니티") { model.communityPath.append(.search) }
                         .padding(.bottom, 14)
                     PillChips(items: boards, selection: $board)
-                        .padding(.bottom, 12)
+                        .padding(.bottom, 10)
+                    filterBar
+                        .padding(.bottom, 6)
                     if posts.isEmpty {
                         emptyState
                     }
@@ -51,12 +56,48 @@ struct CommunityView: View {
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
             .overlay(alignment: .bottomTrailing) { writeButton }
             .refreshable { await load() }
-            .task(id: board) { await load() }
+            .task(id: "\(board)|\(hot)|\(searched)") { await load() }
             .sheet(isPresented: $writing) {
                 PostEditor(team: board.isEmpty ? (model.myTeam ?? "LG") : board) { new in
                     posts.insert(new, at: 0)
                 }
             }
+        }
+    }
+
+    /// 최신 | 인기 + 검색칸
+    private var filterBar: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 0) {
+                ForEach([false, true], id: \.self) { h in
+                    Button { withAnimation(.snappy) { hot = h; if h { query = ""; searched = "" } } } label: {
+                        Text(h ? "인기" : "최신")
+                            .font(Typo.style(.footnote, hot == h ? .bold : .medium))
+                            .foregroundStyle(hot == h ? Palette.text : Palette.muted)
+                            .frame(width: 52, height: 32)
+                            .background(hot == h ? Color.white.opacity(0.14) : .clear, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(3)
+            .background(Palette.surface, in: Capsule())
+            .sensoryFeedback(.selection, trigger: hot)
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.muted)
+                TextField("글 검색", text: $query)
+                    .font(Typo.style(.footnote))
+                    .submitLabel(.search)
+                    .onSubmit { hot = false; searched = query.trimmingCharacters(in: .whitespaces) }
+                if !query.isEmpty {
+                    Button { query = ""; searched = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Palette.muted) }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("검색어 지우기")
+                }
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 38)
+            .background(Palette.surface, in: Capsule())
         }
     }
 
@@ -66,7 +107,7 @@ struct CommunityView: View {
                 SkeletonList(hero: 0, rows: 4)
             } else {
                 Image(systemName: failed ? "wifi.exclamationmark" : "text.bubble").font(.system(size: 30)).foregroundStyle(Palette.muted)
-                Text(failed ? "글을 불러오지 못했어요" : "아직 글이 없어요. 첫 글을 남겨 보세요")
+                Text(failed ? "글을 불러오지 못했어요" : !searched.isEmpty ? "'\(searched)' 검색 결과가 없어요" : hot ? "최근 3일 동안 반응이 있는 글이 없어요" : "아직 글이 없어요. 첫 글을 남겨 보세요")
                     .font(Typo.style(.subheadline)).foregroundStyle(Palette.muted)
             }
         }
@@ -95,7 +136,7 @@ struct CommunityView: View {
         loading = true
         defer { loading = false }
         do {
-            let r = try await APIClient().posts(team: board.isEmpty ? nil : board, before: more ? next : nil)
+            let r = try await APIClient().posts(team: board.isEmpty ? nil : board, before: more ? next : nil, hot: hot, query: searched)
             posts = more ? posts + r.posts : r.posts
             next = r.next
             failed = false
@@ -199,6 +240,7 @@ struct PostDetailView: View {
     @State private var notice: String?
     @State private var hidden: Set<Int> = []
     @State private var confirmDelete = false
+    @State private var confirmBlock = false
     private var canWrite: Bool { AuthManager.shared.state == .signedIn }
 
     var body: some View {
@@ -225,9 +267,15 @@ struct PostDetailView: View {
                         Button(role: .destructive) { confirmDelete = true } label: { Label("글 지우기", systemImage: "trash") }
                     } else {
                         Button(role: .destructive) { reportPost(post) } label: { Label("신고하기", systemImage: "exclamationmark.bubble") }
+                        Button(role: .destructive) { confirmBlock = true } label: { Label("\(post.nickname) 차단", systemImage: "hand.raised") }
                     }
                 } label: { Image(systemName: "ellipsis") }
             }
+        }
+        .confirmationDialog("\(post?.nickname ?? "") 님을 차단할까요?", isPresented: $confirmBlock, titleVisibility: .visible) {
+            Button("차단하기", role: .destructive) { blockAuthor(.post(postId)) }
+        } message: {
+            Text("이 사람의 글·댓글·응원톡이 더 이상 보이지 않아요. MY > 차단한 사용자에서 풀 수 있어요.")
         }
         .confirmationDialog("이 글을 지울까요?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("지우기", role: .destructive) { deletePost() }
@@ -299,6 +347,10 @@ struct PostDetailView: View {
                     hidden.insert(c.id)
                     Task { try? await APIClient().reportComment(id: c.id) }
                 } label: { Label("신고하기", systemImage: "exclamationmark.bubble") }
+                Button(role: .destructive) {
+                    hidden.insert(c.id)
+                    Task { try? await APIClient().block(.comment(c.id)); await load() }
+                } label: { Label("\(c.nickname) 차단", systemImage: "hand.raised") }
             }
             Button { hidden.insert(c.id) } label: { Label("이 댓글 가리기", systemImage: "eye.slash") }
         }
@@ -376,6 +428,17 @@ struct PostDetailView: View {
         Task {
             try? await APIClient().reportPost(id: p.id)
             dismiss()
+        }
+    }
+
+    private func blockAuthor(_ target: APIClient.BlockTarget) {
+        Task {
+            do {
+                _ = try await APIClient().block(target)
+                dismiss()
+            } catch {
+                notice = error.localizedDescription
+            }
         }
     }
 

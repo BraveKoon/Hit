@@ -1366,7 +1366,11 @@ struct PreviewTab: View {
         VStack(alignment: .leading, spacing: 22) {
             infoChips
             if game.status != .canceled { PredictionCard(game: game) }
+            WeatherCard(game: game)
             if let p = preview {
+                if let keys = p.keyPlayers, keys.away != nil || keys.home != nil {
+                    KeyPlayersCard(game: game, players: keys)
+                }
                 StarterMatchup(game: game, starters: p.starters)
                 TeamCompare(game: game, teams: p.teams)
                 HeadToHeadCard(game: game, h2h: p.headToHead)

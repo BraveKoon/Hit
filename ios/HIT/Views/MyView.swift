@@ -12,6 +12,7 @@ struct MyView: View {
     @State private var newName = ""
     @State private var confirmDelete = false
     @State private var showTheme = false
+    @State private var showBlocks = false
     @State private var record: PredictionRecord?
     private var auth: AuthManager { AuthManager.shared }
 
@@ -63,6 +64,10 @@ struct MyView: View {
                         row("lock.iphone", "잠금화면 테마") { showTheme = true }
                         Divider().overlay(Palette.surfaceHigh)
                         if auth.state == .signedIn {
+                            row("hand.raised.fill", "차단한 사용자") { showBlocks = true }
+                            Divider().overlay(Palette.surfaceHigh)
+                        }
+                        if auth.state == .signedIn {
                             row("rectangle.portrait.and.arrow.right", "로그아웃") { Task { await auth.signOut() } }
                             Divider().overlay(Palette.surfaceHigh)
                             row("person.crop.circle.badge.xmark", "회원 탈퇴", tint: Palette.red) { confirmDelete = true }
@@ -86,6 +91,7 @@ struct MyView: View {
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
             .sheet(isPresented: $showTeams) { teamSheet }
             .sheet(isPresented: $showSettings) { NavigationStack { NotificationSettingsView() } }
+            .sheet(isPresented: $showBlocks) { BlockedUsersView() }
             .sheet(isPresented: $showTheme) { LiveThemeSheet().presentationDetents([.large]) }
             .task(id: auth.state) {
                 if auth.state == .signedIn {
@@ -198,6 +204,9 @@ struct NotificationSettingsView: View {
             }
             Section("관심 선수") {
                 toggle("관심 선수 알림", "타자는 타석 결과마다, 투수는 등판·강판 때", \.players)
+            }
+            Section("커뮤니티") {
+                toggle("내 글에 댓글", "누가 내 글에 댓글을 달면", \.comments)
             }
             Section("실시간 현황") {
                 toggle("경기 시작 때 잠금화면에 자동으로", "경기 중 실시간 점수판이 잠금화면과 다이내믹 아일랜드에 떠요", \.liveActivity)

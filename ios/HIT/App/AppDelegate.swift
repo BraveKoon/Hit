@@ -31,7 +31,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     // 알림을 누르면 그 경기 중계로, 이닝이 실려 있으면 그 이닝 문자중계까지.
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         let info = response.notification.request.content.userInfo
-        if let id = info["gameId"] as? String {
+        if let post = (info["postId"] as? NSNumber)?.intValue {
+            await MainActor.run { AppModel.shared.open(postId: post) }   // 커뮤니티 댓글 알림
+        } else if let id = info["gameId"] as? String {
             let inning = (info["inning"] as? NSNumber)?.intValue
             await MainActor.run { AppModel.shared.open(gameId: id, inning: inning) }
         }

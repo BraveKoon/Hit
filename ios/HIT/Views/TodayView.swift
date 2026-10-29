@@ -17,6 +17,7 @@ struct TodayView: View {
     private var myGames: [Game] { games.filter { $0.involves(model.myTeam) } }
     private var otherGames: [Game] { games.filter { !$0.involves(model.myTeam) } }
     private var anyLive: Bool { games.contains { $0.status == .live } }
+    private var offseason: Bool { loaded && isToday && myGames.isEmpty && upcoming == nil }
 
     var body: some View {
         @Bindable var model = model
@@ -38,7 +39,14 @@ struct TodayView: View {
                     }
                     if showDates { DateStrip(selection: $date).transition(.move(edge: .top).combined(with: .opacity)) }
                     Text(greeting).font(Typo.style(.subheadline, .medium)).foregroundStyle(Palette.muted)
+                    // 오프시즌(오늘도 앞으로 7일도 내 팀 경기가 없음): 내 팀 소식을 경기 목록보다 먼저
+                    if offseason, let team = model.team {
+                        TeamNewsSection(team: team, offseason: true) { model.todayPath.append(.news) }
+                    }
                     content
+                    if !offseason, let team = model.team {
+                        TeamNewsSection(team: team) { model.todayPath.append(.news) }
+                    }
                     // 대진표는 오늘 경기 아래 (가장 궁금한 내 팀 경기가 첫 화면에 오도록)
                     if let postseason, postseason.active, isToday {
                         SectionHeader(title: "\(postseason.season) 포스트시즌", detail: postseason.champion.flatMap { Team.find($0)?.short }.map { "\($0) 우승" } ?? postseason.current?.name)
