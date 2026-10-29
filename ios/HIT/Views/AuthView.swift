@@ -60,7 +60,7 @@ struct AuthView: View {
                 }
                 .modifier(rise(3))
                 .disabled(auth.busy)
-                .overlay { if auth.busy { ProgressView().tint(Palette.amber) } }
+                .overlay { if auth.busy { ProgressView().tint(Palette.accent) } }
 
                 if let error = auth.error {
                     Text(error)
@@ -87,7 +87,7 @@ struct AuthView: View {
     private var background: some View {
         ZStack {
             Palette.background
-            RadialGradient(colors: [Palette.amber.opacity(0.28), .clear], center: .init(x: 0.85, y: -0.05), startRadius: 10, endRadius: 420)
+            RadialGradient(colors: [Palette.accent.opacity(0.28), .clear], center: .init(x: 0.85, y: -0.05), startRadius: 10, endRadius: 420)
             RadialGradient(colors: [Palette.live.opacity(0.10), .clear], center: .init(x: 0.1, y: 1.1), startRadius: 10, endRadius: 380)
         }
         .ignoresSafeArea()

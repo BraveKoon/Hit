@@ -6,12 +6,12 @@
 :root{
   --paper:#f4f5f1; --paper-2:#e9ebe4; --card:#ffffff; --line:#d6d9cf;
   --ink:#14181a; --ink-2:#4b534f; --muted:#6d756f;
-  --amber:#e0912a; --amber-soft:#f7e3c2; --amber-ink:#7a4a0d; --link:#8a4f0c; --live:#17824f;
+  --amber:#e8703a; --amber-soft:#fde0d2; --amber-ink:#8a3510; --link:#a2401a; --live:#17824f;
   --frame:#1b1e22; --frame-edge:#3a4046;
-  --brand-amber:#f2a33c; --brand-ink:#111111;
+  --brand-amber:#ff8a4c; --brand-ink:#111111;
   /* 기기 화면 = 앱의 Palette (항상 다크) */
   --bg:#000000; --sf:rgba(255,255,255,.075); --sf2:rgba(255,255,255,.13); --ln:rgba(255,255,255,.09);
-  --tx:#ffffff; --mu:#8e8e93; --am:#f2a33c; --lv:#36d583; --rd:#e2544a; --clay:#b4512f;
+  --tx:#ffffff; --mu:#8e8e93; --am:#ff8a4c; --lv:#36d583; --rd:#e2544a; --clay:#b4512f;
   --kakao:#fee500;
   --sans:'IBM Plex Sans KR',system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
@@ -22,13 +22,13 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --paper:#101211; --paper-2:#181b19; --card:#171a18; --line:#2a2e2b;
   --ink:#edf0ec; --ink-2:#bdc4bf; --muted:#939c96;
-  --amber:#f2a33c; --amber-soft:#3a2b14; --amber-ink:#f5bf73; --link:#f5bf73; --live:#36d583;
+  --amber:#ff8a4c; --amber-soft:#3a2014; --amber-ink:#ffb08a; --link:#ffb08a; --live:#36d583;
   --frame:#07080a; --frame-edge:#2a2f35; color-scheme:dark;
 }}
 :root[data-theme="dark"]{
   --paper:#101211; --paper-2:#181b19; --card:#171a18; --line:#2a2e2b;
   --ink:#edf0ec; --ink-2:#bdc4bf; --muted:#939c96;
-  --amber:#f2a33c; --amber-soft:#3a2b14; --amber-ink:#f5bf73; --link:#f5bf73; --live:#36d583;
+  --amber:#ff8a4c; --amber-soft:#3a2014; --amber-ink:#ffb08a; --link:#ffb08a; --live:#36d583;
   --frame:#07080a; --frame-edge:#2a2f35; color-scheme:dark;
 }
 [hidden]{display:none!important}
@@ -87,7 +87,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .ix-sit{display:flex;align-items:center;gap:7px}
 .bso{display:grid;grid-template-columns:auto auto auto auto;gap:2px 3px;align-items:center;font-size:7.5px;font-weight:800;color:#8e8e93}
 .bso i{width:5.5px;height:5.5px;border-radius:50%;background:rgba(255,255,255,.18)}
-.bso i.b{background:#36d583}.bso i.s{background:#f2a33c}.bso i.o{background:#e2544a}
+.bso i.b{background:#36d583}.bso i.s{background:#ff8a4c}.bso i.o{background:#e2544a}
 .ix-play{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.1);font-size:12px}
 .ix-play span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(255,255,255,.9)}
 .ix-play .logo{height:9px;color:var(--am)}.ix-play em{font-style:normal;color:var(--am);font-size:11px}
@@ -97,7 +97,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .mphone .island{position:absolute;top:8px;left:50%}
 .mview:has(.hs){position:static}.mphone .msb{position:relative;z-index:3}.hs{z-index:1}
 .hs{position:absolute;inset:0;padding:200px 26px 0;display:grid;grid-template-columns:repeat(4,1fr);gap:22px 18px;align-content:start;
-  background:radial-gradient(80% 50% at 20% 20%,rgba(7,76,161,.55),transparent 70%),radial-gradient(70% 50% at 90% 80%,rgba(242,163,60,.35),transparent 70%),#0b0d12}
+  background:radial-gradient(80% 50% at 20% 20%,rgba(7,76,161,.55),transparent 70%),radial-gradient(70% 50% at 90% 80%,rgba(255,138,76,.35),transparent 70%),#0b0d12}
 .hs i{aspect-ratio:1;border-radius:16px;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.18)}
 @media (prefers-reduced-motion:reduce){.island{transition:none}.island.bump{animation:none}}
 .statusbar{flex:none;height:46px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 4px;font-size:13px;font-weight:600;z-index:30}
@@ -135,7 +135,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 
 /* ── 로그인 ── */
 .auth{min-height:100%;display:flex;flex-direction:column;padding:0 24px 18px;
-  background:radial-gradient(120% 60% at 95% -5%,rgba(242,163,60,.30),transparent 60%),radial-gradient(90% 50% at 5% 110%,rgba(54,213,131,.10),transparent 60%)}
+  background:radial-gradient(120% 60% at 95% -5%,rgba(255,138,76,.30),transparent 60%),radial-gradient(90% 50% at 5% 110%,rgba(54,213,131,.10),transparent 60%)}
 .auth .logo{height:56px;color:var(--tx);margin-top:auto;margin-bottom:24px}
 .auth h1{margin:0;font-size:31px;line-height:1.28;font-weight:900;letter-spacing:-.02em}
 .auth p.sub{margin:12px 0 0;color:var(--mu);font-size:15px;line-height:1.55}
@@ -151,7 +151,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .ob p.sub{margin:8px 0 18px;color:var(--mu);font-size:14px}
 .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}
 .tcard{display:flex;align-items:center;gap:10px;padding:11px;border-radius:16px;background:var(--sf);border:1px solid var(--ln);cursor:pointer;text-align:left}
-.tcard b{display:block;font-size:13.5px;font-weight:700;white-space:nowrap}.tcard small{color:var(--mu);font-size:11.5px}
+.tcard b{display:block;font-size:13.5px;font-weight:700;white-space:nowrap}.tcard span{flex:1;min-width:0}
+.tcard .ok{width:20px;height:20px;border-radius:50%;background:#fff;color:var(--tc);font-style:normal;font-weight:900;font-size:12px;display:grid;place-items:center;flex:none}.tcard small{color:var(--mu);font-size:11.5px}
 .tcard[aria-pressed="true"]{border:2px solid var(--tc);padding:10px}
 .ob .cta{margin-top:auto}
 .sample{display:grid;grid-template-columns:36px 1fr;gap:10px;padding:12px;border-radius:20px;background:rgba(45,55,70,.65);border:1px solid rgba(255,255,255,.06)}
@@ -196,7 +197,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .dhero{border-radius:26px;padding:18px;border:1px solid rgba(255,255,255,.08)}
 .dhero .top{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(241,244,247,.72)}
 .dhero .mid{display:grid;grid-template-columns:86px 1fr 86px;align-items:center;margin-top:14px}
-.lapill{width:100%;height:44px;border:0;border-radius:99px;margin:12px 0 4px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;background:rgba(242,163,60,.14);color:var(--am)}
+.lapill{width:100%;height:44px;border:0;border-radius:99px;margin:12px 0 4px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;background:rgba(255,138,76,.14);color:var(--am)}
 .lapill.on{background:var(--sf2);color:var(--tx)}
 .dtabs{display:flex;border-bottom:1px solid var(--ln);margin:10px 0 14px}
 .dtabs button{flex:1;background:none;border:0;padding:8px 0 0;cursor:pointer;color:var(--mu);font-size:14.5px;font-weight:500;display:flex;flex-direction:column;align-items:center;gap:8px}
@@ -207,7 +208,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .cnt{display:flex;flex-direction:column;gap:10px}.cnt div{display:flex;gap:7px;align-items:center}
 .cnt b{width:16px;font-family:var(--round);font-weight:900;color:var(--mu)}
 .lamp{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.1)}
-.lamp.b{background:var(--lv);box-shadow:0 0 6px rgba(54,213,131,.6)}.lamp.s{background:var(--am);box-shadow:0 0 6px rgba(242,163,60,.6)}.lamp.o{background:var(--rd);box-shadow:0 0 6px rgba(226,84,74,.6)}
+.lamp.b{background:var(--lv);box-shadow:0 0 6px rgba(54,213,131,.6)}.lamp.s{background:var(--am);box-shadow:0 0 6px rgba(255,138,76,.6)}.lamp.o{background:var(--rd);box-shadow:0 0 6px rgba(226,84,74,.6)}
 .vs{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:start;text-align:center}
 .vs .p{display:flex;flex-direction:column;align-items:center;gap:5px}.vs small{font-size:10.5px;color:var(--mu);font-weight:700}
 .vs b{font-size:14.5px}.vs em{font-style:normal;font-size:11px;color:var(--mu)}.vs .x{padding-top:22px;font-size:12px;font-weight:900;color:var(--mu)}
@@ -228,7 +229,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .rr.first{background:#121214}
 .rr .tm{display:flex;align-items:center;gap:10px;padding-left:10px;font-size:16.5px;font-weight:600;border-right:1px solid rgba(255,255,255,.05);height:100%}
 .rr .tm b{width:20px;text-align:center;font-weight:500;font-size:15px}
-.rr.mine{background:rgba(242,163,60,.14)}.rr.mine::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--am)}
+.rr.mine{background:rgba(255,138,76,.14)}.rr.mine::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--am)}
 .rr.mine .tm{font-weight:900}
 .lthd{display:grid;grid-template-columns:1fr repeat(5,44px);padding:12px 6px 12px 0;font-size:12.5px;color:rgba(255,255,255,.85);border-bottom:2px solid var(--sf2);margin:10px -16px 0;text-align:center}
 .lthd span:first-child{text-align:left;padding-left:56px}
@@ -236,7 +237,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .skel .who{display:flex;align-items:center;gap:10px;padding-left:10px}.skel .who b{width:20px;text-align:center;font-weight:500;color:var(--mu)}
 .skel i{display:block;height:9px;border-radius:5px;background:rgba(255,255,255,.08);margin:0 8px}.skel .who i{width:70px;margin:0}
 .skel .dot{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.08)}
-.note{background:rgba(242,163,60,.1);border:1px solid rgba(242,163,60,.25);color:#f6d6a6;border-radius:16px;padding:12px 14px;font-size:12.5px;line-height:1.55;margin-top:12px}
+.note{background:rgba(255,138,76,.1);border:1px solid rgba(255,138,76,.25);color:#ffd2bd;border-radius:16px;padding:12px 14px;font-size:12.5px;line-height:1.55;margin-top:12px}
 .sbox{display:flex;align-items:center;gap:10px;height:52px;border-radius:99px;background:var(--sf);padding:0 16px;color:var(--mu)}
 .sbox input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--tx);font:inherit;font-size:16px}
 .sbox:focus-within{box-shadow:0 0 0 2px var(--am)}
@@ -268,7 +269,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .setrows button{width:100%;height:54px;display:flex;align-items:center;gap:12px;padding:0 16px;border:0;border-bottom:1px solid var(--sf2);background:none;cursor:pointer;font-size:16px;text-align:left}
 .setrows button:last-child{border-bottom:0}.setrows button span{flex:1}.setrows .red{color:#ff6b61}.setrows .amb{color:var(--am)}
 /* ── 글라스: 반투명 + 뒤가 흐리게 비침 + 위쪽 밝은 테두리 ── */
-#view{background:radial-gradient(70% 38% at 100% 0%,rgba(242,163,60,.22),transparent 70%),radial-gradient(85% 45% at 0% 78%,var(--glow,rgba(242,163,60,.14)),transparent 70%),#000}
+#view{background:radial-gradient(70% 38% at 100% 0%,rgba(255,138,76,.22),transparent 70%),radial-gradient(85% 45% at 0% 78%,var(--glow,rgba(255,138,76,.14)),transparent 70%),#000}
 .card,.gcard,.gc2,.half,.plist,.myteam,.setrows,.sbox,.fact,.favempty,.lsbox,.dchip:not([aria-pressed="true"]),.cbtn,.addbtn,.grp,.prof,.rank,.dhero,.phero{
   -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);
   border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
@@ -328,14 +329,14 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 #view.anim-fade{animation:fadeIn .25s ease-out}
 #view.anim-tab .pad>*,#view.anim-push .pad>*,#view.anim-screen .pad>*,#view.anim-screen .auth>*,#view.anim-screen .ob>*,#view.anim-fade .rtbl>*,#view.anim-tab .rtbl>*{
   animation:rise .5s cubic-bezier(.2,.8,.25,1) both;animation-delay:calc(var(--i,0)*45ms)}
-@keyframes bump{0%{transform:scale(1)}28%{transform:scale(1.24);text-shadow:0 0 26px rgba(242,163,60,.85)}100%{transform:scale(1)}}
+@keyframes bump{0%{transform:scale(1)}28%{transform:scale(1.24);text-shadow:0 0 26px rgba(255,138,76,.85)}100%{transform:scale(1)}}
 .bump{animation:bump .65s cubic-bezier(.3,1.6,.5,1);display:inline-block}
 @keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.55) rotate(-12deg)}100%{transform:scale(1)}}
 .star.pop,.favbtn.pop{animation:pop .45s cubic-bezier(.3,1.7,.5,1)}
 #fx{position:absolute;inset:0;z-index:45;pointer-events:none;overflow:hidden}
-.burst{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(60% 40% at 50% 42%,rgba(242,163,60,.28),transparent 70%);animation:fadeIn .2s}
+.burst{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(60% 40% at 50% 42%,rgba(255,138,76,.28),transparent 70%);animation:fadeIn .2s}
 .burst .hr{text-align:center;animation:hrText 2.1s cubic-bezier(.2,1.4,.4,1) both}
-.burst .hr b{display:block;font-family:var(--round);font-size:46px;font-weight:900;color:var(--am);letter-spacing:-.01em;text-shadow:0 0 30px rgba(242,163,60,.7)}
+.burst .hr b{display:block;font-family:var(--round);font-size:46px;font-weight:900;color:var(--am);letter-spacing:-.01em;text-shadow:0 0 30px rgba(255,138,76,.7)}
 .burst .hr span{font-size:18px;font-weight:800}
 @keyframes hrText{0%{transform:scale(.35);opacity:0}12%{transform:scale(1.2);opacity:1}30%{transform:scale(1)}82%{opacity:1}100%{opacity:0;transform:scale(1.05)}}
 .burst i{position:absolute;left:50%;top:42%;width:var(--w);height:calc(var(--w)*1.6);border-radius:2px;background:var(--c);
@@ -365,7 +366,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .bkcard{margin-top:14px;padding:14px 16px;border-radius:22px;background:var(--sf);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12)}
 .bkrow{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13.5px}
 .bkrow .l{width:44px;font-weight:600;white-space:nowrap}.bkrow .bar{flex:1;height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
-.bkrow .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,rgba(242,163,60,.7),var(--am));transition:width .5s}
+.bkrow .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,rgba(255,138,76,.7),var(--am));transition:width .5s}
 .bkrow>b{width:40px;text-align:right;font-variant-numeric:tabular-nums}.bkrow small{width:54px;text-align:right;color:var(--mu);font-size:11.5px}
 .cal{padding:14px;border-radius:22px;background:var(--sf);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12)}
 .cal .ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.cal .ch b{font-size:15px}
@@ -374,7 +375,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .cg .wd{text-align:center;font-size:10.5px;font-weight:800;color:var(--mu)}.cg .wd.sun{color:rgba(226,84,74,.85)}
 .cd{position:relative;height:50px;border:0;border-radius:10px;background:none;color:rgba(255,255,255,.35);display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0 0;font:inherit;cursor:default}
 .cd.has{color:#fff;cursor:pointer}.cd.has:active{transform:scale(.94)}.cd.today{background:rgba(255,255,255,.06)}.cd.today .n{color:var(--am);font-weight:900}
-.cd .n{font-size:12px}.cd.rec{box-shadow:inset 0 0 0 1px rgba(242,163,60,.6)}
+.cd .n{font-size:12px}.cd.rec{box-shadow:inset 0 0 0 1px rgba(255,138,76,.6)}
 .cd .r{font-style:normal;width:26px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:900}
 .cd .r.win{background:var(--am);color:#000}.cd .r.lose{background:rgba(255,255,255,.18)}.cd .r.draw{background:rgba(255,255,255,.45)}
 .cd .tk{position:absolute;right:3px;bottom:3px;color:var(--am);line-height:0}.cd .tk svg{width:9px;height:9px}
@@ -416,16 +417,16 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 @keyframes innIn{from{opacity:0;transform:translateY(6px)}}
 @media (prefers-reduced-motion:reduce){.innbody{animation:none}}
 .tgl{font-size:12px;font-weight:700;border-radius:99px;padding:5px 10px;border:0;cursor:pointer;background:var(--sf2);color:var(--mu)}
-.tgl[aria-pressed="true"]{background:rgba(242,163,60,.18);color:var(--am)}
+.tgl[aria-pressed="true"]{background:rgba(255,138,76,.18);color:var(--am)}
 .half{background:var(--sf);border-radius:18px;overflow:hidden}
 .half h4{margin:0;padding:10px 16px 6px;font-size:12px;color:var(--mu);font-weight:800}
 .play{display:flex;gap:10px;align-items:flex-start;padding:8px 14px 8px 11px;font-size:14px;line-height:1.45}
 .play i{width:3px;align-self:stretch;border-radius:3px;flex:none}
 .play span{flex:1}
-.play.hr{background:rgba(226,84,74,.06)}.play.hr i{background:var(--rd)}.play.run{background:rgba(242,163,60,.05)}.play.run i{background:var(--am)}
+.play.hr{background:rgba(226,84,74,.06)}.play.hr i{background:var(--rd)}.play.run{background:rgba(255,138,76,.05)}.play.run i{background:var(--am)}
 .play.hr span,.play.run span{font-weight:600}
 .tag{font-size:10.5px;font-weight:900;border-radius:99px;padding:2px 7px;flex:none}
-.tag.hr{background:rgba(226,84,74,.2);color:var(--rd)}.tag.run{background:rgba(242,163,60,.2);color:var(--am)}
+.tag.hr{background:rgba(226,84,74,.2);color:var(--rd)}.tag.run{background:rgba(255,138,76,.2);color:var(--am)}
 .lsbox{overflow-x:auto;background:var(--sf);border-radius:22px;padding:6px 0}
 table.ls{border-collapse:collapse;min-width:100%;font-variant-numeric:tabular-nums}
 table.ls th,table.ls td{width:28px;height:34px;text-align:center;font-size:12.5px;color:var(--mu);font-family:var(--round);font-weight:600;padding:0}
@@ -481,7 +482,7 @@ table.ls tbody tr{border-top:1px solid var(--ln)}
 
 /* ── 잠금화면 ── */
 .lockbg{min-height:100%;display:flex;flex-direction:column;padding:0 13px 10px;
-  background:radial-gradient(120% 70% at 50% 0%,rgba(242,163,60,.16),transparent 60%),linear-gradient(180deg,#0d1319,#070a0d)}
+  background:radial-gradient(120% 70% at 50% 0%,rgba(255,138,76,.16),transparent 60%),linear-gradient(180deg,#0d1319,#070a0d)}
 .clock{text-align:center;padding:12px 0 16px}.clock small{font-size:14px;color:var(--mu);font-weight:500}
 .clock b{display:block;font-size:72px;font-weight:300;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 /* 라이브 액티비티 (앱 LockScreenScoreboard 와 같은 배치): 구단 색 바탕, 팀·점수·주자 / 투수·이닝·타자 / B·S·OUT / 장면 */
@@ -826,18 +827,15 @@ function vOnboard(){
   if (o.step===0){
     var t=o.pick&&T[o.pick];
     return '<div class="ob">'+prog+'<h2>'+esc(name())+'님,<br>어느 팀을 응원하세요?</h2>'+
-      '<p class="sub">내 팀 경기를 중심으로 보여드리고 알림을 보내드려요.</p>'+
+
       '<div class="tgrid">'+PICK.map(function(k){
         return '<button class="tcard" data-act="pick" data-v="'+k+'" aria-pressed="'+(o.pick===k)+'" style="--tc:'+T[k].c+(o.pick===k?';background:linear-gradient(90deg,'+rgba(T[k].c,.45)+',#1d2531)':'')+'">'+emb(k,40)+
-          '<span><b>'+esc(T[k].n)+'</b><small>'+esc(T[k].h)+'</small></span></button>';
+          '<span><b>'+esc(T[k].n)+'</b></span>'+(o.pick===k?'<i class="ok" style="--tc:'+T[k].c+'">✓</i>':'')+'</button>';
       }).join('')+'</div>'+
       '<button class="btn cta" data-act="obnext" '+(t?'style="background:'+t.c+';color:#fff"':'style="background:var(--am);color:#000" disabled')+'>'+(t?esc(t.n)+' 응원하기':'팀을 골라 주세요')+'</button></div>';
   }
-  return '<div class="ob">'+prog+'<h2>중요한 순간을<br>놓치지 않게</h2><p class="sub">잠금화면에 이렇게 알려드려요.</p>'+
-    sample('역전! KIA 1 : 2 삼성','삼성 득점','3회말 · 구자욱 : 중견수 앞 1루타','지금','')+
-    sample('홈런! KIA 2 : 8 삼성','삼성 득점','7회말 · 최형우 : 우측 담장 넘어가는 홈런','12분 전','opacity:.72;transform:scale(.96);margin-top:8px')+
-    '<div class="feat" style="margin-top:22px">'+ICON.lock+'경기 중엔 잠금화면에 실시간 점수판이 떠요</div>'+
-    '<div class="feat"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12"/><circle cx="5" cy="4" r="1.6" fill="#0a0d11"/><circle cx="11" cy="8" r="1.6" fill="#0a0d11"/><circle cx="7" cy="12" r="1.6" fill="#0a0d11"/></svg>알림 종류는 MY에서 하나씩 끄고 켤 수 있어요</div>'+
+  return '<div class="ob">'+prog+'<h2>중요한 순간을<br>놓치지 않게</h2><p class="sub">득점·홈런·경기 결과를 잠금화면으로 알려드려요.<br>알림 종류는 MY에서 언제든 바꿀 수 있어요.</p>'+
+    '<div style="margin:auto 0">'+sample('역전! KIA 1 : 2 삼성','삼성 득점','3회말 · 구자욱 : 중견수 앞 1루타','지금','')+'</div>'+
     '<div class="cta" style="padding-top:20px"><button class="btn amber" data-act="obdone">알림 받기</button>'+
     '<button class="btn ghost" data-act="obdone">나중에</button></div></div>';
 }
@@ -931,7 +929,7 @@ function vGame(){
   return h+'</div></div>';
 }
 function fieldSVG(b){
-  function base(x,y,on){ return '<rect x="'+(x-7)+'" y="'+(y-7)+'" width="14" height="14" rx="2" transform="rotate(45 '+x+' '+y+')" fill="'+(on?'#f2a33c':'#fff')+'"/>'; }
+  function base(x,y,on){ return '<rect x="'+(x-7)+'" y="'+(y-7)+'" width="14" height="14" rx="2" transform="rotate(45 '+x+' '+y+')" fill="'+(on?'#ff8a4c':'#fff')+'"/>'; }
   return '<svg width="128" height="112" viewBox="0 0 128 112" role="img" aria-label="주자 상황"><defs><linearGradient id="gr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f6b3e"/><stop offset="1" stop-color="#154d2d"/></linearGradient></defs>'+
     '<path d="M64 108 L3.9 47.9 A85 85 0 0 1 124.1 47.9 Z" fill="url(#gr)"/>'+
     '<path d="M64 100 L98 66 L64 32 L30 66 Z" fill="#b4512f" fill-opacity=".85" stroke="#fff" stroke-opacity=".7" stroke-width="1.5"/>'+
@@ -985,7 +983,7 @@ function recordTab(g){
   var n=Math.max(9,g.ls.a.length,g.ls.h.length), cur=g.status==='live'?g.inn-1:-1;
   function row(side,code,now){
     var cells=''; for (var i=0;i<n;i++){ var v=g.ls[side][i]; v=v===undefined?'':v;
-      cells+='<td class="'+((+v>0)?'sc':'')+'" style="'+(i===now?'background:rgba(242,163,60,.16)':'')+'">'+(v===''?'·':v)+'</td>'; }
+      cells+='<td class="'+((+v>0)?'sc':'')+'" style="'+(i===now?'background:rgba(255,138,76,.16)':'')+'">'+(v===''?'·':v)+'</td>'; }
     return '<tr><th class="tm">'+emb(code,22)+esc(T[code].s)+'</th>'+cells+'<td class="r">'+score(g,side)+'</td><td>-</td><td>-</td><td>-</td></tr>';
   }
   var head='<tr><th></th>'; for (var i=1;i<=n;i++) head+='<th>'+i+'</th>'; head+='<th>R</th><th>H</th><th>E</th><th>B</th></tr>';
@@ -1060,7 +1058,7 @@ function vDiary(){
 function ticket(e){
   var g=e.g, opp=g.a===S.my?g.h:g.a, r=e.r, as=score(g,'a'), hs=score(g,'h');
   var d=new Date(g.date+'T12:00:00Z'), md=(d.getUTCMonth()+1)+'.'+String(d.getUTCDate()).padStart(2,'0');
-  return '<button class="ticket" data-act="diaryopen" data-v="'+e.id+'" style="--a:'+rgba(T[S.my]?T[S.my].c:'#f2a33c',.75)+';--b:'+rgba(T[opp].c,.45)+'">'+
+  return '<button class="ticket" data-act="diaryopen" data-v="'+e.id+'" style="--a:'+rgba(T[S.my]?T[S.my].c:'#ff8a4c',.75)+';--b:'+rgba(T[opp].c,.45)+'">'+
     '<div class="tt"><span class="dt"><b>'+md+'</b><small>'+'일월화수목금토'.charAt(d.getUTCDay())+'요일 · '+esc(g.park)+'</small></span>'+
     '<span class="vs">'+emb(g.a,34)+'<b>'+(g.status==='final'?as+' : '+hs:'vs')+'</b>'+emb(g.h,34)+'</span>'+
     '<span class="stamp '+(r||'')+'">'+(r==='win'?'승':r==='lose'?'패':r==='draw'?'무':'–')+'</span></div>'+
@@ -1184,7 +1182,7 @@ function laPlayer(g,side,live){
   return '<div class="pl'+cls+'"><b>'+esc(p[1])+'</b><small>'+sub+'</small></div>';
 }
 function mini(b){
-  function base(x,y,on){ return '<rect x="'+(x-4.5)+'" y="'+(y-4.5)+'" width="9" height="9" rx="1.5" transform="rotate(45 '+x+' '+y+')" fill="'+(on?'#f2a33c':'none')+'" stroke="'+(on?'#f2a33c':'#93a0ad')+'" stroke-width="1.4"/>'; }
+  function base(x,y,on){ return '<rect x="'+(x-4.5)+'" y="'+(y-4.5)+'" width="9" height="9" rx="1.5" transform="rotate(45 '+x+' '+y+')" fill="'+(on?'#ff8a4c':'none')+'" stroke="'+(on?'#ff8a4c':'#93a0ad')+'" stroke-width="1.4"/>'; }
   return '<svg width="34" height="28" viewBox="0 0 34 28" aria-hidden="true">'+base(27,15,b[0])+base(17,6,b[1])+base(7,15,b[2])+'</svg>';
 }
 
@@ -1316,7 +1314,7 @@ function playerAlerts(st){
 // 홈런 연출: "HOME RUN!" + 구단 색 꽃가루 (동작 줄이기 설정이면 생략)
 function burst(name,team){
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  var colors=[T[team].c,'#f2a33c','#ffffff'], bits='';
+  var colors=[T[team].c,'#ff8a4c','#ffffff'], bits='';
   for (var i=0;i<46;i++){
     var a=i*2.399963, d=120+(i*53%150);
     bits+='<i style="--w:'+(i%3?8:5)+'px;--c:'+colors[i%3]+';--x:'+Math.round(Math.cos(a)*d)+'px;--y:'+Math.round(Math.sin(a)*d+170)+'px;--r:'+(i*47%360)+'deg;animation-delay:'+(i%5)*20+'ms"></i>';
@@ -1338,18 +1336,18 @@ function buildSlides(){
     {t:'역전! KIA 1 : 2 삼성',s:'삼성 득점',b:'3회말 · 구자욱 : 중견수 앞 1루타',tm:'3회말'}];
   var slides=[
     {h:'오늘 내 팀,<br>지금 몇 대 몇?',p:'일정·점수·순위를 한 화면에서',c:'rgba(7,76,161,.55)',draw:function(){ S.tab='home'; S.sub=null; return vHome(); },tab:'home'},
-    {h:'점수가 나면<br>잠금화면에서 바로',p:'실시간 점수판과 득점·역전·홈런 알림',c:'rgba(242,163,60,.35)',draw:function(){ S.notifs=lockNotifs; return vLock(); }},
+    {h:'점수가 나면<br>잠금화면에서 바로',p:'실시간 점수판과 득점·역전·홈런 알림',c:'rgba(255,138,76,.35)',draw:function(){ S.notifs=lockNotifs; return vLock(); }},
     {h:'다른 앱을 써도<br>점수는 맨 위에',p:'다이나믹 아일랜드에 엠블럼·점수·주자까지',c:'rgba(7,76,161,.5)',draw:function(){
       return '<div class="hs">'+Array(16).join('<i></i>')+'</div><div class="island expanded" style="z-index:5">'+islandHTML(g)+'</div>'; }},
     {h:'투구 하나까지<br>실시간 중계',p:'주자·볼카운트·투수 대 타자',c:'rgba(234,0,41,.4)',draw:function(){ S.seg='po2'; S.dtab='live'; return vGame(); },tab:'home'},
     {h:'관심 선수의<br>모든 타석을',p:'★ 하면 타석마다 알려드려요',c:'rgba(7,76,161,.5)',draw:function(){ S.pid='diaz'; return vPlayer(); },tab:'home'},
-    {h:'내 직관 승률,<br>티켓으로 쌓기',p:'구장별·상대별·요일별 승요력까지',c:'rgba(242,163,60,.35)',draw:function(){ S.tab='diary'; S.sub=null; S.bk='stadium'; S.cal='2026-10'; return vDiary(); },tab:'diary'},
+    {h:'내 직관 승률,<br>티켓으로 쌓기',p:'구장별·상대별·요일별 승요력까지',c:'rgba(255,138,76,.35)',draw:function(){ S.tab='diary'; S.sub=null; S.bk='stadium'; S.cal='2026-10'; return vDiary(); },tab:'diary'},
     {h:'순위와 TOP20<br>한눈에',p:'실제 구단 엠블럼으로 깔끔하게',c:'rgba(54,213,131,.25)',draw:function(){ S.rec='team'; return vRecords(); },tab:'rec'}
   ];
   var out=slides.map(function(sl,n){
     var html=sl.draw().replace(/(id="|url\(#)([\w-]+)/g,'$1$2-s'+n);
     return '<figure class="slide" style="--sg:'+sl.c+'" aria-label="'+sl.h.replace('<br>',' ')+'"><h3>'+sl.h+'</h3><p>'+sl.p+'</p>'+
-      '<div class="mphone" aria-hidden="true"><div class="msb"><span>9:41</span><span>●●● ▮</span></div><div class="mview" style="--glow:'+rgba(T.SS.c,.34)+';background:radial-gradient(70% 38% at 100% 0%,rgba(242,163,60,.22),transparent 70%),radial-gradient(85% 45% at 0% 78%,'+rgba(T.SS.c,.34)+',transparent 70%),#000">'+html+'</div>'+(sl.tab?tabs(sl.tab):'')+'</div></figure>';
+      '<div class="mphone" aria-hidden="true"><div class="msb"><span>9:41</span><span>●●● ▮</span></div><div class="mview" style="--glow:'+rgba(T.SS.c,.34)+';background:radial-gradient(70% 38% at 100% 0%,rgba(255,138,76,.22),transparent 70%),radial-gradient(85% 45% at 0% 78%,'+rgba(T.SS.c,.34)+',transparent 70%),#000">'+html+'</div>'+(sl.tab?tabs(sl.tab):'')+'</div></figure>';
   }).join('');
   for (var k in keep) S[k]=keep[k];
   document.getElementById('slides').innerHTML=out;

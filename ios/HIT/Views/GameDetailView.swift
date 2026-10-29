@@ -70,7 +70,7 @@ struct GameDetailView: View {
         .background(AppBackground())
         .overlay {
             if let burst {
-                HomeRunBurst(name: burst.name, colors: [Team.find(burst.team)?.color ?? Palette.amber])
+                HomeRunBurst(name: burst.name, colors: [Team.find(burst.team)?.color ?? Palette.accent])
                     .id(burst.id)
                     .transition(.opacity)
             }
@@ -87,7 +87,7 @@ struct GameDetailView: View {
                         Label(recorded ? "직관 기록됨" : "직관 기록", systemImage: recorded ? "ticket.fill" : "ticket")
                             .labelStyle(.titleAndIcon)
                             .font(.footnote.weight(.bold))
-                            .foregroundStyle(Palette.amber)
+                            .foregroundStyle(Palette.accent)
                     }
                     .symbolEffect(.bounce, value: recorded)
                 }
@@ -179,8 +179,8 @@ struct GameDetailView: View {
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
-                        .foregroundStyle(activityOn ? Palette.text : Palette.amber)
-                        .background(activityOn ? Palette.surfaceHigh : Palette.amber.opacity(0.14), in: Capsule())
+                        .foregroundStyle(activityOn ? Palette.text : Palette.accent)
+                        .background(activityOn ? Palette.surfaceHigh : Palette.accent.opacity(0.14), in: Capsule())
                 }
                 if let activityError {
                     Text(activityError).font(.caption).foregroundStyle(Palette.red)
@@ -212,11 +212,11 @@ struct ScoreHero: View {
                         .font(.system(size: 44, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .contentTransition(.numericText())
-                        // 점수가 바뀌면 한 번 튀고 앰버 빛이 번진다
+                        // 점수가 바뀌면 한 번 튀고 강조색 빛이 번진다
                         .keyframeAnimator(initialValue: 0.0, trigger: (game.away.score ?? 0) + (game.home.score ?? 0)) { view, k in
                             view
                                 .scaleEffect(1 + k * 0.18)
-                                .shadow(color: Palette.amber.opacity(k * 0.9), radius: 22 * k)
+                                .shadow(color: Palette.accent.opacity(k * 0.9), radius: 22 * k)
                         } keyframes: { _ in
                             KeyframeTrack(\.self) {
                                 SpringKeyframe(1, duration: 0.18)
@@ -251,7 +251,7 @@ struct ScoreHero: View {
             Text(s.name).font(.subheadline.weight(.bold))
             Text(won ? "승리" : " ")
                 .font(.caption2.weight(.heavy))
-                .foregroundStyle(Palette.amber)
+                .foregroundStyle(Palette.accent)
         }
         .frame(width: 86)
     }
@@ -272,7 +272,7 @@ struct DetailTabs: View {
                         ZStack {
                             Capsule().fill(.clear).frame(height: 3)
                             if selection == t {
-                                Capsule().fill(Palette.amber).frame(height: 3).matchedGeometryEffect(id: "u", in: underline)
+                                Capsule().fill(Palette.accent).frame(height: 3).matchedGeometryEffect(id: "u", in: underline)
                             }
                         }
                     }
@@ -354,7 +354,7 @@ struct RelaySection: View {
                 Toggle("투구 보기", isOn: $showPitches)
                     .toggleStyle(.button)
                     .font(.caption.weight(.semibold))
-                    .tint(Palette.amber)
+                    .tint(Palette.accent)
                     .padding(.top, 10)
             }
             InningChips(count: innings, selected: selected, live: current) { n in
@@ -430,7 +430,7 @@ struct InningChips: View {
                             .frame(height: 34)
                             .foregroundStyle(on ? Color.black : Palette.text.opacity(0.75))
                             .background {
-                                if on { Capsule().fill(Palette.amber) } else { Color.clear.glassCapsule() }
+                                if on { Capsule().fill(Palette.accent) } else { Color.clear.glassCapsule() }
                             }
                         }
                         .buttonStyle(.plain)
@@ -460,7 +460,7 @@ struct FieldCard: View {
                     .frame(width: 128, height: 112)
                 VStack(alignment: .leading, spacing: 10) {
                     count("B", situation.balls, of: 3, color: Palette.live)
-                    count("S", situation.strikes, of: 2, color: Palette.amber)
+                    count("S", situation.strikes, of: 2, color: Palette.accent)
                     count("O", situation.outs, of: 2, color: Palette.red)
                 }
                 Spacer(minLength: 0)
@@ -506,7 +506,7 @@ struct FieldGraphic: View {
             for (i, p) in [first, second, third].enumerated() {
                 let r = CGRect(x: p.x - 8, y: p.y - 8, width: 16, height: 16)
                 let base = Path(roundedRect: r, cornerRadius: 2).applying(CGAffineTransform(translationX: -p.x, y: -p.y).concatenating(CGAffineTransform(rotationAngle: .pi / 4)).concatenating(CGAffineTransform(translationX: p.x, y: p.y)))
-                ctx.fill(base, with: .color(on(i) ? Palette.amber : .white))
+                ctx.fill(base, with: .color(on(i) ? Palette.accent : .white))
             }
             var plate = Path()
             plate.addEllipse(in: CGRect(x: home.x - 5, y: home.y - 5, width: 10, height: 10))
@@ -586,7 +586,7 @@ struct StrikeZoneView: View {
         switch result {
         case "B": return Palette.live
         case "H": return Color(hex: 0x6BB7FF)
-        default: return Palette.amber
+        default: return Palette.accent
         }
     }
 
@@ -648,7 +648,7 @@ struct DecisionCard: View {
     var body: some View {
         Card {
             HStack {
-                decision("승리 투수", pitchers.win, color: Palette.amber)
+                decision("승리 투수", pitchers.win, color: Palette.accent)
                 Rectangle().fill(.white.opacity(0.07)).frame(width: 1, height: 40)
                 decision("패전 투수", pitchers.lose, color: Palette.muted)
             }
@@ -714,7 +714,7 @@ struct PlayTimeline: View {
         let scored = play.text.contains("홈인")
         HStack(alignment: .top, spacing: 10) {
             Capsule()
-                .fill(hr ? Palette.red : scored ? Palette.amber : .clear)
+                .fill(hr ? Palette.red : scored ? Palette.accent : .clear)
                 .frame(width: 3)
             if let batter = play.batterName {
                 PlayerAvatar(url: play.photo, name: batter,
@@ -729,12 +729,12 @@ struct PlayTimeline: View {
                     .background(Palette.red.opacity(0.2), in: Capsule()).foregroundStyle(Palette.red)
             } else if scored {
                 Text("득점").font(.caption2.weight(.heavy)).padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(Palette.amber.opacity(0.2), in: Capsule()).foregroundStyle(Palette.amber)
+                    .background(Palette.accent.opacity(0.2), in: Capsule()).foregroundStyle(Palette.accent)
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 9)
-        .background(hr ? Palette.red.opacity(0.06) : scored ? Palette.amber.opacity(0.05) : .clear)
+        .background(hr ? Palette.red.opacity(0.06) : scored ? Palette.accent.opacity(0.05) : .clear)
     }
 }
 
@@ -766,7 +766,7 @@ struct LineupTab: View {
             .padding(12)
             ForEach(players) { p in
                 HStack(spacing: 8) {
-                    Text("\(p.order)").font(.caption.weight(.heavy)).foregroundStyle(Palette.amber).frame(width: 14)
+                    Text("\(p.order)").font(.caption.weight(.heavy)).foregroundStyle(Palette.accent).frame(width: 14)
                     PlayerAvatar(url: p.photo, name: p.name, team: side.code, size: 30)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(p.name).font(.subheadline.weight(.semibold)).lineLimit(1)
@@ -857,9 +857,9 @@ struct LineScoreView: View {
     private func cell(_ text: String, header: Bool = false, total: Bool = false, live: Bool = false, scored: Bool = false) -> some View {
         Text(text)
             .font(header ? .caption2.weight(.bold) : .system(.footnote, design: .rounded).weight(total || scored ? .heavy : .medium))
-            .foregroundStyle(header ? Palette.muted : total ? Palette.amber : scored ? Palette.text : Palette.muted)
+            .foregroundStyle(header ? Palette.muted : total ? Palette.accent : scored ? Palette.text : Palette.muted)
             .frame(width: 28, height: 34)
-            .background(live ? Palette.amber.opacity(0.16) : .clear)
+            .background(live ? Palette.accent.opacity(0.16) : .clear)
             .monospacedDigit()
     }
 }
@@ -962,7 +962,7 @@ struct WinTrendChart: View {
                     }
                     PointMark(x: .value("타석", points.count - 1), y: .value("홈팀", last))
                         .symbolSize(50)
-                        .foregroundStyle(Palette.amber)
+                        .foregroundStyle(Palette.accent)
                 }
                 .chartYScale(domain: 0...100)
                 .chartYAxis(.hidden)

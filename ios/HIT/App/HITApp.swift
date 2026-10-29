@@ -10,7 +10,7 @@ struct HITApp: App {
             RootView()
                 .environment(model)
                 .preferredColorScheme(.dark)
-                .tint(Palette.amber)
+                .tint(Palette.accent)
                 .onOpenURL { url in
                     // 위젯·라이브 액티비티 탭: hit://game/<gameId>
                     if url.scheme == "hit", url.host == "game", let id = url.pathComponents.dropFirst().first {

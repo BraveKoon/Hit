@@ -182,8 +182,8 @@ struct DateStrip: View {
                                     .font(.system(size: 17, weight: .bold, design: .rounded))
                             }
                             .frame(width: 46, height: 58)
-                            .foregroundStyle(on ? Color.black : today ? Palette.amber : Palette.text)
-                            .background(on ? Palette.amber : Palette.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .foregroundStyle(on ? Color.black : today ? Palette.accent : Palette.text)
+                            .background(on ? Palette.accent : Palette.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
                         .buttonStyle(.plain)
                         .id(day)
@@ -201,7 +201,7 @@ struct MyTeamHero: View {
     let game: Game
     let myTeam: String
 
-    private var color: Color { Team.find(myTeam)?.color ?? Palette.amber }
+    private var color: Color { Team.find(myTeam)?.color ?? Palette.accent }
 
     var body: some View {
         VStack(spacing: 18) {
@@ -349,13 +349,13 @@ struct FavoritesStrip: View {
             if model.favorites.isEmpty {
                 Button { open(.search) } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: "star.fill").foregroundStyle(Palette.amber)
+                        Image(systemName: "star.fill").foregroundStyle(Palette.accent)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("관심 선수를 추가해 보세요").font(.subheadline.weight(.bold))
                             Text("타석 결과, 등판·강판을 바로 알려드려요").font(.caption).foregroundStyle(Palette.muted)
                         }
                         Spacer()
-                        Image(systemName: "plus.circle.fill").font(.title2).foregroundStyle(Palette.amber)
+                        Image(systemName: "plus.circle.fill").font(.title2).foregroundStyle(Palette.accent)
                     }
                     .padding(16)
                     .glassCard(20)

@@ -130,7 +130,7 @@ struct MessageView: View {
 }
 
 struct PrimaryButtonStyle: ButtonStyle {
-    var fill: Color = Palette.amber
+    var fill: Color = Palette.accent
     var text: Color = .black
     @Environment(\.isEnabled) private var isEnabled
 
@@ -168,14 +168,16 @@ struct TeamPicker: View {
                 let on = selected == team.code
                 Button { onPick(team.code) } label: {
                     HStack(spacing: 10) {
-                        TeamBadge(code: team.code, size: 40)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(team.name).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.85)
-                            Text(team.home).font(.caption).foregroundStyle(Palette.muted)
-                        }
+                        TeamBadge(code: team.code, size: 36)
+                        Text(team.name).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.8)
                         Spacer(minLength: 0)
+                        if on {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(team.color, .white)
+                                .transition(.scale.combined(with: .opacity))
+                        }
                     }
-                    .padding(12)
+                    .padding(.horizontal, 12)
+                    .frame(height: 58)
                     .background(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(on ? AnyShapeStyle(LinearGradient(colors: [team.color.opacity(0.45), Palette.surfaceHigh], startPoint: .leading, endPoint: .trailing)) : AnyShapeStyle(Palette.surface))
@@ -249,7 +251,7 @@ struct PillChips<Item: Hashable>: View {
                             .padding(.horizontal, 18)
                             .frame(height: 42)
                             .foregroundStyle(on ? Color.black : Palette.muted)
-                            .background(on ? Palette.amber : Color.clear, in: Capsule())
+                            .background(on ? Palette.accent : Color.clear, in: Capsule())
                             .overlay(Capsule().strokeBorder(on ? .clear : Palette.surfaceHigh, lineWidth: 1.5))
                     }
                     .buttonStyle(.plain)
@@ -287,7 +289,7 @@ struct FloatingTabBar: View {
                     .padding(.horizontal, on ? 22 : 0)
                     .background {
                         if on {
-                            Capsule().fill(Palette.amber).matchedGeometryEffect(id: "pill", in: pill)
+                            Capsule().fill(Palette.accent).matchedGeometryEffect(id: "pill", in: pill)
                         } else {
                             Circle().fill(.white.opacity(0.12))
                         }
@@ -353,7 +355,7 @@ struct HomeRunBurst: View {
             let t = timeline.date.timeIntervalSince(start)
             ZStack {
                 Canvas { ctx, size in
-                    let palette = colors + [Palette.amber, .white]
+                    let palette = colors + [Palette.accent, .white]
                     for i in 0..<70 {
                         // 조각마다 정해진 방향·속도로 퍼졌다가 떨어진다
                         let angle = Double(i) * 2.399963          // 황금각으로 고르게
@@ -369,8 +371,8 @@ struct HomeRunBurst: View {
                 VStack(spacing: 6) {
                     Text("HOME RUN!")
                         .font(.system(size: 46, weight: .black, design: .rounded))
-                        .foregroundStyle(Palette.amber)
-                        .shadow(color: Palette.amber.opacity(0.6), radius: 18)
+                        .foregroundStyle(Palette.accent)
+                        .shadow(color: Palette.accent.opacity(0.6), radius: 18)
                     Text(name).font(.title3.weight(.heavy)).foregroundStyle(.white)
                 }
                 .scaleEffect(t < 0.22 ? 0.4 + t / 0.22 * 0.8 : max(1, 1.2 - (t - 0.22) * 0.9))
@@ -384,14 +386,14 @@ struct HomeRunBurst: View {
 
 // MARK: - 글라스
 
-/// 앱 바탕: 검정 위에 앰버·내 팀 색이 은은하게 번진다 (그 위 유리 카드가 비쳐 보이도록)
+/// 앱 바탕: 검정 위에 강조색·내 팀 색이 은은하게 번진다 (그 위 유리 카드가 비쳐 보이도록)
 struct AppBackground: View {
     @Environment(AppModel.self) private var model
     var body: some View {
         ZStack {
             Color.black
-            RadialGradient(colors: [Palette.amber.opacity(0.22), .clear], center: .init(x: 0.95, y: -0.05), startRadius: 10, endRadius: 420)
-            RadialGradient(colors: [(model.team?.color ?? Palette.amber).opacity(0.28), .clear], center: .init(x: 0, y: 0.75), startRadius: 10, endRadius: 460)
+            RadialGradient(colors: [Palette.accent.opacity(0.22), .clear], center: .init(x: 0.95, y: -0.05), startRadius: 10, endRadius: 420)
+            RadialGradient(colors: [(model.team?.color ?? Palette.accent).opacity(0.28), .clear], center: .init(x: 0, y: 0.75), startRadius: 10, endRadius: 460)
         }
         .ignoresSafeArea()
     }
@@ -443,12 +445,12 @@ struct StaleBanner: View {
     var body: some View {
         Label(text, systemImage: systemImage)
             .font(.footnote.weight(.semibold))
-            .foregroundStyle(Palette.amber)
+            .foregroundStyle(Palette.accent)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(Palette.amber.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Palette.amber.opacity(0.25), lineWidth: 0.5))
+            .background(Palette.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Palette.accent.opacity(0.25), lineWidth: 0.5))
             .transition(.move(edge: .top).combined(with: .opacity))
             .accessibilityElement(children: .combine)
     }

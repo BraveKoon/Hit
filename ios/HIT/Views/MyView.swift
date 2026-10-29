@@ -31,7 +31,7 @@ struct MyView: View {
                                 }
                             }
                             Spacer()
-                            Text("변경").font(.subheadline.weight(.semibold)).foregroundStyle(Palette.amber)
+                            Text("변경").font(.subheadline.weight(.semibold)).foregroundStyle(Palette.accent)
                         }
                         .padding(16)
                         .glassCard(20)
@@ -58,7 +58,7 @@ struct MyView: View {
                             Divider().overlay(Palette.surfaceHigh)
                             row("person.crop.circle.badge.xmark", "회원 탈퇴", tint: Palette.red) { confirmDelete = true }
                         } else {
-                            row("person.crop.circle.badge.plus", "로그인 · 회원가입", tint: Palette.amber) { Task { await auth.signOut() } }
+                            row("person.crop.circle.badge.plus", "로그인 · 회원가입", tint: Palette.accent) { Task { await auth.signOut() } }
                         }
                     }
                     .glassCard(20)
@@ -112,7 +112,7 @@ struct MyView: View {
             Spacer()
         }
         .padding(18)
-        .background(TeamGlow(colors: [model.team?.color ?? Palette.amber]))
+        .background(TeamGlow(colors: [model.team?.color ?? Palette.accent]))
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 

@@ -38,8 +38,8 @@ struct DiamondView: View {
 
     private func base(on: Bool, size: CGFloat) -> some View {
         RoundedRectangle(cornerRadius: 2)
-            .fill(on ? Palette.amber : Color.clear)
-            .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(on ? Palette.amber : Palette.muted.opacity(0.6), lineWidth: 1.4))
+            .fill(on ? Palette.accent : Color.clear)
+            .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(on ? Palette.accent : Palette.muted.opacity(0.6), lineWidth: 1.4))
             .frame(width: size, height: size)
             .rotationEffect(.degrees(45))
     }

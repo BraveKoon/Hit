@@ -88,7 +88,7 @@ struct WinRateHero: View {
                         .font(.caption.weight(.heavy))
                         .padding(.horizontal, 10).padding(.vertical, 4)
                         .foregroundStyle(streak.hasSuffix("연승") ? Color.black : Palette.text)
-                        .background(streak.hasSuffix("연승") ? Palette.amber : Palette.red.opacity(0.6), in: Capsule())
+                        .background(streak.hasSuffix("연승") ? Palette.accent : Palette.red.opacity(0.6), in: Capsule())
                 }
             }
             if let stats, played {
@@ -179,14 +179,14 @@ struct MonthCalendar: View {
             VStack(spacing: 3) {
                 Text(String(Int(day.suffix(2)) ?? 0))
                     .font(.system(size: 12, weight: isToday ? .heavy : .medium))
-                    .foregroundStyle(isToday ? Palette.amber : Palette.text.opacity(game == nil ? 0.35 : 0.9))
+                    .foregroundStyle(isToday ? Palette.accent : Palette.text.opacity(game == nil ? 0.35 : 0.9))
                 ZStack {
                     if let result {
                         Text(result.title)
                             .font(.system(size: 12, weight: .heavy))
                             .frame(width: 26, height: 22)
                             .foregroundStyle(result == .win ? Color.black : Palette.text)
-                            .background(result == .win ? Palette.amber : result == .lose ? Color.white.opacity(0.18) : Color.white.opacity(0.45),
+                            .background(result == .win ? Palette.accent : result == .lose ? Color.white.opacity(0.18) : Color.white.opacity(0.45),
                                         in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                     } else if let game, game.status != .canceled {
                         TeamBadge(code: game.opponent(of: team).code, size: 20)
@@ -202,14 +202,14 @@ struct MonthCalendar: View {
                 .overlay(alignment: .bottomTrailing) {
                     if entry != nil {
                         Image(systemName: "ticket.fill").font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(Palette.amber).offset(x: 6, y: 4)
+                            .foregroundStyle(Palette.accent).offset(x: 6, y: 4)
                     }
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 50)
             .background {
                 if entry != nil {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Palette.amber.opacity(0.6), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Palette.accent.opacity(0.6), lineWidth: 1)
                 } else if isToday {
                     RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.white.opacity(0.06))
                 }
@@ -300,7 +300,7 @@ struct TicketCard: View {
             HStack(spacing: 8) {
                 Label(entry.mode.title, systemImage: entry.mode.symbol)
                     .font(.caption.weight(.heavy))
-                    .foregroundStyle(entry.mode == .stadium ? Palette.amber : Palette.text)
+                    .foregroundStyle(entry.mode == .stadium ? Palette.accent : Palette.text)
                 if let seat = entry.seat { Text(seat).font(.caption.weight(.semibold)) }
                 if let memo = entry.memo {
                     Text(memo).font(.caption).foregroundStyle(Palette.text.opacity(0.75)).lineLimit(1)
@@ -330,9 +330,9 @@ struct TicketCard: View {
         let r = entry.result
         Text(r?.title ?? "–")
             .font(.system(size: 17, weight: .black))
-            .foregroundStyle(r == .win ? Palette.amber : Palette.text.opacity(0.7))
+            .foregroundStyle(r == .win ? Palette.accent : Palette.text.opacity(0.7))
             .frame(width: 42, height: 42)
-            .overlay(Circle().strokeBorder(r == .win ? Palette.amber : .white.opacity(0.35), lineWidth: 2))
+            .overlay(Circle().strokeBorder(r == .win ? Palette.accent : .white.opacity(0.35), lineWidth: 2))
             .rotationEffect(.degrees(-12))
     }
 }
@@ -435,7 +435,7 @@ struct DiaryEditor: View {
 struct GuestDiaryCard: View {
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: "ticket.fill").font(.system(size: 30)).foregroundStyle(Palette.amber)
+            Image(systemName: "ticket.fill").font(.system(size: 30)).foregroundStyle(Palette.accent)
             Text("로그인하면 직관 기록과 승률이 쌓여요").font(.headline)
             Text("어느 기기에서든 내 티켓을 다시 볼 수 있게 계정에 저장해요")
                 .font(.footnote).foregroundStyle(Palette.muted).multilineTextAlignment(.center)

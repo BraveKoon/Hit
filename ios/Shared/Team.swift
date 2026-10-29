@@ -30,8 +30,8 @@ struct Team: Identifiable, Hashable {
         return all.first { $0.code == code }
     }
 
-    /// 모르는 코드면 앰버.
-    static func color(for code: String?) -> Color { find(code)?.color ?? Palette.amber }
+    /// 모르는 코드면 강조색.
+    static func color(for code: String?) -> Color { find(code)?.color ?? Palette.accent }
 }
 
 /// 구단 엠블럼. 앱이 받아 둔 엠블럼이 있으면 그대로, 없으면 구단 색 배지에 이름.

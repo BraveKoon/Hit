@@ -42,7 +42,7 @@ struct GameLiveActivity: Widget {
                 // 다른 앱과 아일랜드를 나눠 쓸 때는 점수만
                 Text("\(s.awayScore):\(s.homeScore)")
                     .font(.system(size: 12, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Palette.amber)
+                    .foregroundStyle(Palette.accent)
                     .minimumScaleFactor(0.6)
                     .contentTransition(.numericText())
             }
@@ -54,7 +54,7 @@ struct GameLiveActivity: Widget {
 
 // MARK: - 다이나믹 아일랜드 조각
 
-/// 점수 숫자. 이기고 있는 쪽만 앰버, 바뀔 때 숫자가 굴러간다.
+/// 점수 숫자. 이기고 있는 쪽만 강조색, 바뀔 때 숫자가 굴러간다.
 private struct IslandScore: View {
     let score: Int
     let ahead: Bool
@@ -65,7 +65,7 @@ private struct IslandScore: View {
         Text("\(score)")
             .font(.system(size: size, weight: .heavy, design: .rounded))
             .monospacedDigit()
-            .foregroundStyle(ahead ? Palette.amber : (final ? Palette.muted : Palette.text))
+            .foregroundStyle(ahead ? Palette.accent : (final ? Palette.muted : Palette.text))
             .contentTransition(.numericText(value: Double(score)))
     }
 }
@@ -132,7 +132,7 @@ private struct IslandStatus: View {
     }
 }
 
-/// B 초록 4칸 중 3, S 앰버 2, O 빨강 2.
+/// B 초록 4칸 중 3, S 강조색 2, O 빨강 2.
 struct CountDots: View {
     let balls: Int
     let strikes: Int
@@ -141,7 +141,7 @@ struct CountDots: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             row("B", balls, 3, Palette.live)
-            row("S", strikes, 2, Palette.amber)
+            row("S", strikes, 2, Palette.accent)
             row("O", outs, 2, Palette.red)
         }
         .accessibilityElement(children: .ignore)
@@ -173,13 +173,13 @@ private struct IslandPlayBar: View {
             HStack(spacing: 8) {
                 Image(systemName: state.isFinal ? "flag.checkered" : "baseball.fill")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Palette.amber)
+                    .foregroundStyle(Palette.accent)
                 Text(state.headline.isEmpty ? attributes.stadium : state.headline)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Palette.text.opacity(0.9))
                     .lineLimit(1)
                 Spacer(minLength: 4)
-                LogoMark(height: 10, color: Palette.amber)
+                LogoMark(height: 10, color: Palette.accent)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 9)

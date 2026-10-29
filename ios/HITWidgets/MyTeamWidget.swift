@@ -82,7 +82,7 @@ struct MyTeamWidgetView: View {
                 if game.status == .live { Circle().fill(Palette.live).frame(width: 6, height: 6) }
                 Text(game.statusLabel)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(game.status == .live ? Palette.live : Palette.amber)
+                    .foregroundStyle(game.status == .live ? Palette.live : Palette.accent)
                 if family == .systemMedium, let stadium = game.stadium {
                     Text(stadium).font(.caption2).foregroundStyle(Palette.muted)
                 }
@@ -121,14 +121,14 @@ struct MyTeamWidgetView: View {
             TeamBadge(code: s.code, size: 22)
             Text(s.name).font(.caption)
             Spacer()
-            if game.hasScore { Text("\(s.score ?? 0)").font(Typo.score(18)).foregroundStyle(Palette.amber) }
+            if game.hasScore { Text("\(s.score ?? 0)").font(Typo.score(18)).foregroundStyle(Palette.accent) }
         }
     }
 
     @ViewBuilder
     private func score(_ game: Game, size: CGFloat) -> some View {
         if game.hasScore {
-            Text("\(game.away.score ?? 0) : \(game.home.score ?? 0)").font(Typo.score(size)).foregroundStyle(Palette.amber)
+            Text("\(game.away.score ?? 0) : \(game.home.score ?? 0)").font(Typo.score(size)).foregroundStyle(Palette.accent)
         } else {
             Text(game.clockText).font(Typo.score(size * 0.7))
         }

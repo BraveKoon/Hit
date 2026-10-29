@@ -20,8 +20,8 @@ enum Palette {
     static let line = Color(hex: 0x2C2C2E)
     static let text = Color.white
     static let muted = Color(hex: 0x8E8E93)
-    /// 강조색. 바꾸고 싶으면 여기 한 줄 (예: 민트 0x1FD8A4)
-    static let amber = Color(hex: 0xF2A33C)
+    /// 강조색 (탠저린). 바꾸고 싶으면 여기 한 줄과 Assets 의 AccentColor
+    static let accent = Color(hex: 0xFF8A4C)
     static let live = Color(hex: 0x36D583)
     static let red = Color(hex: 0xE2544A)
     static let clay = Color(hex: 0xB4512F)    // 내야 흙

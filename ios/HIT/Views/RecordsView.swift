@@ -105,8 +105,8 @@ struct StandingsTable: View {
         }
         .foregroundStyle(Palette.text)
         .frame(height: 64)
-        .background(mine ? Palette.amber.opacity(0.14) : (t.rank == 1 ? Color(hex: 0x141416) : Palette.surface))
-        .overlay(alignment: .leading) { if mine { Rectangle().fill(Palette.amber).frame(width: 4) } }
+        .background(mine ? Palette.accent.opacity(0.14) : (t.rank == 1 ? Color(hex: 0x141416) : Palette.surface))
+        .overlay(alignment: .leading) { if mine { Rectangle().fill(Palette.accent).frame(width: 4) } }
         .overlay(alignment: .trailing) {
             // 팀 칸과 숫자 칸 사이 은은한 세로선
             Rectangle().fill(.white.opacity(0.06)).frame(width: 1).padding(.trailing, 222)
@@ -169,7 +169,7 @@ struct LeadersTable: View {
             ForEach(values.indices, id: \.self) { i in
                 Text(values[i])
                     .font(.system(size: 14, weight: i == values.count - 1 ? .heavy : .regular))
-                    .foregroundStyle(i == values.count - 1 ? Palette.amber : Palette.text)
+                    .foregroundStyle(i == values.count - 1 ? Palette.accent : Palette.text)
                     .minimumScaleFactor(0.7)
                     .frame(width: 46)
             }

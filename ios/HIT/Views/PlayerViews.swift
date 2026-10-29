@@ -134,7 +134,7 @@ struct FavoriteStar: View {
         } label: {
             Image(systemName: on ? "star.fill" : "star")
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(on ? Palette.amber : Palette.muted)
+                .foregroundStyle(on ? Palette.accent : Palette.muted)
                 .frame(width: 44, height: 44)
                 .contentTransition(.symbolEffect(.replace))
                 .symbolEffect(.bounce, value: on)   // 누르면 별이 통 튄다
@@ -197,13 +197,13 @@ struct PlayerDetailView: View {
                     .padding(.horizontal, 20)
                     .frame(height: 44)
                     .foregroundStyle(on ? Color.black : Palette.text)
-                    .background(on ? Palette.amber : Palette.surfaceHigh, in: Capsule())
+                    .background(on ? Palette.accent : Palette.surfaceHigh, in: Capsule())
             }
             .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 22)
-        .background(TeamGlow(colors: [team?.color ?? Palette.amber]))
+        .background(TeamGlow(colors: [team?.color ?? Palette.accent]))
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
     }
 
@@ -222,7 +222,7 @@ struct PlayerDetailView: View {
                     Text(items[i].0).font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
                     Text(items[i].1)
                         .font(.system(size: 22, weight: .heavy, design: .rounded))
-                        .foregroundStyle(i == 0 ? Palette.amber : Palette.text)
+                        .foregroundStyle(i == 0 ? Palette.accent : Palette.text)
                         .monospacedDigit()
                 }
                 .frame(maxWidth: .infinity)
