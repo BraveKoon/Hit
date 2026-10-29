@@ -15,17 +15,80 @@ struct Card<Content: View>: View {
     }
 }
 
+/// 섹션 제목: 앱 전체에서 같은 크기 (20 굵게), 오른쪽에 회색 보조 글 또는 "더보기 ›"
 struct SectionHeader: View {
     let title: String
     var detail: String? = nil
+    var action: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(title).font(.title3.weight(.bold))
+            Text(title).font(Typo.font(20, .heavy, relativeTo: .title3))
             Spacer()
-            if let detail { Text(detail).font(.footnote).foregroundStyle(Palette.muted) }
+            if let action {
+                Button(action: action) {
+                    HStack(spacing: 2) {
+                        Text(detail ?? "더보기")
+                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
+                    }
+                    .font(Typo.style(.footnote, .medium))
+                    .foregroundStyle(Palette.muted)
+                }
+                .buttonStyle(.press)
+            } else if let detail {
+                Text(detail).font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+            }
         }
-        .padding(.top, 10)
+        .padding(.top, 12)
+        .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// 눌렀을 때 살짝 작아지고 흐려진다 (앱스토어·토스처럼 카드형 버튼의 눌림 표시)
+struct PressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
+extension ButtonStyle where Self == PressStyle {
+    static var press: PressStyle { PressStyle() }
+}
+
+/// 불러오는 동안 보여 주는 회색 자리 (빙글빙글 대신 화면 모양 그대로)
+struct SkeletonBlock: View {
+    var height: CGFloat = 120
+    var radius: CGFloat = 22
+    @State private var phase = false
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
+            .fill(Palette.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill(LinearGradient(colors: [.clear, .white.opacity(0.06), .clear], startPoint: .leading, endPoint: .trailing))
+                    .offset(x: phase ? 360 : -360)
+                    .clipped()
+            )
+            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .frame(height: height)
+            .onAppear { withAnimation(.linear(duration: 1.3).repeatForever(autoreverses: false)) { phase = true } }
+            .accessibilityLabel("불러오는 중")
+    }
+}
+
+/// 목록 화면용 스켈레톤: 큰 카드 하나 + 줄 몇 개
+struct SkeletonList: View {
+    var hero: CGFloat = 180
+    var rows = 3
+    var body: some View {
+        VStack(spacing: 12) {
+            if hero > 0 { SkeletonBlock(height: hero) }
+            ForEach(0..<rows, id: \.self) { _ in SkeletonBlock(height: 76, radius: 18) }
+        }
     }
 }
 
@@ -51,7 +114,7 @@ struct StatusPill: View {
             if game.status == .live { Circle().fill(Palette.red).frame(width: 7, height: 7) }
             Text(game.status == .live ? "Live \(game.inningText)" : game.statusLabel)
         }
-        .font(.caption.weight(.bold))
+        .font(Typo.style(.caption, .bold))
         .padding(.horizontal, 9)
         .padding(.vertical, 4)
         .foregroundStyle(foreground)
@@ -87,7 +150,7 @@ struct PlayerAvatar: View {
                 colors: [(Team.find(team)?.color ?? Palette.surfaceHigh), Palette.surfaceHigh],
                 startPoint: .topLeading, endPoint: .bottomTrailing))
             Text(String(name.prefix(1)))
-                .font(.system(size: size * 0.4, weight: .bold))
+                .font(Typo.font(size * 0.4, .bold))
                 .foregroundStyle(.white.opacity(0.9))
             if let url, let u = URL(string: url) {
                 AsyncImage(url: u, transaction: Transaction(animation: .easeOut(duration: 0.2))) { phase in
@@ -130,13 +193,13 @@ struct MessageView: View {
 }
 
 struct PrimaryButtonStyle: ButtonStyle {
-    var fill: Color = Palette.amber
+    var fill: Color = Palette.accent
     var text: Color = .black
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.headline)
+            .font(Typo.style(.headline))
             .frame(maxWidth: .infinity)
             .frame(height: 54)
             .foregroundStyle(text)
@@ -168,21 +231,19 @@ struct TeamPicker: View {
                 let on = selected == team.code
                 Button { onPick(team.code) } label: {
                     HStack(spacing: 10) {
-                        TeamBadge(code: team.code, size: 40)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(team.name).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.85)
-                            Text(team.home).font(.caption).foregroundStyle(Palette.muted)
-                        }
+                        TeamBadge(code: team.code, size: 36)
+                        Text(team.name).font(Typo.style(.subheadline, .semibold)).lineLimit(1).minimumScaleFactor(0.8)
                         Spacer(minLength: 0)
                     }
-                    .padding(12)
+                    .padding(.horizontal, 12)
+                    .frame(height: 58)
                     .background(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(on ? AnyShapeStyle(LinearGradient(colors: [team.color.opacity(0.45), Palette.surfaceHigh], startPoint: .leading, endPoint: .trailing)) : AnyShapeStyle(Palette.surface))
                     )
                     .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(on ? team.color : .white.opacity(0.06), lineWidth: on ? 2 : 1))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.press)
                 .accessibilityAddTraits(on ? .isSelected : [])
             }
         }
@@ -194,13 +255,19 @@ struct TeamPicker: View {
 /// 맨 위: 내 팀 엠블럼 + 로고, 오른쪽에 검색·알림 원형 버튼
 struct AppHeader: View {
     @Environment(AppModel.self) private var model
+    /// nil 이면 홈처럼 엠블럼 + 로고, 있으면 큰 제목 (직관 · 커뮤니티 · 기록 · MY)
+    var title: String? = nil
     var onSearch: () -> Void
     @State private var showSettings = false
 
     var body: some View {
         HStack(spacing: 10) {
-            if let team = model.myTeam { TeamBadge(code: team, size: 34) }
-            LogoMark(height: 22, color: Palette.text)
+            if let title {
+                Text(title).font(Typo.font(30, .heavy, relativeTo: .largeTitle)).accessibilityAddTraits(.isHeader)
+            } else {
+                if let team = model.myTeam { TeamBadge(code: team, size: 34) }
+                LogoMark(height: 22, color: Palette.text)
+            }
             Spacer()
             CircleIconButton(systemImage: "magnifyingglass", label: "선수 검색", action: onSearch)
             CircleIconButton(systemImage: "bell.fill", label: "알림 설정") { showSettings = true }
@@ -227,7 +294,7 @@ struct CircleIconButton: View {
                 .glassCircle()
                 .overlay(Circle().strokeBorder(.white.opacity(0.08), lineWidth: 1))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.press)
         .accessibilityLabel(label)
     }
 }
@@ -245,64 +312,74 @@ struct PillChips<Item: Hashable>: View {
                     let on = item == selection
                     Button { withAnimation(.snappy) { selection = item } } label: {
                         Text(title)
-                            .font(.system(size: 16, weight: on ? .bold : .medium))
-                            .padding(.horizontal, 18)
-                            .frame(height: 42)
+                            .font(Typo.font(15, on ? .bold : .medium))
+                            .padding(.horizontal, 16)
+                            .frame(height: 38)
                             .foregroundStyle(on ? Color.black : Palette.muted)
-                            .background(on ? Palette.amber : Color.clear, in: Capsule())
+                            .background(on ? Palette.accent : Color.clear, in: Capsule())
                             .overlay(Capsule().strokeBorder(on ? .clear : Palette.surfaceHigh, lineWidth: 1.5))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.press)
                 }
             }
         }
         .scrollIndicators(.hidden)
+        .sensoryFeedback(.selection, trigger: selection)
     }
 }
 
-/// 화면 아래에 떠 있는 탭바: 고른 탭만 아이콘+이름으로 길게, 나머지는 동그라미
+/// 화면 아래에 떠 있는 탭바 (iOS 26 탭바처럼): 다섯 탭 모두 아이콘 + 이름, 고른 탭은 밝은 알약 위에 강조색
 struct FloatingTabBar: View {
     @Binding var selection: AppTab
     @Namespace private var pill
 
     private let tabs: [(AppTab, String, String)] = [
-        (.today, "heart.fill", "HOME"),
+        (.today, "LogoH", "홈"),   // HIT! 로고의 H (에셋)
         (.diary, "ticket.fill", "직관"),
+        (.community, "bubble.left.and.text.bubble.right.fill", "커뮤니티"),
         (.records, "chart.bar.fill", "기록"),
         (.my, "person.fill", "MY"),
     ]
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 0) {
             ForEach(tabs.indices, id: \.self) { i in
                 let tab = tabs[i].0, icon = tabs[i].1, title = tabs[i].2
                 let on = selection == tab
                 Button { withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { selection = tab } } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: icon).font(.system(size: 19, weight: .bold))
-                        if on { Text(title).font(.system(size: 16, weight: .heavy)).fixedSize() }
+                    VStack(spacing: 3) {
+                        Group {
+                            if tab == .today {
+                                Image(icon).resizable().renderingMode(.template).scaledToFit().frame(height: 16)
+                            } else {
+                                Image(systemName: icon).font(.system(size: tab == .community ? 16 : 18, weight: .semibold))
+                            }
+                        }
+                        .frame(height: 22)
+                        Text(title).font(Typo.font(10.5, on ? .bold : .medium)).fixedSize()
                     }
-                    .foregroundStyle(on ? Color.black : Palette.text)
-                    .frame(minWidth: 52, minHeight: 52)
-                    .padding(.horizontal, on ? 22 : 0)
+                    .foregroundStyle(on ? Palette.accent : Palette.text.opacity(0.75))
+                    .frame(maxWidth: .infinity, minHeight: 54)
                     .background {
                         if on {
-                            Capsule().fill(Palette.amber).matchedGeometryEffect(id: "pill", in: pill)
-                        } else {
-                            Circle().fill(.white.opacity(0.12))
+                            Capsule().fill(.white.opacity(0.12)).matchedGeometryEffect(id: "pill", in: pill)
                         }
                     }
+                    .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(title)
                 .accessibilityAddTraits(on ? .isSelected : [])
             }
         }
-        .padding(8)
+        .padding(5)
+        .frame(maxWidth: 380)
         .background(.ultraThinMaterial, in: Capsule())
         .overlay(Capsule().strokeBorder(.white.opacity(0.1), lineWidth: 1))
         .environment(\.colorScheme, .dark)
-        .shadow(color: .black.opacity(0.5), radius: 18, y: 8)
+        .shadow(color: .black.opacity(0.45), radius: 16, y: 6)
+        .padding(.horizontal, 16)
+        .sensoryFeedback(.selection, trigger: selection)
     }
 }
 
@@ -314,6 +391,8 @@ struct RouteView: View {
         case .game(let id): GameDetailView(gameId: id)
         case .player(let id): PlayerDetailView(playerId: id)
         case .search: PlayerSearchView()
+        case .post(let id): PostDetailView(postId: id)
+        case .news: NewsListView()
         }
     }
 }
@@ -353,7 +432,7 @@ struct HomeRunBurst: View {
             let t = timeline.date.timeIntervalSince(start)
             ZStack {
                 Canvas { ctx, size in
-                    let palette = colors + [Palette.amber, .white]
+                    let palette = colors + [Palette.accent, .white]
                     for i in 0..<70 {
                         // 조각마다 정해진 방향·속도로 퍼졌다가 떨어진다
                         let angle = Double(i) * 2.399963          // 황금각으로 고르게
@@ -368,10 +447,10 @@ struct HomeRunBurst: View {
                 }
                 VStack(spacing: 6) {
                     Text("HOME RUN!")
-                        .font(.system(size: 46, weight: .black, design: .rounded))
-                        .foregroundStyle(Palette.amber)
-                        .shadow(color: Palette.amber.opacity(0.6), radius: 18)
-                    Text(name).font(.title3.weight(.heavy)).foregroundStyle(.white)
+                        .font(Typo.font(46, .black))
+                        .foregroundStyle(Palette.accent)
+                        .shadow(color: Palette.accent.opacity(0.6), radius: 18)
+                    Text(name).font(Typo.style(.title3, .heavy)).foregroundStyle(.white)
                 }
                 .scaleEffect(t < 0.22 ? 0.4 + t / 0.22 * 0.8 : max(1, 1.2 - (t - 0.22) * 0.9))
                 .opacity(t > 1.6 ? max(0, 1 - (t - 1.6) / 0.4) : 1)
@@ -384,14 +463,14 @@ struct HomeRunBurst: View {
 
 // MARK: - 글라스
 
-/// 앱 바탕: 검정 위에 앰버·내 팀 색이 은은하게 번진다 (그 위 유리 카드가 비쳐 보이도록)
+/// 앱 바탕: 검정 위 맨 위에만 내 팀 색이 은은하게
 struct AppBackground: View {
     @Environment(AppModel.self) private var model
     var body: some View {
         ZStack {
             Color.black
-            RadialGradient(colors: [Palette.amber.opacity(0.22), .clear], center: .init(x: 0.95, y: -0.05), startRadius: 10, endRadius: 420)
-            RadialGradient(colors: [(model.team?.color ?? Palette.amber).opacity(0.28), .clear], center: .init(x: 0, y: 0.75), startRadius: 10, endRadius: 460)
+            // 위쪽에만 내 팀 색이 아주 옅게 (내용보다 바탕이 튀지 않게)
+            RadialGradient(colors: [(model.team?.color ?? Palette.accent).opacity(0.16), .clear], center: .init(x: 0.15, y: -0.1), startRadius: 10, endRadius: 520)
         }
         .ignoresSafeArea()
     }
@@ -433,4 +512,23 @@ extension View {
     }
     func glassCapsule(tint: Color? = nil) -> some View { modifier(GlassBackground(shape: Capsule(), tint: tint)) }
     func glassCircle() -> some View { modifier(GlassBackground(shape: Circle())) }
+}
+
+/// 연결이 끊겼거나 경기 데이터가 늦을 때 화면 위에 띄우는 한 줄
+struct StaleBanner: View {
+    let text: String
+    var systemImage = "exclamationmark.arrow.triangle.2.circlepath"
+
+    var body: some View {
+        Label(text, systemImage: systemImage)
+            .font(Typo.style(.footnote, .semibold))
+            .foregroundStyle(Palette.accent)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Palette.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Palette.accent.opacity(0.25), lineWidth: 0.5))
+            .transition(.move(edge: .top).combined(with: .opacity))
+            .accessibilityElement(children: .combine)
+    }
 }

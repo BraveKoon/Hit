@@ -121,8 +121,10 @@ export function alertPayload(msg) {
       'relevance-score': msg.level === 'time-sensitive' ? 1 : 0.5,
       ...(msg.image ? { 'mutable-content': 1 } : {}),
     },
-    gameId: msg.gameId,
+    ...(msg.gameId ? { gameId: msg.gameId } : {}),
+    ...(msg.postId ? { postId: msg.postId } : {}),   // 커뮤니티 알림: 누르면 그 글로
     type: msg.type,
+    ...(Number.isInteger(msg.inning) ? { inning: msg.inning } : {}),
     // 선수 사진: 앱의 알림 서비스 확장이 받아 알림에 붙인다 (mutable-content)
     ...(msg.image ? { image: msg.image } : {}),
   };

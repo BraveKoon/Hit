@@ -123,6 +123,7 @@ export function createReplayProvider({ now = () => Date.now(), leadMinutes = 3, 
       lineups: null,
       pitchers: { win: g.status === 'final' ? '후라도' : null, lose: null, awayCurrent: null, homeCurrent: null },
       winRate: null,
+      fetchedAt: new Date().toISOString(),
     };
   }
 
@@ -144,6 +145,11 @@ export function createReplayProvider({ now = () => Date.now(), leadMinutes = 3, 
     async relay(id, inning) {
       if (id !== game().id) throw Object.assign(new Error('replay: unknown game'), { status: 404 });
       return { gameId: id, inning, away: 'HT', home: 'SS', plays: s.plays.filter((p) => p.inning === inning) };
+    },
+    // 재생 데이터에는 승리 확률이 없다 (앱은 점이 2개 미만이면 그래프를 숨긴다)
+    async winTrend(id) {
+      if (id !== game().id) throw Object.assign(new Error('replay: unknown game'), { status: 404 });
+      return { gameId: id, points: [] };
     },
     async standings() {
       return STANDINGS_2026.map(([code, w, l, d, gb], i) => ({

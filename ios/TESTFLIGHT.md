@@ -17,6 +17,8 @@ GitHub Actions(macOS)가 빌드해서 App Store Connect에 올립니다. 빌드 
    - **Secrets**: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_BASE64` (`base64 -i AuthKey_XXXX.p8 | pbcopy`)
 6. 서버의 `APNS_BUNDLE_ID` 는 `APP_BUNDLE_ID` 와 같아야 합니다.
 
+> `ASC_KEY_P8_BASE64` 는 `.p8` 파일 **전체**를 base64 로 바꾼 값입니다. 파일 이름이나 일부만 넣으면 "API 키를 읽지 못했습니다"로 멈춥니다. `.p8` 내용을 그대로 붙여 넣어도 읽습니다.
+
 ## 올리기
 
 Actions 탭 → **TestFlight** → Run workflow. 끝나고 몇 분 뒤 App Store Connect → TestFlight 에 빌드가 나타납니다. 내부 테스터는 바로, 외부 테스터는 베타 심사 후 초대할 수 있습니다.

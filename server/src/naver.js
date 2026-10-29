@@ -63,7 +63,29 @@ export function createNaverProvider({ fetch = globalThis.fetch, base = NAVER_BAS
         get(`/schedule/games/${id}/relay`).then((r) => r.textRelayData ?? null, () => null),
       ]);
       if (!basic) throw new UpstreamError(404, `/schedule/games/${id}`, 'no game');
-      return normalizeDetail(basic, relay);
+      // 캐시가 네이버 실패 때 지난 값을 돌려주므로, 앱은 이 시각으로 "데이터 지연"을 판단한다
+      return { ...normalizeDetail(basic, relay), fetchedAt: new Date().toISOString() };
+    },
+    // 승리 확률 흐름: 이닝마다 문자중계를 받아 타석별 홈팀 승리 확률을 모은다
+    async winTrend(gameId) {
+      const id = encodeURIComponent(gameId);
+      const game = normalizeGame((await get(`/schedule/games/${id}`)).game ?? {});
+      const out = { gameId, points: [] };
+      if (game.status !== 'live' && game.status !== 'final' && game.status !== 'suspended') return out;
+      const inning = async (n) => {
+        const relay = await get(`/schedule/games/${id}/relay?inning=${n}`).then((r) => r.textRelayData ?? null, () => null);
+        return relay ? winPointsOf(relay, n) : [];
+      };
+      const last = game.status === 'final' ? 9 : Math.max(1, game.inning ?? 1);
+      const lists = await Promise.all(Array.from({ length: last }, (_, i) => inning(i + 1)));
+      // 연장: 끝난 경기는 기록이 나오는 동안 10회부터 이어서 본다
+      for (let n = 10; game.status === 'final' && n <= 15; n++) {
+        const more = await inning(n);
+        if (!more.length) break;
+        lists.push(more);
+      }
+      out.points = lists.flat();
+      return out;
     },
 
     // 한 이닝의 문자중계 전체 (앱에서 1회·2회… 눌러 볼 때)
@@ -221,6 +243,13 @@ function lineupOf(batters) {
     .map(([order, p]) => ({ order, pos: str(p.posName) ?? '', name: p.name, photo: null }));
 }
 
+// 대기 타석: 지금 타자 다음 두 타순 (9번 다음은 1번)
+function nextBatters(batter, lineup) {
+  const order = num(batter?.batOrder);
+  if (!order || !lineup.length) return [];
+  return [order % 9 + 1, (order + 1) % 9 + 1].map((o) => lineup.find((p) => p.order === o)).filter(Boolean);
+}
+
 function lineScoreOf(inningScore) {
   if (!inningScore) return null;
   const home = inningScore.home ?? {};
@@ -290,6 +319,23 @@ function winRateOf(relay) {
   return read(relay.lastValidMetricOption);
 }
 
+// 한 이닝 문자중계의 타석별 승리 확률 (홈팀 기준 %, 타석 순서대로)
+export function winPointsOf(relay, inning) {
+  const seen = new Set();
+  return (relay.textRelays ?? [])
+    .filter((tr) => num(tr.inn) === inning)
+    .map((tr) => ({
+      no: num(tr.no) ?? 0,
+      inning,
+      half: tr.homeOrAway === '0' ? 'top' : tr.homeOrAway === '1' ? 'bottom' : null,
+      home: num(tr.metricOption?.homeTeamWinRate),
+      away: num(tr.metricOption?.awayTeamWinRate),
+    }))
+    .filter((p) => p.home !== null && p.away !== null && p.home + p.away > 0 && !seen.has(p.no) && seen.add(p.no))
+    .sort((a, b) => a.no - b.no)
+    .map(({ no, home, away, ...rest }) => ({ ...rest, home: Math.round((home / (home + away)) * 1000) / 10 }));
+}
+
 const isOn = (base) => base !== undefined && base !== null && base !== '' && base !== '0' && base !== 0;
 
 export function normalizeDetail(basic, relay) {
@@ -327,6 +373,9 @@ export function normalizeDetail(basic, relay) {
     const pitcher = awayBatting
       ? findPlayer(cs.pitcher, relay.homeLineup?.pitcher, relay.homeEntry?.pitcher)
       : findPlayer(cs.pitcher, relay.awayLineup?.pitcher, relay.awayEntry?.pitcher);
+    const batting = awayBatting ? [relay.awayLineup?.batter, relay.awayEntry?.batter] : [relay.homeLineup?.batter, relay.homeEntry?.batter];
+    // 베이스 값은 비었으면 "0", 주자가 있으면 그 선수 코드. 코드로 이름을 못 찾으면 null (그림엔 주자만 표시)
+    const runner = (code) => (isOn(code) ? findPlayer(String(code), ...batting)?.name ?? null : null);
     detail.situation = {
       balls: num(cs.ball) ?? 0,
       strikes: num(cs.strike) ?? 0,
@@ -334,6 +383,8 @@ export function normalizeDetail(basic, relay) {
       bases: [isOn(cs.base1), isOn(cs.base2), isOn(cs.base3)],
       batter: batterLine(batter),
       pitcher: pitcherLine(pitcher),
+      runners: [runner(cs.base1), runner(cs.base2), runner(cs.base3)],
+      next: nextBatters(batter, lineupOf(batting[0])),
     };
   }
   detail.lineScore = lineScoreOf(relay.inningScore);

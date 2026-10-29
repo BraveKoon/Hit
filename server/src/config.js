@@ -22,5 +22,9 @@ export function loadConfig(env = process.env) {
       clientSecret: env.KAKAO_CLIENT_SECRET ?? null,
       redirectUri: env.PUBLIC_BASE_URL ? `${env.PUBLIC_BASE_URL.replace(/\/$/, '')}/v1/auth/kakao/callback` : null,
     },
+    // 구장 날씨: Open-Meteo (키 없으면 비상업용 무료 주소, 상업용은 HIT_WEATHER_KEY). HIT_WEATHER=off 로 끈다
+    weather: env.HIT_WEATHER === 'off' ? null : { apiKey: env.HIT_WEATHER_KEY ?? null },
+    // 내 팀 소식: 네이버 검색 API (developers.naver.com 애플리케이션의 Client ID · Secret)
+    news: { clientId: env.NAVER_CLIENT_ID ?? null, clientSecret: env.NAVER_CLIENT_SECRET ?? null },
   };
 }

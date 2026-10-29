@@ -26,9 +26,9 @@ function toPlayer(p, team, type) {
     number: num(p.backNumber),
     photo: p.playerImageUrl || null,
     stats: hitter
-      ? { war: num(p.hitterWar), avg: num(p.hitterHra), hr: num(p.hitterHr), rbi: num(p.hitterRbi), hits: num(p.hitterHit),
+      ? { games: num(p.hitterGameCount ?? p.gameCount), war: num(p.hitterWar), avg: num(p.hitterHra), hr: num(p.hitterHr), rbi: num(p.hitterRbi), hits: num(p.hitterHit),
           runs: num(p.hitterRun), sb: num(p.hitterSb), ops: num(p.hitterOps), obp: num(p.hitterObp), slg: num(p.hitterSlg) }
-      : { war: num(p.pitcherWar), era: num(p.pitcherEra), wins: num(p.pitcherWin), losses: num(p.pitcherLose),
+      : { games: num(p.pitcherGameCount ?? p.gameCount), war: num(p.pitcherWar), era: num(p.pitcherEra), wins: num(p.pitcherWin), losses: num(p.pitcherLose),
           saves: num(p.pitcherSave), holds: num(p.pitcherHold), innings: p.pitcherInning == null ? null : String(p.pitcherInning),
           so: num(p.pitcherKk), whip: num(p.pitcherWhip) },
   };
@@ -120,6 +120,12 @@ export function createRoster({ fetch = globalThis.fetch, base = NAVER_BASE, now 
         .map(([, p]) => p);
     },
 
+    /** 한 팀의 타자 또는 투수 (WAR 순) */
+    teamPlayers(team, type) {
+      refresh();
+      return players.filter((p) => p.team === team && p.type === type).sort(byWar);
+    },
+
     leaders(type, limit = 20) {
       refresh();
       return players.filter((p) => p.type === type && p.stats.war !== null).sort(byWar).slice(0, limit);
@@ -156,6 +162,7 @@ function decorateDetail(roster, d) {
       ...d.situation,
       batter: withPhoto(roster, batting, d.situation.batter),
       pitcher: withPhoto(roster, fielding, d.situation.pitcher),
+      ...(d.situation.next ? { next: d.situation.next.map((p) => withPhoto(roster, batting, p)) } : {}),
     },
     plays: playsWithPhotos(roster, d.plays, game.away.code, game.home.code),
     lineups: d.lineups && {

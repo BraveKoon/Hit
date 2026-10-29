@@ -1,13 +1,20 @@
 import SwiftUI
 import WidgetKit
 
-enum AppTab: Hashable { case today, diary, records, my }
+enum AppTab: Hashable { case today, diary, community, records, my }
+
+struct GameFocus: Hashable {
+    let gameId: String
+    let inning: Int?
+}
 
 /// 화면 이동 (홈·직관·기록 탭의 내비게이션 스택에서 같이 쓴다)
 enum Route: Hashable {
     case game(String)
     case player(String)
     case search
+    case post(Int)
+    case news
 }
 
 /// 앱 전체 상태: 응원 팀, 알림 설정, 탭·내비게이션.
@@ -24,6 +31,9 @@ final class AppModel {
     var todayPath: [Route] = []
     var recordsPath: [Route] = []
     var diaryPath: [Route] = []
+    var communityPath: [Route] = []
+    /// 알림을 눌러 연 경기: 중계 탭의 그 이닝 문자중계를 보여 준다 (경기 화면이 읽고 지운다)
+    var focus: GameFocus?
 
     private let defaults = UserDefaults.standard
 
@@ -102,6 +112,7 @@ final class AppModel {
         todayPath = []
         recordsPath = []
         diaryPath = []
+        communityPath = []
         DiaryModel.shared.reset()
         tab = .today
     }
@@ -130,8 +141,14 @@ final class AppModel {
         defaults.set(true, forKey: "onboarded")
     }
 
-    func open(gameId: String) {
+    func open(postId: Int) {
+        tab = .community
+        communityPath = [.post(postId)]
+    }
+
+    func open(gameId: String, inning: Int? = nil) {
         tab = .today
-        todayPath = [.game(gameId)]
+        focus = GameFocus(gameId: gameId, inning: inning)
+        if todayPath != [.game(gameId)] { todayPath = [.game(gameId)] }
     }
 }
