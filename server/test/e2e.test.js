@@ -119,6 +119,8 @@ test('HTTP API: 경기·상세·순위·기기 등록과 검증', async () => {
     assert.deepEqual((await call('GET', `/v1/games/${id}/relay?inning=1`)).json.plays.map((p) => p.text), ['1회초 KIA 공격']);
     assert.equal((await call('GET', `/v1/games/${id}/relay?inning=0`)).status, 400);
     assert.equal((await call('GET', `/v1/games/${id}/relay`)).status, 400);
+    assert.deepEqual((await call('GET', `/v1/games/${id}/winrate`)).json, { gameId: id, points: [] });
+    assert.ok(detail.json.fetchedAt, '상세에는 받은 시각');
     assert.equal((await call('GET', '/v1/games/NOPE-NOPE-1')).status, 404);
     assert.equal((await call('GET', '/v1/games?date=10-29')).status, 400);
     const st = await call('GET', '/v1/standings?season=2026');

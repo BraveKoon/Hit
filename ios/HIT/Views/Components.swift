@@ -434,3 +434,22 @@ extension View {
     func glassCapsule(tint: Color? = nil) -> some View { modifier(GlassBackground(shape: Capsule(), tint: tint)) }
     func glassCircle() -> some View { modifier(GlassBackground(shape: Circle())) }
 }
+
+/// 연결이 끊겼거나 경기 데이터가 늦을 때 화면 위에 띄우는 한 줄
+struct StaleBanner: View {
+    let text: String
+    var systemImage = "exclamationmark.arrow.triangle.2.circlepath"
+
+    var body: some View {
+        Label(text, systemImage: systemImage)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(Palette.amber)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Palette.amber.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Palette.amber.opacity(0.25), lineWidth: 0.5))
+            .transition(.move(edge: .top).combined(with: .opacity))
+            .accessibilityElement(children: .combine)
+    }
+}

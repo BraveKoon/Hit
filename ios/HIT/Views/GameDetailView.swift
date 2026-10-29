@@ -1,3 +1,4 @@
+import Charts
 import SwiftUI
 
 enum DetailTab: String, CaseIterable, Identifiable {
@@ -17,31 +18,54 @@ struct GameDetailView: View {
     @State private var lastSeq: Int?                       // 지난번까지 본 문자중계
     @State private var burst: (id: Int, name: String, team: String)?   // 홈런 연출
     @State private var showDiary = false
+    @State private var lastLoaded: Date?                   // 마지막으로 서버 응답을 받은 시각
+    @State private var focusInning: Int?                   // 알림을 눌러 왔을 때 보여 줄 이닝
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 14) {
-                if let detail {
-                    ScoreHero(game: detail.game)
-                    activityButton(detail)
-                    DetailTabs(selection: $tab)
-                    switch tab {
-                    case .live: LiveTab(detail: detail)
-                    case .lineup: LineupTab(detail: detail)
-                    case .record: RecordTab(detail: detail)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 14) {
+                    if let detail {
+                        if let note = staleNote(detail) {
+                            StaleBanner(text: note)
+                        }
+                        ScoreHero(game: detail.game)
+                        activityButton(detail)
+                        DetailTabs(selection: $tab)
+                        switch tab {
+                        case .live: LiveTab(detail: detail, focusInning: focusInning)
+                        case .lineup: LineupTab(detail: detail)
+                        case .record: RecordTab(detail: detail)
+                        }
+                    } else if let error {
+                        MessageView(title: "중계를 불러오지 못했어요", detail: error, systemImage: "wifi.exclamationmark")
+                            .padding(.top, 60)
+                    } else {
+                        ProgressView().padding(.top, 80)
                     }
-                } else if let error {
-                    MessageView(title: "중계를 불러오지 못했어요", detail: error, systemImage: "wifi.exclamationmark")
-                        .padding(.top, 60)
-                } else {
-                    ProgressView().padding(.top, 80)
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 28)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 28)
+            .scrollIndicators(.hidden)
+            // 알림을 눌러 왔으면 중계 탭의 그 이닝 문자중계까지 내려 준다
+            .task(id: AppModel.shared.focus) {
+                guard let f = AppModel.shared.focus, f.gameId == gameId else { return }
+                tab = .live
+                focusInning = f.inning
+                // focus 를 지우면 이 task 가 다시 시작되므로 다 쓰고 나서 지운다
+                defer { AppModel.shared.focus = nil }
+                var waited = 0
+                while detail == nil && waited < 50 {
+                    try? await Task.sleep(for: .milliseconds(200))
+                    waited += 1
+                }
+                guard detail != nil, f.inning != nil, !Task.isCancelled else { return }
+                try? await Task.sleep(for: .milliseconds(350))
+                withAnimation(.snappy) { proxy.scrollTo(RelaySection.anchor, anchor: .top) }
+            }
         }
-        .scrollIndicators(.hidden)
         .tabBarSpace()
         .background(AppBackground())
         .overlay {
@@ -91,10 +115,26 @@ struct GameDetailView: View {
             celebrate(next)
             withAnimation(.snappy) { detail = next }   // 점수·상황이 부드럽게 바뀐다
             error = nil
+            lastLoaded = Date()
             activityOn = LiveActivityController.shared.activity(for: gameId) != nil
+        } catch is CancellationError {
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    /// 화면은 지난 값을 보여 주고 있지만 새 정보가 안 올 때 한 줄로 알린다.
+    /// - 서버에 못 닿음: 마지막으로 받은 시각
+    /// - 서버는 답하지만 네이버 데이터가 멈춤 (경기 중 1분 넘게): 몇 분 전 기준인지
+    private func staleNote(_ detail: GameDetail) -> String? {
+        if error != nil {
+            return "연결이 불안정해요" + (lastLoaded.map { " · \(KST.clock.string(from: $0)) 기준" } ?? "")
+        }
+        guard detail.game.status == .live, let at = detail.fetchedDate else { return nil }
+        let age = Date().timeIntervalSince(at)
+        guard age > 60 else { return nil }
+        let mins = Int(age / 60)
+        return "경기 데이터가 늦어지고 있어요 · \(mins)분 전 기준"
     }
 
     /// 처음 연 뒤 새로 들어온 홈런이 있으면 연출 (처음 열 때는 지난 홈런으로 터뜨리지 않는다)
@@ -250,6 +290,7 @@ struct DetailTabs: View {
 
 struct LiveTab: View {
     let detail: GameDetail
+    var focusInning: Int? = nil
 
     var body: some View {
         VStack(spacing: 14) {
@@ -268,7 +309,8 @@ struct LiveTab: View {
             if detail.plays.isEmpty && detail.game.status == .scheduled {
                 Card { Label("경기가 시작하면 문자중계가 여기에 나와요", systemImage: "text.bubble").foregroundStyle(Palette.muted) }
             } else if !detail.plays.isEmpty || detail.lineScore != nil {
-                RelaySection(detail: detail)
+                RelaySection(detail: detail, focusInning: focusInning)
+                    .id(RelaySection.anchor)
             }
         }
     }
@@ -277,7 +319,9 @@ struct LiveTab: View {
 /// 문자중계를 이닝별로: 1회·2회… 알약을 눌러 그 이닝만 본다.
 /// 아무것도 안 고르면 지금 이닝을 따라가고, 지난 이닝은 서버에서 그 이닝 전체를 받아 온다.
 struct RelaySection: View {
+    static let anchor = "relay"
     let detail: GameDetail
+    var focusInning: Int? = nil
     @State private var picked: Int?            // nil = 지금 이닝 따라가기
     @State private var cache: [Int: [Play]] = [:]
     @State private var loading = false
@@ -334,6 +378,10 @@ struct RelaySection: View {
             }
             .id(selected)
             .transition(.opacity.combined(with: .offset(y: 8)))
+        }
+        // 알림을 눌러 왔으면 그 이닝을 고른다 (지금 이닝이면 따라가기)
+        .onChange(of: focusInning, initial: true) { _, f in
+            if let f { picked = f == current ? nil : f }
         }
         // 고른 이닝이 바뀌거나, 진행 중인 이닝에 새 줄이 들어오면 다시 받는다.
         .task(id: "\(selected)-\(selected == current ? detail.plays.first?.seq ?? 0 : 0)") {
@@ -748,9 +796,7 @@ struct RecordTab: View {
             } else {
                 Card { Label("경기가 시작하면 이닝별 점수가 나와요", systemImage: "tablecells").foregroundStyle(Palette.muted) }
             }
-            if let w = detail.winRate, detail.game.status == .live {
-                WinRateBar(game: detail.game, rate: w)
-            }
+            WinTrendSection(detail: detail)
             if let p = detail.pitchers, p.win != nil {
                 DecisionCard(game: detail.game, pitchers: p)
             }
@@ -849,5 +895,111 @@ struct WinRateBar: View {
                 .foregroundStyle(Palette.muted)
             }
         }
+    }
+}
+
+/// 승리 확률: 타석별 흐름 그래프. 점이 모자라면 (경기 초반, 재생 모드) 지금 확률 막대만.
+struct WinTrendSection: View {
+    let detail: GameDetail
+    @State private var points: [WinPoint] = []
+
+    private var game: Game { detail.game }
+
+    var body: some View {
+        Group {
+            if points.count >= 2 {
+                WinTrendChart(game: game, points: points)
+            } else if let w = detail.winRate, game.status == .live {
+                WinRateBar(game: game, rate: w)
+            }
+        }
+        // 경기 중에는 새 타석이 들어올 때마다, 끝난 경기는 한 번
+        .task(id: "\(game.id)-\(game.status == .live ? detail.plays.first?.seq ?? 0 : -1)") {
+            guard game.status == .live || game.status == .final || game.status == .suspended else { return }
+            if let r = try? await APIClient().winTrend(id: game.id) {
+                withAnimation(.snappy) { points = r.points }
+            }
+        }
+    }
+}
+
+struct WinTrendChart: View {
+    let game: Game
+    let points: [WinPoint]
+
+    private var awayColor: Color { Team.find(game.away.code)?.color ?? Palette.muted }
+    private var homeColor: Color { Team.find(game.home.code)?.color ?? Palette.muted }
+    private var last: Double { points.last?.home ?? 50 }
+
+    /// 이닝이 바뀌는 타석 (가로축 눈금)
+    private var inningStarts: [Int] {
+        points.indices.filter { $0 == 0 || points[$0].inning != points[$0 - 1].inning }
+    }
+
+    var body: some View {
+        Card {
+            VStack(spacing: 10) {
+                HStack {
+                    Text("\(Int((100 - last).rounded()))%").font(.headline.monospacedDigit())
+                    Spacer()
+                    Text("승리 확률 흐름").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
+                    Spacer()
+                    Text("\(Int(last.rounded()))%").font(.headline.monospacedDigit())
+                }
+                Chart {
+                    RuleMark(y: .value("반반", 50))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                        .foregroundStyle(.white.opacity(0.25))
+                    ForEach(Array(points.enumerated()), id: \.offset) { i, p in
+                        AreaMark(x: .value("타석", i), yStart: .value("기준", 50), yEnd: .value("홈팀", p.home))
+                            .interpolationMethod(.monotone)
+                            .foregroundStyle(LinearGradient(colors: [homeColor.opacity(0.55), awayColor.opacity(0.55)],
+                                                            startPoint: .top, endPoint: .bottom))
+                        LineMark(x: .value("타석", i), y: .value("홈팀", p.home))
+                            .interpolationMethod(.monotone)
+                            .lineStyle(StrokeStyle(lineWidth: 2))
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
+                    PointMark(x: .value("타석", points.count - 1), y: .value("홈팀", last))
+                        .symbolSize(50)
+                        .foregroundStyle(Palette.amber)
+                }
+                .chartYScale(domain: 0...100)
+                .chartYAxis(.hidden)
+                .chartXAxis {
+                    AxisMarks(values: inningStarts) { value in
+                        AxisGridLine().foregroundStyle(.white.opacity(0.08))
+                        AxisValueLabel {
+                            if let i = value.as(Int.self), points.indices.contains(i) {
+                                Text("\(points[i].inning)회").font(.caption2).foregroundStyle(Palette.muted)
+                            }
+                        }
+                    }
+                }
+                // 위로 갈수록 홈팀, 아래로 갈수록 원정팀이 유리
+                .overlay(alignment: .topLeading) { sideLabel(game.home.name, homeColor) }
+                .overlay(alignment: .bottomLeading) { sideLabel(game.away.name, awayColor).padding(.bottom, 22) }
+                .frame(height: 160)
+                HStack {
+                    Text(game.away.name)
+                    Spacer()
+                    Text(game.home.name)
+                }
+                .font(.caption)
+                .foregroundStyle(Palette.muted)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("승리 확률 흐름")
+        .accessibilityValue("지금 \(game.home.name) \(Int(last.rounded()))%, \(game.away.name) \(Int((100 - last).rounded()))%")
+    }
+
+    private func sideLabel(_ name: String, _ color: Color) -> some View {
+        Text("\(name) 유리")
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(color.opacity(0.9))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(.black.opacity(0.35), in: Capsule())
     }
 }

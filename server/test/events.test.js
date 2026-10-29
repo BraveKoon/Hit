@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { activityChanged, activityState, detect, headlineOf } from '../src/events.js';
+import { activityChanged, activityState, detect, headlineOf, snapshotOf } from '../src/events.js';
 import { render, wants, DEFAULT_PREFS } from '../src/messages.js';
 
 const snap = (o = {}) => ({
@@ -95,6 +95,13 @@ test('헤드라인은 주자 이동보다 타격 결과를 고른다', () => {
   assert.equal(headlineOf([{ seq: 1, text: '1구 볼', type: 1 }]), null);
 });
 
+test('스냅숏: 양 팀 라인업이 모두 있어야 발표로 본다', () => {
+  const g = { id: 'G1', status: 'scheduled', away: {}, home: {} };
+  assert.equal(snapshotOf({ game: g, lineups: { away: [{}], home: [] } }).lineupsOut, false);
+  assert.equal(snapshotOf({ game: g, lineups: { away: [{}], home: [{}] } }).lineupsOut, true);
+  assert.equal(snapshotOf({ game: g, lineups: null }).lineupsOut, false);
+});
+
 test('라이브 액티비티는 볼카운트·투구 수만 바뀌면 갱신하지 않는다', () => {
   const pitcher = { name: '올러', pitches: 10 };
   const batter = { name: '구자욱', avg: '.371' };
@@ -130,6 +137,25 @@ test('문구: 경기 전 알림은 남은 분과 선발', () => {
   const m = render({ type: 'pregame' }, game({ status: 'scheduled' }), ['HT'], { now });
   assert.equal(m.title, '삼성 대 KIA · 10분 뒤 시작');
   assert.equal(m.body, '18:30 광주 · 선발 최원태 대 시라카와');
+});
+
+test('라인업 발표: 경기 전에 양 팀 타순이 처음 나오면 한 번', () => {
+  const ready = { lineupsOut: true };
+  assert.deepEqual(types(detect(snap({ status: 'scheduled' }), snap({ status: 'scheduled', ...ready }))), ['lineup']);
+  assert.deepEqual(types(detect(snap({ status: 'scheduled', ...ready }), snap({ status: 'scheduled', ...ready }))), [], '이미 알렸으면 다시 안 함');
+  assert.deepEqual(types(detect(snap({ status: 'scheduled' }), snap({ status: 'live', ...ready }))), ['start'], '시작과 함께 나오면 시작 알림만');
+});
+
+test('문구: 라인업은 내 팀 타순을 보여 주고, 득점 알림은 이닝을 싣는다', () => {
+  const lineups = { away: [{ order: 1, name: '김지찬' }, { order: 2, name: '구자욱' }], home: [{ order: 1, name: '박찬호' }] };
+  const m = render({ type: 'lineup', lineups }, game({ status: 'scheduled', inning: null, half: null }), ['SS']);
+  assert.equal(m.title, '삼성 선발 라인업 · 삼성 대 KIA');
+  assert.equal(m.body, '1 김지찬 2 구자욱');
+  assert.equal(m.level, 'passive');
+  assert.equal(m.inning, null);
+  const s = render({ type: 'score', scorer: 'home', runs: 1, inning: 5, half: 'bottom' }, game(), ['HT']);
+  assert.equal(s.inning, 5);
+  assert.equal(wants({ ...DEFAULT_PREFS, lineup: false }, { type: 'lineup' }), false);
 });
 
 test('알림 설정: 득점을 꺼도 역전·홈런은 받을 수 있다', () => {

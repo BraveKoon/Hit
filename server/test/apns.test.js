@@ -66,6 +66,8 @@ test('페이로드: 알림 수준과 push-to-start 속성', () => {
   assert.equal(p.aps['interruption-level'], 'time-sensitive');
   assert.equal(p.aps.alert.subtitle, 's');
   assert.equal(p.gameId, 'G1');
+  assert.equal('inning' in p, false, '이닝이 없으면 키도 없다');
+  assert.equal(alertPayload({ title: 't', body: 'b', gameId: 'G1', type: 'score', inning: 7 }).inning, 7, '알림을 누르면 7회 문자중계로');
   const game = { id: 'G1', stadium: null, startsAt: 'x', away: { code: 'SS', name: '삼성' }, home: { code: 'HT', name: 'KIA' } };
   const s = activityStartPayload(game, { awayScore: 0 }, { title: 'a', body: 'b' }, { now: 1000 });
   assert.equal(s.aps.event, 'start');

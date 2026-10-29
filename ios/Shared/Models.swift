@@ -142,6 +142,31 @@ struct GameDetail: Codable, Hashable {
     let lineups: Lineups?
     let pitchers: Pitchers?
     let winRate: WinRate?
+    let fetchedAt: String?   // 서버가 네이버에서 받은 시각. 오래됐으면 "데이터 지연"
+}
+
+extension GameDetail {
+    var fetchedDate: Date? { fetchedAt.flatMap { ISO8601DateFormatter.fractional.date(from: $0) ?? ISO8601DateFormatter().date(from: $0) } }
+}
+
+extension ISO8601DateFormatter {
+    static let fractional: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+}
+
+/// 타석별 홈팀 승리 확률 (%)
+struct WinPoint: Codable, Hashable {
+    let inning: Int
+    let half: String?
+    let home: Double
+}
+
+struct WinTrendResponse: Codable, Hashable {
+    let gameId: String
+    let points: [WinPoint]
 }
 
 struct Standing: Codable, Hashable, Identifiable {
@@ -188,6 +213,7 @@ struct AuthResponse: Codable {
 struct NotificationPrefs: Codable, Hashable {
     var pregame = true
     var starters = true
+    var lineup = true    // 경기 전 선발 라인업 발표
     var start = true
     var score = true
     var homerun = true
@@ -207,7 +233,8 @@ extension NotificationPrefs {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let d = NotificationPrefs()
         func v(_ k: CodingKeys, _ fallback: Bool) throws -> Bool { try c.decodeIfPresent(Bool.self, forKey: k) ?? fallback }
-        self.init(pregame: try v(.pregame, d.pregame), starters: try v(.starters, d.starters), start: try v(.start, d.start),
+        self.init(pregame: try v(.pregame, d.pregame), starters: try v(.starters, d.starters), lineup: try v(.lineup, d.lineup),
+                  start: try v(.start, d.start),
                   score: try v(.score, d.score), homerun: try v(.homerun, d.homerun), lead: try v(.lead, d.lead),
                   extra: try v(.extra, d.extra), end: try v(.end, d.end), cancel: try v(.cancel, d.cancel),
                   liveActivity: try v(.liveActivity, d.liveActivity), players: try v(.players, d.players),

@@ -1,6 +1,6 @@
 // 서버가 실제로 내보내는 JSON 샘플을 만든다 (tools/check-contract.py 가 Swift 모델과 대조).
 import { readFileSync } from 'node:fs';
-import { normalizeDetail, normalizeGame, normalizeStanding } from '../server/src/naver.js';
+import { normalizeDetail, normalizeGame, normalizeStanding, winPointsOf } from '../server/src/naver.js';
 import { createReplayProvider } from '../server/src/replay.js';
 import { activityState, snapshotOf } from '../server/src/events.js';
 import { activityStartPayload } from '../server/src/apns.js';
@@ -11,7 +11,7 @@ import { publicUser } from '../server/src/http.js';
 import { diaryEntries, diaryStats } from '../server/src/diary.js';
 
 const fx = (n) => JSON.parse(readFileSync(new URL(`../server/test/fixtures/${n}`, import.meta.url))).result;
-const live = normalizeDetail(fx('naver-game-live.json').game, fx('naver-relay-live.json').textRelayData);
+const live = { ...normalizeDetail(fx('naver-game-live.json').game, fx('naver-relay-live.json').textRelayData), fetchedAt: new Date().toISOString() };
 const before = normalizeDetail(fx('naver-game-before.json').game, null);
 const final = normalizeDetail(fx('naver-game-final.json').game, null);
 const replay = createReplayProvider({ holdUntilStart: false });
@@ -61,4 +61,5 @@ console.log(JSON.stringify({
   DiaryEntry: [finalEntry, entries[1]],
   CalendarResponse: [{ month: '2026-10', team: 'SS', games: sched }, { month: '2026-10', team: null, games: [] }],
   Player: [photos.get('1'), photos.get('2'), photos.get('4')],
+  WinTrendResponse: [{ gameId: live.game.id, points: winPointsOf(fx('naver-relay-live.json').textRelayData, 3) }, await replay.winTrend(rgame.id)],
 }));

@@ -15,6 +15,7 @@
 //   GET    /v1/players?q=김도영 | ㄱㄷㅇ | KIA   선수 검색 · GET /v1/players/:id 선수 상세
 //   GET    /v1/leaders?type=pitcher|hitter  투수·타자 TOP20 (WAR)
 //   GET    /v1/games/:id/relay?inning=N     그 이닝의 문자중계 전체
+//   GET    /v1/games/:id/winrate            타석별 홈팀 승리 확률 흐름 (그래프)
 //   GET    /v1/calendar?month=YYYY-MM&team=SS  한 달 경기 (달력)
 //   GET    /v1/me/diary · PUT·DELETE /v1/me/diary/:gameId { date, mode, seat, memo }  직관 다이어리와 승률
 import http from 'node:http';
@@ -116,6 +117,7 @@ export function createApi({ provider, store, auth = null, roster = null, info = 
       const { away, home, ...rest } = await provider.relay(m[1], inning);
       return rest;
     }],
+    ['GET', /^\/v1\/games\/([\w-]{6,40})\/winrate$/, async (m) => provider.winTrend(m[1])],
     ['GET', /^\/v1\/calendar$/, async (_m, url) => {
       const month = url.searchParams.get('month') ?? kstDate(now()).slice(0, 7);
       if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new HttpError(400, 'month must be YYYY-MM');

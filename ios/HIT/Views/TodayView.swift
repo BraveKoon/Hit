@@ -93,6 +93,9 @@ struct TodayView: View {
             MessageView(title: "경기가 없는 날이에요", detail: "날짜를 넘겨 다른 날 경기를 확인해 보세요.")
                 .padding(.top, 40)
         } else {
+            if error != nil {
+                StaleBanner(text: "연결이 불안정해요. 마지막으로 받은 경기 정보예요")
+            }
             if let team = model.team {
                 if myGames.isEmpty, let next = upcoming {
                     SectionHeader(title: "다음 경기", detail: next.startDate.map { KST.display.string(from: $0) })

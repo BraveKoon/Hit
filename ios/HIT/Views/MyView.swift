@@ -168,6 +168,7 @@ struct NotificationSettingsView: View {
             Section("내 팀 경기") {
                 toggle("경기 시작 10분 전", "선발 투수와 중계 채널", \.pregame)
                 toggle("선발 투수 발표", "경기 당일 선발이 정해지면", \.starters)
+                toggle("라인업 발표", "경기 전에 타순이 나오면 (늦게 나오는 날은 생략)", \.lineup)
                 toggle("경기 시작", nil, \.start)
                 toggle("득점", "점수가 날 때마다 (실점 포함)", \.score)
                 toggle("홈런", "득점을 꺼도 홈런은 받기", \.homerun)

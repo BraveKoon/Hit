@@ -4,6 +4,7 @@ import { kstClock } from './time.js';
 export const DEFAULT_PREFS = {
   pregame: true, // 경기 시작 10분 전
   starters: true, // 선발 투수 발표
+  lineup: true, // 경기 전 선발 라인업 발표
   start: true,
   score: true,
   homerun: true,
@@ -47,7 +48,8 @@ export function render(event, game, viewerTeams = [], { now = Date.now() } = {})
   const g = game;
   const mine = viewerSide(g, viewerTeams);
   const clock = kstClock(g.startsAt);
-  const base = { threadId: g.id, gameId: g.id, type: event.type, level: 'active' };
+  // inning: 알림을 누르면 앱이 그 경기의 그 이닝 문자중계를 연다
+  const base = { threadId: g.id, gameId: g.id, type: event.type, level: 'active', inning: event.inning ?? g.inning ?? null };
 
   switch (event.type) {
     case 'pregame': {
@@ -56,6 +58,11 @@ export function render(event, game, viewerTeams = [], { now = Date.now() } = {})
     }
     case 'starters':
       return { ...base, level: 'passive', title: `선발 발표 · ${matchup(g)}`, body: join(`${g.away.starter} 대 ${g.home.starter}`, `${clock} ${g.stadium ?? ''}`.trim()) };
+    case 'lineup': {
+      const order = (side) => (event.lineups?.[side] ?? []).map((p) => `${p.order} ${p.name}`).join(' ');
+      if (mine) return { ...base, level: 'passive', title: `${g[mine].name} 선발 라인업 · ${matchup(g)}`, body: order(mine) || `${clock} ${g.stadium ?? ''}`.trim() };
+      return { ...base, level: 'passive', title: `라인업 발표 · ${matchup(g)}`, body: `${clock} ${g.stadium ?? ''}`.trim() };
+    }
     case 'start':
       return { ...base, title: `경기 시작 · ${matchup(g)}`, body: join(g.stadium, starters(g)) || '플레이볼!' };
     case 'score': {

@@ -123,6 +123,7 @@ export function alertPayload(msg) {
     },
     gameId: msg.gameId,
     type: msg.type,
+    ...(Number.isInteger(msg.inning) ? { inning: msg.inning } : {}),
     // 선수 사진: 앱의 알림 서비스 확장이 받아 알림에 붙인다 (mutable-content)
     ...(msg.image ? { image: msg.image } : {}),
   };

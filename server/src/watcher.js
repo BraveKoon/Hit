@@ -26,6 +26,7 @@ export function createWatcher({ provider, store, apns, photos = null, now = () =
   async function sendAlerts(event, game, detail, t) {
     if (!store.markSent(event.key)) return 0;
     if (event.type === 'end') event.pitchers = detail?.pitchers ?? null;
+    if (event.type === 'lineup') event.lineups = detail?.lineups ?? null;
     // 홈런 알림엔 친 선수 사진
     const image = event.type === 'score' && event.hitter
       ? photoOf(event.half === 'top' ? game.away.code : game.home.code, event.hitter) : null;

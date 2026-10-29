@@ -21,6 +21,7 @@ export function cached(provider, { scheduleMs = 15_000, pastMs = 6 * 3600_000, d
     range: (from, to) => memo(`m:${from}:${to}`, isPast(to, now()) ? pastMs : scheduleMs, () => provider.range(from, to)),
     detail: (id) => memo(`d:${id}`, detailMs, () => provider.detail(id)),
     relay: (id, inning) => memo(`r:${id}:${inning}`, detailMs, () => provider.relay(id, inning)),
+    winTrend: (id) => memo(`w:${id}`, detailMs * 6, () => provider.winTrend(id)),
     standings: (season) => memo(`t:${season}`, standingsMs, () => provider.standings(season)),
   };
 }
