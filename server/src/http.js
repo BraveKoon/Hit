@@ -21,6 +21,9 @@
 //   GET    /v1/games/:id/mvp · PUT { team, name }  오늘의 MVP 후보·집계·내 표 (투표는 로그인 필요, 끝난 경기만)
 //   GET    /v1/calendar?month=YYYY-MM&team=SS  한 달 경기 (달력)
 //   GET    /v1/me/diary · PUT·DELETE /v1/me/diary/:gameId { date, mode, seat, memo }  직관 다이어리와 승률
+//   POST   /v1/me/diary/:gameId/verify { ticket }   직관 티켓 인증 (앱이 티켓 사진에서 읽은 예매번호·바코드)
+//   GET    /v1/games/:id/chat?after=N · POST { text }  응원톡 (쓰기는 로그인, 경기 당일만)
+//   POST   /v1/chat/:messageId/report               응원톡 신고 (3번이면 숨김)
 import http from 'node:http';
 import { TEAM_CODES, shortName } from './teams.js';
 import { DEFAULT_PREFS } from './messages.js';
@@ -29,6 +32,7 @@ import { MODES, diaryEntries, diaryStats, monthRange } from './diary.js';
 import { ballot, candidatesOf } from './mvp.js';
 import { gamePreview } from './preview.js';
 import { postseason } from './postseason.js';
+import { CHAT_GAP_MS, chatMessage, chatOpen, cleanText, ticketHash } from './chat.js';
 
 const TOKEN = /^[0-9a-fA-F]{32,256}$/;
 const ENVS = new Set(['sandbox', 'production']);
@@ -226,6 +230,39 @@ export function createApi({ provider, store, auth = null, roster = null, info = 
       if (!entry.game) throw new HttpError(404, '그날 그런 경기가 없어요');
       const saved = store.putDiary(u.id, { gameId: m[1], date: body.date, mode: body.mode, seat: text(body.seat, 40), memo: text(body.memo, 500) });
       return { ...saved, result: entry.result, game: entry.game };
+    }],
+    ['POST', /^\/v1\/me\/diary\/([\w-]{6,40})\/verify$/, async (m, _u, body, req) => {
+      const u = me(req);
+      const hash = ticketHash(m[1], body.ticket);
+      if (!hash) throw new HttpError(400, '티켓 번호를 읽지 못했어요');
+      const r = store.verifyDiary(u.id, m[1], hash);
+      if (r === 'missing') throw new HttpError(404, '먼저 이 경기를 직관으로 남겨 주세요');
+      if (r === 'taken') throw new HttpError(409, '이미 다른 기록에서 인증한 티켓이에요');
+      const row = store.getDiary(u.id, m[1]);
+      const [entry] = await diaryEntries(provider, [row], u.team);
+      return entry;
+    }],
+    ['GET', /^\/v1\/games\/([\w-]{6,40})\/chat$/, async (m, url, _b, req) => {
+      const after = Number(url.searchParams.get('after') ?? 0);
+      const viewer = auth?.userFrom(req)?.id ?? null;
+      return { messages: store.chat(m[1], Number.isInteger(after) && after > 0 ? after : 0).map((r) => chatMessage(r, viewer)) };
+    }],
+    ['POST', /^\/v1\/games\/([\w-]{6,40})\/chat$/, async (m, _u, body, req) => {
+      const u = me(req);
+      const text = cleanText(body.text);
+      if (!text) throw new HttpError(400, '내용을 입력해 주세요');
+      const { game } = await provider.detail(m[1]);
+      if (!chatOpen(game, now())) throw new HttpError(409, '응원톡은 경기 당일에만 열려요');
+      const last = store.lastChatAt(u.id);
+      if (last && now() - last < CHAT_GAP_MS) throw new HttpError(429, '조금만 천천히 보내 주세요');
+      return chatMessage(store.addChat(m[1], u, text), u.id);
+    }],
+    ['POST', /^\/v1\/chat\/(\d{1,12})\/report$/, async (m, _u, _b, req) => {
+      const u = me(req);
+      const msg = store.getChat(Number(m[1]));
+      if (!msg) throw new HttpError(404, '없는 메시지예요');
+      if (msg.user_id === u.id) throw new HttpError(400, '내 메시지는 신고할 수 없어요');
+      return { reported: store.reportChat(msg.id, u.id) };
     }],
     ['DELETE', /^\/v1\/me\/diary\/([\w-]{6,40})$/, async (m, _u, _b, req) => ({ deleted: store.deleteDiary(me(req).id, m[1]) })],
     ['DELETE', /^\/v1\/me$/, async (_m, _u, _b, req) => ({ deleted: store.deleteUser(me(req).id) })],

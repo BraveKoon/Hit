@@ -251,6 +251,17 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .hh{display:flex;flex-direction:column;gap:14px}.hh .v{display:flex;justify-content:space-between}.hh .v span{display:flex;align-items:center;gap:8px}.hh .v b{font-size:22px;font-weight:700}.hh .bar{height:10px}
 .hh .rc{display:flex;gap:8px;overflow-x:auto}.hh .rc div{flex:none;width:64px;padding:10px 0;border-radius:14px;background:rgba(255,255,255,.05);display:flex;flex-direction:column;align-items:center;gap:6px}
 .hh .rc small{font-size:11px;color:var(--mu)}.hh .rc b{font-size:14px;font-variant-numeric:tabular-nums}
+.vf{font-size:11px;font-weight:800;color:var(--mu)}.vf.on{color:var(--am)}
+.vok{padding:13px;border-radius:16px;background:rgba(255,138,76,.12);color:var(--am);font-weight:700;font-size:14px;text-align:center;margin-bottom:12px}
+.vbtn{width:100%;height:48px;border-radius:16px;border:1.5px solid rgba(255,138,76,.6);background:none;color:var(--am);font:inherit;font-size:14.5px;font-weight:700;opacity:.6}
+.vnote{margin:8px 2px 14px;font-size:12px;color:var(--mu);line-height:1.5}
+.chatbtn{width:100%;height:44px;border-radius:99px;border:0;margin:12px 0 0;background:var(--sf);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.14);color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.sheet.chat{display:flex;flex-direction:column;padding-bottom:16px}
+.chat .ch{display:flex;align-items:center;gap:10px;padding:4px 0 12px;border-bottom:1px solid rgba(255,255,255,.08)}.chat .ch b{font-size:16px}.chat .ch span{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
+.chat .cl2{min-height:220px;display:flex;flex-direction:column;gap:8px;padding:14px 0}
+.chat .me{display:flex;justify-content:flex-end}.chat .me span{max-width:75%;background:var(--am);color:#000;padding:8px 12px;border-radius:16px;font-size:14px}
+.chat .cin{display:flex;gap:10px}.chat .cin input{flex:1;min-width:0;height:42px;border-radius:21px;border:0;background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:15px;padding:0 14px;outline:none}
+.chat .cin button{width:42px;height:42px;border-radius:50%;border:0;background:var(--am);color:#000;font-size:18px;font-weight:900;cursor:pointer}
 .gd{padding:0;overflow:hidden}
 .gd .top{display:flex;align-items:center;gap:8px;padding:12px 16px}.gd .top b{font-size:14.5px}.gd .top span{color:var(--mu);font-size:14px}
 .gd .cl{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--mu)}
@@ -833,8 +844,8 @@ var PREFS = [['pregame','경기 시작 10분 전','선발 투수와 중계 채�
 var S = {screen:'auth', back:'auth', tab:'home', sub:null, hist:[], anim:'screen', scores:{}, popId:null, rec:'team', q:'', pid:null, fav:[], mound:{}, user:null, my:null, ob:{step:0,pick:null},
   day:TODAY, seg:'po3', dtab:'live', pitches:false, la:false,
   on:{pregame:true,starters:true,lineup:true,start:true,score:true,homerun:true,lead:true,extra:true,end:true,cancel:true,liveActivity:true,players:true,hit:false,walk:false},
-  diary:[{id:'po2',mode:'stadium',seat:'1루 블루존',memo:'디아즈 투런 직관!'},{id:'po1',mode:'home',seat:'집',memo:''}], cal:'2026-10', bk:'stadium', dgame:null, dmode:'stadium',
-  mvp:{}, mvpRe:null, notifs:[], replay:'idle', po2:null, cur:0, timer:null, overlay:null};
+  diary:[{id:'po2',mode:'stadium',seat:'1루 블루존',memo:'디아즈 투런 직관!',verified:true},{id:'po1',mode:'home',seat:'집',memo:''}], cal:'2026-10', bk:'stadium', dgame:null, dmode:'stadium',
+  mvp:{}, mvpRe:null, chat:{}, notifs:[], replay:'idle', po2:null, cur:0, timer:null, overlay:null};
 
 /* ── 도우미 ── */
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -1040,6 +1051,7 @@ function vGame(){
     '<div class="mid">'+side(g.a,g.status==='final'&&as>hs)+
     (has?'<div class="bigscore" style="font-size:48px"><span data-score="d-'+g.id+'"><span class="'+(g.status==='final'&&as<hs?'lose':'')+'">'+as+'</span><span class="c">&nbsp;:&nbsp;</span><span class="'+(g.status==='final'&&hs<as?'lose':'')+'">'+hs+'</span></span></div>':'<div class="bigtime" style="font-size:34px;font-weight:700">'+g.time+'<small>'+esc(g.park)+'</small></div>')+
     side(g.h,g.status==='final'&&hs>as)+'</div></div>';
+  if (g.status==='live' || g.date===TODAY) h+='<button class="chatbtn" data-act="chat">💬 응원톡</button>';
   if (g.status!=='final') h+='<button class="lapill'+(S.la?' on':'')+'" data-act="la">'+ICON.lock+(S.la?'잠금화면에서 내리기':'잠금화면에 실시간 점수 띄우기')+'</button>';
   // 다른 야구 앱처럼 경기 전엔 프리뷰, 경기 중엔 중계, 끝나면 요약부터. 경기 전엔 요약·중계·기록을 흐리게
   var tab=S.dtab||(g.status==='scheduled'?'preview':g.status==='live'?'live':'summary');
@@ -1232,7 +1244,7 @@ function resultOf(g,team){
   return mine===theirs?'draw':mine>theirs?'win':'lose';
 }
 function diaryEntries(){
-  return S.diary.map(function(e){ var g=diaryGame(e.id); return {id:e.id,mode:e.mode,seat:e.seat,memo:e.memo,g:g,r:resultOf(g,S.my)}; })
+  return S.diary.map(function(e){ var g=diaryGame(e.id); return {id:e.id,mode:e.mode,seat:e.seat,memo:e.memo,verified:!!e.verified,g:g,r:resultOf(g,S.my)}; })
     .sort(function(x,y){ return y.g.date.localeCompare(x.g.date); });
 }
 function bucket(k,l){ return {k:k,l:l,w:0,lo:0,d:0}; }
@@ -1241,7 +1253,9 @@ function pctOf(b){ return b.w+b.lo?b.w/(b.w+b.lo):null; }
 function recOf(b){ return b.w+'승 '+b.lo+'패'+(b.d?' '+b.d+'무':''); }
 function diaryStats(list){
   var all=bucket('all','전체'), modes={stadium:bucket('stadium','직관'),home:bucket('home','집관')}, by={stadium:{},opponent:{},weekday:{}}, streak=null, open=true;
+  var unverified=0;
   list.forEach(function(e){
+    if (e.mode==='stadium' && !e.verified){ unverified++; return; }   // 티켓 인증한 직관만 승률에
     if (!e.r) return;
     addR(all,e.r); addR(modes[e.mode],e.r);
     var opp=e.g.a===S.my?e.g.h:e.g.a, wd=new Date(e.g.date+'T12:00:00Z').getUTCDay();
@@ -1249,7 +1263,7 @@ function diaryStats(list){
       var m=by[x[0]]; addR(m[x[1]]||(m[x[1]]=bucket(x[1],x[2])),e.r); });
     if (e.mode==='stadium' && e.r!=='draw' && open){ if(!streak) streak={r:e.r,n:1}; else if(streak.r===e.r) streak.n++; else open=false; }
   });
-  return {all:all,modes:[modes.stadium,modes.home],by:by,streak:streak&&streak.n>=2?'직관 '+streak.n+(streak.r==='win'?'연승':'연패'):null};
+  return {all:all,unverified:unverified,modes:[modes.stadium,modes.home],by:by,streak:streak&&streak.n>=2?'직관 '+streak.n+(streak.r==='win'?'연승':'연패'):null};
 }
 function pct100(p){ return p==null?'-':Math.round(p*100)+'%'; }
 function vDiary(){
@@ -1262,6 +1276,7 @@ function vDiary(){
   h+='<div class="dhero2" style="--tc:'+T[S.my].c+'"><div class="top"><b class="pct">'+(p==null?'-':Math.round(p*100)+'%')+'</b>'+
     '<div class="txt"><small>나의 승요력</small><b>'+(n?recOf(st.all):'아직 기록이 없어요')+'</b></div>'+
     (st.streak?'<em class="'+(/연승/.test(st.streak)?'up':'down')+'">'+st.streak+'</em>':'')+'</div>'+
+    (st.unverified?'<p class="mline">티켓 인증 안 한 직관 '+st.unverified+'경기는 승률에서 빠져 있어요</p>':'')+
     (n?'<p class="mline">'+st.modes.filter(function(m){ return m.w+m.lo+m.d; }).map(function(m){ return m.l+' '+recOf(m); }).join(' · ')+'</p>':'')+'</div>';
   h+=calendar();
   if (!list.length) h+='<p class="cnote">본 경기 날짜를 누르면 티켓으로 남아요</p>';
@@ -1276,7 +1291,7 @@ function ticket(e){
     '<div class="tt"><span class="dt"><b>'+md+'</b><small>'+'일월화수목금토'.charAt(d.getUTCDay())+'요일 · '+esc(g.park)+'</small></span>'+
     '<span class="vs">'+emb(g.a,34)+'<b>'+(g.status==='final'?as+' : '+hs:'vs')+'</b>'+emb(g.h,34)+'</span>'+
     '<span class="stamp '+(r||'')+'">'+(r==='win'?'승':r==='lose'?'패':r==='draw'?'무':'–')+'</span></div>'+
-    '<div class="tb"><span class="md '+e.mode+'">'+(e.mode==='stadium'?ICON.ticket+' 직관':'📺 집관')+'</span>'+(e.seat?'<b>'+esc(e.seat)+'</b>':'')+(e.memo?'<span class="memo">'+esc(e.memo)+'</span>':'')+'</div></button>';
+    '<div class="tb"><span class="md '+e.mode+'">'+(e.mode==='stadium'?ICON.ticket+' 직관':'📺 집관')+'</span>'+(e.mode==='stadium'?'<span class="vf'+(e.verified?' on':'')+'">'+(e.verified?'✓ 인증':'미인증')+'</span>':'')+(e.seat?'<b>'+esc(e.seat)+'</b>':'')+(e.memo?'<span class="memo">'+esc(e.memo)+'</span>':'')+'</div></button>';
 }
 function calendar(){
   var ym=S.cal.split('-').map(Number), first=new Date(Date.UTC(ym[0],ym[1]-1,1)).getUTCDay(), days=new Date(Date.UTC(ym[0],ym[1],0)).getUTCDate();
@@ -1303,6 +1318,8 @@ function vDiarySheet(){
   h+='<div class="dmodes">'+[['stadium','직관 · 경기장'],['home','집관 · 중계']].map(function(m){
     return '<button data-act="dmode" data-v="'+m[0]+'" aria-pressed="'+(S.dmode===m[0])+'">'+m[1]+'</button>'; }).join('')+'</div>'+
     '<div class="dfields"><input id="d-seat" placeholder="'+(S.dmode==='stadium'?'좌석 (예: 1루 응원석 12열)':'어디서 봤나요 (예: 집, 친구네)')+'" value="'+esc(ex?ex.seat:'')+'" maxlength="40"><textarea id="d-memo" rows="2" placeholder="한 줄 메모" maxlength="500">'+esc(ex?ex.memo:'')+'</textarea></div>'+
+    (S.dmode==='stadium'?(ex&&ex.verified?'<div class="vok">✓ 티켓 인증 완료 · 직관 승률에 들어가요</div>'
+      :'<button class="vbtn" disabled>🎫 티켓 사진으로 인증하기</button><p class="vnote">앱에서는 종이 티켓 사진이나 예매 앱 캡처를 휴대폰 안에서 읽어 날짜·구장·예매번호를 확인해요. 이 미리보기 페이지는 사진을 읽을 수 없어요. 인증한 직관만 승률에 들어가요.</p>'):'')+
     '<button class="btn amber" data-act="dsave">'+(ex?'고쳐서 저장':'티켓 남기기')+'</button>'+(ex?'<button class="ddel" data-act="ddel">이 기록 지우기</button>':'');
   return h+'</div></div>';
 }
@@ -1401,7 +1418,18 @@ function mini(b){
 }
 
 /* ── 덮개 ── */
+// 응원톡 (앱 ChatSheet 와 같은 배치). 미리보기는 다른 사람과 메시지를 나눌 수 없어 내 메시지만 보인다
+function vChat(){
+  var g=gameById(S.seg);
+  var list=S.chat[g.id]||[];
+  return '<div class="overlay" data-act="close"><div class="sheet chat" data-stop="1"><div class="grab"></div>'+
+    '<div class="ch">'+emb(g.a,24)+'<b>응원톡</b>'+emb(g.h,24)+'<span>'+(g.status!=='scheduled'?score(g,'a')+' : '+score(g,'h'):'')+'</span></div>'+
+    '<div class="cl2">'+(list.length?list.map(function(m){ return '<div class="me"><span>'+esc(m)+'</span></div>'; }).join(''):'<p class="mnone" style="text-align:center;padding:30px 0">첫 응원을 남겨 보세요<br><small>미리보기는 내 메시지만 보여요</small></p>')+'</div>'+
+    (S.user?'<div class="cin"><input id="chat-in" maxlength="200" placeholder="응원 한마디 (200자)" autocomplete="off"><button data-act="chatsend" aria-label="보내기">↑</button></div>'
+      :'<p class="mnone" style="text-align:center;padding:12px 0">로그인하면 응원톡에 참여할 수 있어요</p>')+'</div></div>';
+}
 function vOverlay(){
+  if (S.overlay==='chat') return vChat();
   if (S.overlay==='diary') return vDiarySheet();
   if (S.overlay==='sheet') return '<div class="overlay" data-act="close"><div class="sheet" data-stop="1"><div class="grab"></div><h4>응원 팀</h4><div class="tgrid">'+
     PICK.map(function(k){ return '<button class="tcard" data-act="setteam" data-v="'+k+'" aria-pressed="'+(S.my===k)+'" style="--tc:'+T[k].c+'">'+emb(k,40)+'<span><b>'+esc(T[k].n)+'</b><small>'+esc(T[k].h)+'</small></span></button>'; }).join('')+'</div></div></div>';
@@ -1604,7 +1632,8 @@ document.getElementById('screen').addEventListener('click',function(e){
     case 'dmode': var keepSeat=document.getElementById('d-seat').value, keepMemo=document.getElementById('d-memo').value; S.dmode=v; render();
       document.getElementById('d-seat').value=keepSeat; document.getElementById('d-memo').value=keepMemo; break;
     case 'dsave': var seat=document.getElementById('d-seat').value.trim(), memo=document.getElementById('d-memo').value.trim();
-      S.diary=S.diary.filter(function(e){ return e.id!==S.dgame; }); S.diary.unshift({id:S.dgame,mode:S.dmode,seat:seat,memo:memo});
+      var prevV=S.diary.filter(function(e){ return e.id===S.dgame; })[0];
+      S.diary=S.diary.filter(function(e){ return e.id!==S.dgame; }); S.diary.unshift({id:S.dgame,mode:S.dmode,seat:seat,memo:memo,verified:!!(prevV&&prevV.verified&&S.dmode==='stadium')});
       S.overlay=null; if (S.tab!=='diary'||S.sub){ S.tab='diary'; S.sub=null; S.hist=[]; S.anim='tab'; } render(); break;
     case 'ddel': S.diary=S.diary.filter(function(e){ return e.id!==S.dgame; }); S.overlay=null; render(); break;
     case 'dgo': S.overlay=null; S.seg=S.dgame; S.dtab=null; S.inn=null; navTo('game'); break;
@@ -1621,6 +1650,9 @@ document.getElementById('screen').addEventListener('click',function(e){
     case 'back': S.sub=S.hist.length?S.hist.pop():null; S.anim='pop'; render(); break;
     case 'dtab': S.dtab=v; render(); break;
     case 'pvs': S.pvs=v; render(); break;
+    case 'chat': S.overlay='chat'; render(); break;
+    case 'chatsend': var ci=document.getElementById('chat-in'), cv=(ci.value||'').replace(/\s+/g,' ').trim();
+      if (cv){ var gid=gameById(S.seg).id; (S.chat[gid]=S.chat[gid]||[]).push(cv.slice(0,200)); render(); var ni=document.getElementById('chat-in'); if (ni) ni.focus(); } break;
     case 'la': S.la=!S.la; render(); break;
     case 'mvp': var mv=v.split('|'); S.mvp[mv[0]]=[mv[1],mv[2]]; S.mvpRe=null; render(); break;
     case 'mvpre': S.mvpRe=v; render(); break;
@@ -1639,6 +1671,9 @@ document.getElementById('screen').addEventListener('change',function(e){
 });
 function navTo(sub){ if (S.sub) S.hist.push(S.sub); S.sub=sub; S.anim='push'; render(); document.getElementById('view').scrollTop=0;
   if (sub==='search'){ var q=document.getElementById('q'); if (q) q.focus(); } }
+document.getElementById('screen').addEventListener('keydown',function(e){
+  if (e.target.id==='chat-in' && e.key==='Enter' && !e.isComposing){ e.preventDefault(); var b=document.querySelector('[data-act="chatsend"]'); if (b) b.click(); }
+});
 document.getElementById('screen').addEventListener('input',function(e){
   if (e.target.id!=='q') return;
   S.q=e.target.value; document.getElementById('sres').innerHTML=results();

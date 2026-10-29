@@ -66,13 +66,31 @@ CREATE TABLE IF NOT EXISTS mvp_votes (
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (game_id, user_id)
 );
+CREATE TABLE IF NOT EXISTS chat (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  game_id    TEXT NOT NULL,
+  user_id    INTEGER NOT NULL,
+  team       TEXT,
+  nickname   TEXT NOT NULL,
+  text       TEXT NOT NULL,
+  reports    INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS chat_game ON chat(game_id, id);
+CREATE TABLE IF NOT EXISTS chat_reports (
+  message_id INTEGER NOT NULL,
+  user_id    INTEGER NOT NULL,
+  PRIMARY KEY (message_id, user_id)
+);
 CREATE TABLE IF NOT EXISTS sent (
   key TEXT PRIMARY KEY,
   at  INTEGER NOT NULL
 );
 `;
 
-const parseDiary = (r) => r && { gameId: r.game_id, date: r.date, mode: r.mode, seat: r.seat ?? null, memo: r.memo ?? null };
+const parseDiary = (r) => r && { gameId: r.game_id, date: r.date, mode: r.mode, seat: r.seat ?? null, memo: r.memo ?? null, verified: !!r.ticket_hash };
+// 신고가 이만큼 쌓인 응원톡 메시지는 숨긴다
+export const CHAT_HIDE_REPORTS = 3;
 
 const parseUser = (r) => r && {
   id: r.id,
@@ -107,6 +125,9 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
   addColumn('devices', 'user_id', 'INTEGER');
   addColumn('devices', 'players', 'TEXT'); // 관심 선수 [{ id, name, team }]
   addColumn('users', 'players', 'TEXT');
+  // 직관 티켓 인증: 티켓 번호의 지문. 같은 티켓은 한 기록에만 (다른 계정이 돌려쓰지 못하게)
+  addColumn('diary', 'ticket_hash', 'TEXT');
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS diary_ticket ON diary(ticket_hash) WHERE ticket_hash IS NOT NULL');
 
   const q = {
     upsertDevice: db.prepare(`INSERT INTO devices (token, env, teams, prefs, updated_at) VALUES (?, ?, ?, ?, ?)
@@ -149,7 +170,17 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
       SELECT 1 FROM json_each(devices.players) WHERE json_extract(json_each.value, '$.team') = ? AND json_extract(json_each.value, '$.name') = ?)`),
     diaryOf: db.prepare('SELECT * FROM diary WHERE user_id = ? ORDER BY date DESC, created_at DESC'),
     putDiary: db.prepare(`INSERT INTO diary (user_id, game_id, date, mode, seat, memo, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(user_id, game_id) DO UPDATE SET date = excluded.date, mode = excluded.mode, seat = excluded.seat, memo = excluded.memo, updated_at = excluded.updated_at`),
+      ON CONFLICT(user_id, game_id) DO UPDATE SET date = excluded.date, mode = excluded.mode, seat = excluded.seat, memo = excluded.memo, updated_at = excluded.updated_at,
+        ticket_hash = CASE WHEN excluded.mode = 'stadium' THEN diary.ticket_hash ELSE NULL END`),
+    verifyDiary: db.prepare("UPDATE diary SET ticket_hash = ?, updated_at = ? WHERE user_id = ? AND game_id = ? AND mode = 'stadium'"),
+    addChat: db.prepare('INSERT INTO chat (game_id, user_id, team, nickname, text, created_at) VALUES (?, ?, ?, ?, ?, ?)'),
+    chatAfter: db.prepare(`SELECT * FROM chat WHERE game_id = ? AND id > ? AND reports < ${CHAT_HIDE_REPORTS} ORDER BY id LIMIT ?`),
+    chatLatest: db.prepare(`SELECT * FROM (SELECT * FROM chat WHERE game_id = ? AND reports < ${CHAT_HIDE_REPORTS} ORDER BY id DESC LIMIT ?) ORDER BY id`),
+    lastChat: db.prepare('SELECT MAX(created_at) AS at FROM chat WHERE user_id = ?'),
+    getChat: db.prepare('SELECT * FROM chat WHERE id = ?'),
+    reportChat: db.prepare('INSERT OR IGNORE INTO chat_reports (message_id, user_id) VALUES (?, ?)'),
+    bumpReports: db.prepare('UPDATE chat SET reports = reports + 1 WHERE id = ?'),
+    deleteUserChat: db.prepare('DELETE FROM chat WHERE user_id = ?'),
     getDiary: db.prepare('SELECT * FROM diary WHERE user_id = ? AND game_id = ?'),
     deleteDiary: db.prepare('DELETE FROM diary WHERE user_id = ? AND game_id = ?'),
     deleteUserDiary: db.prepare('DELETE FROM diary WHERE user_id = ?'),
@@ -226,6 +257,7 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
       q.deleteUserSessions.run(id);
       q.deleteUserDiary.run(id);
       q.deleteUserMvp.run(id);
+      q.deleteUserChat.run(id);
       return q.deleteUser.run(id).changes > 0;
     },
     // 직관 다이어리
@@ -240,6 +272,29 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
     myMvp(gameId, userId) {
       const r = q.myMvp.get(gameId, userId);
       return r ? { team: r.team, name: r.name } : null;
+    },
+    // 'ok' | 'missing'(직관 기록 없음) | 'taken'(다른 기록이 이미 쓴 티켓)
+    verifyDiary(userId, gameId, hash) {
+      try {
+        return q.verifyDiary.run(hash, now(), userId, gameId).changes > 0 ? 'ok' : 'missing';
+      } catch (err) {
+        if (/UNIQUE/.test(err.message)) return 'taken';
+        throw err;
+      }
+    },
+    getDiary: (userId, gameId) => parseDiary(q.getDiary.get(userId, gameId)),
+    // 응원톡
+    addChat(gameId, user, text) {
+      const r = q.addChat.run(gameId, user.id, user.team ?? null, user.nickname || '야구팬', text, now());
+      return q.getChat.get(Number(r.lastInsertRowid));
+    },
+    chat: (gameId, after = 0, limit = 50) => (after > 0 ? q.chatAfter.all(gameId, after, limit) : q.chatLatest.all(gameId, limit)),
+    lastChatAt: (userId) => q.lastChat.get(userId)?.at ?? null,
+    getChat: (id) => q.getChat.get(id) ?? null,
+    reportChat(id, userId) {
+      if (q.reportChat.run(id, userId).changes === 0) return false;
+      q.bumpReports.run(id);
+      return true;
     },
     deleteDiary: (userId, gameId) => q.deleteDiary.run(userId, gameId).changes > 0,
     createSession: (hash, userId) => q.createSession.run(hash, userId, now(), now()),

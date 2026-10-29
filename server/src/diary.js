@@ -29,14 +29,16 @@ function add(b, result) {
 const games = (b) => b.wins + b.losses + b.draws;
 const byGames = (a, b) => games(b) - games(a) || (b.pct ?? -1) - (a.pct ?? -1);
 
-// entries: 날짜 내림차순, 결과가 붙은 것 ({ mode, date, result, game })
+// entries: 날짜 내림차순, 결과가 붙은 것 ({ mode, date, result, game, verified })
+// 직관은 티켓 인증한 것만 승률·연승에 센다 (인증 안 한 직관은 unverified 로 따로 센다)
 export function diaryStats(entries, team, nameOf = (_code, name) => name) {
   const all = bucket('all', '전체');
   const modes = Object.entries(MODES).map(([k, v]) => bucket(k, v));
   const stadiums = new Map(), opponents = new Map(), weekdays = new Map();
   const pick = (map, key, label) => map.get(key) ?? map.set(key, bucket(key, label)).get(key);
-  let streak = null;
+  let streak = null, unverified = 0;
   for (const e of entries) {
+    if (e.mode === 'stadium' && !e.verified) { unverified += 1; continue; }
     if (!e.result) continue;
     add(all, e.result);
     add(modes.find((m) => m.key === e.mode), e.result);
@@ -56,6 +58,7 @@ export function diaryStats(entries, team, nameOf = (_code, name) => name) {
     team,
     ...all,
     games: games(all),
+    unverified,
     streak: streak && streak.count >= 2 ? `직관 ${streak.count}${streak.result === 'win' ? '연승' : '연패'}` : null,
     modes,
     stadiums: [...stadiums.values()].sort(byGames),
@@ -70,7 +73,7 @@ export async function diaryEntries(provider, rows, team) {
   const byDate = new Map(await Promise.all(dates.map(async (d) => [d, await provider.schedule(d).catch(() => [])])));
   return rows.map((r) => {
     const game = byDate.get(r.date)?.find((g) => g.id === r.gameId) ?? null;
-    return { gameId: r.gameId, date: r.date, mode: r.mode, seat: r.seat, memo: r.memo, result: resultFor(game, team), game };
+    return { gameId: r.gameId, date: r.date, mode: r.mode, seat: r.seat, memo: r.memo, verified: !!r.verified, result: resultFor(game, team), game };
   });
 }
 

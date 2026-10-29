@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 /// 직관 탭: 내 승률 한 줄 → 이달 달력(눌러서 기록) → 티켓처럼 쌓이는 기록
@@ -90,6 +91,11 @@ struct WinRateHero: View {
                         .foregroundStyle(streak.hasSuffix("연승") ? Color.black : Palette.text)
                         .background(streak.hasSuffix("연승") ? Palette.accent : Palette.red.opacity(0.6), in: Capsule())
                 }
+            }
+            if let n = stats?.unverified, n > 0 {
+                Label("티켓 인증 안 한 직관 \(n)경기는 승률에서 빠져 있어요", systemImage: "seal")
+                    .font(Typo.style(.caption))
+                    .foregroundStyle(Palette.text.opacity(0.7))
             }
             if let stats, played {
                 // 직관 3승 1패 · 집관 1승 0패
@@ -301,6 +307,12 @@ struct TicketCard: View {
                 Label(entry.mode.title, systemImage: entry.mode.symbol)
                     .font(Typo.style(.caption, .heavy))
                     .foregroundStyle(entry.mode == .stadium ? Palette.accent : Palette.text)
+                if entry.mode == .stadium {
+                    // 인증한 직관만 승률에 들어간다
+                    Label(entry.isVerified ? "인증" : "미인증", systemImage: entry.isVerified ? "checkmark.seal.fill" : "seal")
+                        .font(Typo.style(.caption2, .bold))
+                        .foregroundStyle(entry.isVerified ? Palette.accent : Palette.muted)
+                }
                 if let seat = entry.seat { Text(seat).font(Typo.style(.caption, .semibold)) }
                 if let memo = entry.memo {
                     Text(memo).font(Typo.style(.caption)).foregroundStyle(Palette.text.opacity(0.75)).lineLimit(1)
@@ -346,6 +358,7 @@ private struct Line: Shape {
 // MARK: - 기록하기
 
 /// 경기 하나를 직관/집관으로 남기는 시트 (달력·경기 화면에서 연다)
+@MainActor
 struct DiaryEditor: View {
     let game: Game
     var onOpenGame: (() -> Void)? = nil
@@ -356,6 +369,9 @@ struct DiaryEditor: View {
     @State private var seat = ""
     @State private var memo = ""
     @State private var saving = false
+    @State private var ticketItem: PhotosPickerItem?
+    @State private var verifying = false
+    @State private var verifyMessage: String?
 
     var body: some View {
         let existing = diary.entry(for: game.id)
@@ -401,6 +417,8 @@ struct DiaryEditor: View {
                     }
                     .glassCard(16)
 
+                    if mode == .stadium { ticketVerify(existing) }
+
                     Button {
                         saving = true
                         Task {
@@ -427,6 +445,66 @@ struct DiaryEditor: View {
         .background(AppBackground())
         .onAppear {
             if let e = existing { mode = e.mode; seat = e.seat ?? ""; memo = e.memo ?? "" }
+        }
+        .onChange(of: ticketItem) { _, item in
+            guard let item else { return }
+            Task { await verify(item) }
+        }
+    }
+
+    /// 직관 티켓 인증: 티켓 사진(종이 티켓, 예매 앱 캡처)을 고르면 휴대폰 안에서 읽어 이 경기 티켓인지 본다
+    @ViewBuilder
+    private func ticketVerify(_ existing: DiaryEntry?) -> some View {
+        if existing?.isVerified == true {
+            Label("티켓 인증 완료 · 직관 승률에 들어가요", systemImage: "checkmark.seal.fill")
+                .font(Typo.style(.subheadline, .semibold))
+                .foregroundStyle(Palette.accent)
+                .frame(maxWidth: .infinity)
+                .padding(14)
+                .background(Palette.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                PhotosPicker(selection: $ticketItem, matching: .images) {
+                    HStack(spacing: 8) {
+                        if verifying { ProgressView() } else { Image(systemName: "ticket.fill") }
+                        Text(verifying ? "티켓 읽는 중" : "티켓 사진으로 인증하기")
+                    }
+                    .font(Typo.style(.subheadline, .semibold))
+                    .foregroundStyle(Palette.accent)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Palette.accent.opacity(0.6), lineWidth: 1.5))
+                }
+                .disabled(verifying || saving)
+                Text(verifyMessage ?? "종이 티켓 사진이나 예매 앱의 모바일 티켓 캡처를 골라 주세요. 날짜·구장·예매번호가 보이면 돼요. 사진은 휴대폰 안에서만 읽고, 인증한 직관만 승률에 들어가요.")
+                    .font(Typo.style(.caption))
+                    .foregroundStyle(verifyMessage == nil ? Palette.muted : Palette.red)
+            }
+        }
+    }
+
+    private func verify(_ item: PhotosPickerItem) async {
+        verifying = true
+        verifyMessage = nil
+        defer { verifying = false; ticketItem = nil }
+        guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
+            verifyMessage = "사진을 열지 못했어요"
+            return
+        }
+        do {
+            switch TicketScanner.check(try await TicketScanner.scan(image), game: game) {
+            case .mismatch(let why):
+                verifyMessage = why
+            case .ok(let ticket):
+                if await diary.verify(game: game, ticket: ticket, seat: seat, memo: memo) {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                } else {
+                    verifyMessage = diary.error
+                    diary.error = nil
+                }
+            }
+        } catch {
+            verifyMessage = "티켓을 읽지 못했어요. 밝은 곳에서 다시 찍어 주세요"
         }
     }
 }

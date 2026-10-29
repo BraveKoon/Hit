@@ -48,6 +48,23 @@ final class DiaryModel {
         }
     }
 
+    /// 티켓 사진 인증: 기록이 없으면 직관으로 먼저 남기고, 읽은 번호로 서버에 인증
+    func verify(game: Game, ticket: String, seat: String, memo: String) async -> Bool {
+        if entry(for: game.id)?.mode != .stadium {
+            guard await save(game: game, mode: .stadium, seat: seat, memo: memo) else { return false }
+        }
+        do {
+            let verified = try await APIClient().verifyTicket(gameId: game.id, ticket: ticket)
+            entries.removeAll { $0.gameId == verified.gameId }
+            entries.insert(verified, at: 0)
+            await load()
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            return false
+        }
+    }
+
     func delete(gameId: String) async {
         let before = entries
         entries.removeAll { $0.gameId == gameId }

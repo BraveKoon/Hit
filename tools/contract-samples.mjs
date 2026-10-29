@@ -12,6 +12,7 @@ import { diaryEntries, diaryStats } from '../server/src/diary.js';
 import { ballot } from '../server/src/mvp.js';
 import { gamePreview } from '../server/src/preview.js';
 import { postseason } from '../server/src/postseason.js';
+import { chatMessage } from '../server/src/chat.js';
 
 const fx = (n) => JSON.parse(readFileSync(new URL(`../server/test/fixtures/${n}`, import.meta.url))).result;
 const live = { ...normalizeDetail(fx('naver-game-live.json').game, fx('naver-relay-live.json').textRelayData), fetchedAt: new Date().toISOString() };
@@ -66,6 +67,7 @@ psGames.push(psg('2026-10-06', 'OB', 'LG', 1, 4), psg('2026-10-09', 'LG', 'HT', 
 const psProvider = { standings: async () => PS.map((code, i) => ({ ...standingsRows[0], code, name: code, rank: i + 1, games: 4 })), range: async () => psGames };
 const bracket = await postseason({ provider: psProvider, season: '2026', today: '2026-10-29' });
 const bracketOff = await postseason({ provider: { standings: async () => [], range: async () => [] }, season: '2026', today: '2026-10-29' });
+const chatRows = [store.addChat('G1', configured, '삼성 가자!'), store.addChat('G1', fresh, '디아즈!')];
 const start = activityStartPayload(live.game, state, { title: 't', body: 'b' });
 
 console.log(JSON.stringify({
@@ -84,6 +86,7 @@ console.log(JSON.stringify({
   DiaryEntry: [finalEntry, entries[1]],
   CalendarResponse: [{ month: '2026-10', team: 'SS', games: sched }, { month: '2026-10', team: null, games: [] }],
   Player: [photos.get('1'), photos.get('2'), photos.get('4')],
+  ChatResponse: [{ messages: chatRows.map((r) => chatMessage(r, configured.id)) }, { messages: [] }],
   PostseasonResponse: [bracket, bracketOff],
   GamePreview: [preview, previewBare],
   MvpResponse: [mvpEmpty, mvpVoted, ballot(before, store, null)],

@@ -108,6 +108,28 @@ struct APIClient {
         return try await send("PUT", "v1/me/diary/\(gameId)", body: Body(date: date, mode: mode, seat: seat, memo: memo))
     }
 
+    /// 티켓 사진에서 읽은 예매번호·바코드로 직관 인증 (서버는 번호의 지문만 저장)
+    func verifyTicket(gameId: String, ticket: String) async throws -> DiaryEntry {
+        struct Body: Encodable { let ticket: String }
+        return try await send("POST", "v1/me/diary/\(gameId)/verify", body: Body(ticket: ticket))
+    }
+
+    // MARK: 응원톡
+
+    func chat(gameId: String, after: Int = 0) async throws -> ChatResponse {
+        try await send("GET", "v1/games/\(gameId)/chat", query: after > 0 ? [URLQueryItem(name: "after", value: String(after))] : [])
+    }
+
+    func sendChat(gameId: String, text: String) async throws -> ChatMessage {
+        struct Body: Encodable { let text: String }
+        return try await send("POST", "v1/games/\(gameId)/chat", body: Body(text: text))
+    }
+
+    func reportChat(id: Int) async throws {
+        struct Reported: Decodable { let reported: Bool }
+        let _: Reported = try await send("POST", "v1/chat/\(id)/report")
+    }
+
     func deleteDiary(gameId: String) async throws {
         struct Deleted: Decodable { let deleted: Bool }
         let _: Deleted = try await send("DELETE", "v1/me/diary/\(gameId)")

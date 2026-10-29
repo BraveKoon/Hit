@@ -36,6 +36,7 @@ struct GameDetailView: View {
     @State private var lastSeq: Int?                       // 지난번까지 본 문자중계
     @State private var burst: (id: Int, name: String, team: String)?   // 홈런 연출
     @State private var showDiary = false
+    @State private var showChat = false
     @State private var lastLoaded: Date?                   // 마지막으로 서버 응답을 받은 시각
     @State private var focusInning: Int?                   // 알림을 눌러 왔을 때 보여 줄 이닝
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -50,6 +51,7 @@ struct GameDetailView: View {
                         }
                         ScoreHero(game: detail.game)
                         activityButton(detail)
+                        chatButton(detail.game)
                         DetailTabs(selection: $tab, status: detail.game.status)
                         switch tab {
                         case .preview: PreviewTab(game: detail.game)
@@ -114,6 +116,11 @@ struct GameDetailView: View {
                 }
             }
         }
+        .sheet(isPresented: $showChat) {
+            if let game = detail?.game {
+                ChatSheet(game: game).presentationDetents([.medium, .large]).presentationDragIndicator(.visible)
+            }
+        }
         .sheet(isPresented: $showDiary) {
             if let game = detail?.game {
                 DiaryEditor(game: game).presentationDetents([.medium, .large])
@@ -174,6 +181,21 @@ struct GameDetailView: View {
         Task {
             try? await Task.sleep(for: .seconds(2.1))
             withAnimation { if burst?.id == hr.seq { burst = nil } }
+        }
+    }
+
+    /// 응원톡: 경기 당일(취소 제외)만 열린다
+    @ViewBuilder
+    private func chatButton(_ game: Game) -> some View {
+        if game.status != .canceled, game.date == KST.dayString(Date()) {
+            Button { showChat = true } label: {
+                Label("응원톡", systemImage: "bubble.left.and.bubble.right.fill")
+                    .font(Typo.style(.subheadline, .semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .glassCapsule()
+            }
+            .buttonStyle(.plain)
         }
     }
 

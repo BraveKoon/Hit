@@ -171,6 +171,21 @@ struct WinTrendResponse: Codable, Hashable {
     let points: [WinPoint]
 }
 
+// MARK: - 응원톡
+
+struct ChatMessage: Codable, Hashable, Identifiable {
+    let id: Int
+    let team: String?
+    let nickname: String
+    let text: String
+    let at: String
+    let mine: Bool
+}
+
+struct ChatResponse: Codable {
+    let messages: [ChatMessage]
+}
+
 // MARK: - 포스트시즌 대진표
 
 struct PostseasonResponse: Codable, Hashable {
@@ -479,7 +494,9 @@ struct DiaryEntry: Codable, Hashable, Identifiable {
     let memo: String?
     let result: GameResult?
     let game: Game?
+    var verified: Bool? = nil   // 직관 티켓 인증 (인증한 직관만 승률에 센다)
     var id: String { gameId }
+    var isVerified: Bool { verified == true }
 }
 
 /// 승·패·무와 승률 (승률은 무승부 빼고, 기록이 없으면 nil)
@@ -505,6 +522,7 @@ struct DiaryStats: Codable, Hashable {
     let pct: Double?
     let games: Int
     let streak: String?
+    var unverified: Int? = nil       // 티켓 인증 안 해서 승률에서 빠진 직관 수
     let modes: [DiaryBucket]
     let stadiums: [DiaryBucket]
     let opponents: [DiaryBucket]

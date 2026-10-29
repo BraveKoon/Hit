@@ -39,8 +39,9 @@ test('내 팀 기준 승패: 원정·홈, 미종료·남의 경기는 null', () 
 });
 
 test('직관 승률: 직관·집관, 구장·상대·요일별, 연승', () => {
-  const e = (game, mode, result) => ({ date: game.date, mode, result, game });
-  const s = diaryStats([e(PO2, 'stadium', 'win'), e({ ...PO2, date: '2026-10-20' }, 'stadium', 'win'), e(PO1, 'home', 'lose'), e(PO3, 'stadium', null)], 'SS',
+  const e = (game, mode, result, verified = true) => ({ date: game.date, mode, result, game, verified });
+  const s = diaryStats([e(PO2, 'stadium', 'win'), e({ ...PO2, date: '2026-10-20' }, 'stadium', 'win'), e(PO1, 'home', 'lose', false), e(PO3, 'stadium', null),
+    e({ ...PO1, date: '2026-10-01' }, 'stadium', 'lose', false)], 'SS',
     (code) => ({ HT: 'KIA' })[code]);
   assert.equal(s.games, 3, '안 끝난 경기는 빼고 센다');
   assert.equal(s.wins, 2);
@@ -51,6 +52,7 @@ test('직관 승률: 직관·집관, 구장·상대·요일별, 연승', () => {
   assert.deepEqual(s.opponents.map((b) => [b.key, b.label]), [['HT', 'KIA']]);
   assert.equal(s.weekdays[0].label, '월', '10월 26일은 월요일');
   assert.equal(s.streak, '직관 2연승');
+  assert.equal(s.unverified, 1, '티켓 인증 안 한 직관은 승률에서 빼고 따로 센다 (집관은 인증 없이 센다)');
   assert.equal(diaryStats([], 'SS').pct, null);
 });
 
@@ -91,11 +93,34 @@ test('HTTP: 달력과 직관 다이어리 (로그인 필요, 결과·통계, 검
     assert.equal((await call('PUT', `/v1/me/diary/${PO2.id}`, { date: PO1.date, mode: 'stadium' })).status, 404, '날짜가 안 맞으면 거절');
     assert.equal((await call('PUT', `/v1/me/diary/${PO2.id}`, { date: PO2.date, mode: 'tv' })).status, 400);
 
-    const d = await call('GET', '/v1/me/diary');
-    assert.deepEqual(d.json.entries.map((x) => [x.date, x.mode, x.result]),
-      [['2026-10-29', 'stadium', null], ['2026-10-27', 'stadium', 'win'], ['2026-10-26', 'home', 'lose']]);
+    // 티켓 인증 전: 직관은 승률에 안 들어간다
+    let d = await call('GET', '/v1/me/diary');
+    assert.equal(d.json.stats.unverified, 2);
+    assert.equal(d.json.stats.pct, 0, '집관 1패만');
+    assert.equal((await call('POST', `/v1/me/diary/${PO1.id}/verify`, { ticket: 'T-2026-1026-0001' })).status, 404, '집관은 인증 대상 아님');
+    assert.equal((await call('POST', `/v1/me/diary/${PO2.id}/verify`, { ticket: '12' })).status, 400, '너무 짧은 번호');
+    const v = await call('POST', `/v1/me/diary/${PO2.id}/verify`, { ticket: 'tl-2026 1027/0042' });
+    assert.equal(v.status, 200);
+    assert.equal(v.json.verified, true);
+    assert.equal(v.json.result, 'win');
+    // 다른 계정이 같은 티켓(표기만 다름)을 쓰면 거절
+    const other = store.upsertUser({ provider: 'kakao', subject: 'b2', nickname: '남', email: null, avatar: null });
+    store.putDiary(other.id, { gameId: PO2.id, date: PO2.date, mode: 'stadium' });
+    const tok2 = 'tok2'.repeat(10);
+    store.createSession(hashToken(tok2), other.id);
+    assert.equal((await call('POST', `/v1/me/diary/${PO2.id}/verify`, { ticket: 'TL20261027-0042' }, tok2)).status, 409);
+
+    d = await call('GET', '/v1/me/diary');
+    assert.deepEqual(d.json.entries.map((x) => [x.date, x.mode, x.result, x.verified]),
+      [['2026-10-29', 'stadium', null, false], ['2026-10-27', 'stadium', 'win', true], ['2026-10-26', 'home', 'lose', false]]);
     assert.equal(d.json.stats.pct, 0.5);
     assert.equal(d.json.stats.modes[0].pct, 1);
+    assert.equal(d.json.stats.unverified, 1);
+    // 집관으로 바꾸면 인증이 풀리고, 티켓은 다시 쓸 수 있게 된다
+    await call('PUT', `/v1/me/diary/${PO2.id}`, { date: PO2.date, mode: 'home' });
+    assert.equal(store.getDiary(user.id, PO2.id).verified, false);
+    assert.equal((await call('POST', `/v1/me/diary/${PO2.id}/verify`, { ticket: 'TL20261027-0042' }, tok2)).status, 200);
+    await call('PUT', `/v1/me/diary/${PO2.id}`, { date: PO2.date, mode: 'stadium' });
     assert.equal(d.json.stats.opponents[0].label, 'KIA');
 
     assert.equal((await call('DELETE', `/v1/me/diary/${PO1.id}`)).json.deleted, true);
