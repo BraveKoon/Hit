@@ -6,7 +6,7 @@ import { kstDate } from './time.js';
 
 const HOUR = 3600 * 1000;
 
-export function createWatcher({ provider, store, apns, photos = null, weather = null, now = () => Date.now(), log = () => {}, pregameMinutes = 10, idleDetailMs = 5 * 60 * 1000 }) {
+export function createWatcher({ provider, store, apns, photos = null, weather = null, now = () => Date.now(), log = () => {}, pregameMinutes = 30, idleDetailMs = 5 * 60 * 1000 }) {
   const photoOf = (team, name) => (photos && team && name ? photos.photo(team, name) : null);
   const lastDetailAt = new Map();
 
@@ -68,21 +68,24 @@ export function createWatcher({ provider, store, apns, photos = null, weather = 
     return sent;
   }
 
+  // 라이브 액티비티를 켜 둔 응원 팀 팬에게 push-to-start (iOS 17.2+). 같은 경기·같은 기기엔 한 번만.
+  async function pushStartActivities(game, state, t, alertType) {
+    for (const d of store.devicesForTeams(game.away.code, game.home.code)) {
+      if (!d.prefs.liveActivity || !d.startToken || store.hasActivity(d.token, game.id)) continue;
+      if (!store.markSent(`${game.id}:la-start:${d.token}`)) continue;
+      const alert = render({ type: alertType }, game, d.teams, { now: t });
+      const r = await apns.send({ env: d.env, token: d.startToken, pushType: 'liveactivity', priority: 10, payload: activityStartPayload(game, state, alert, { now: t }) });
+      if (!r.ok && isDeadToken(r)) store.clearStartToken(d.startToken);
+    }
+  }
+
   async function syncActivities(prev, next, detail, events, t) {
     const game = detail.game;
     const headline = headlineOf([...(detail.plays ?? [])].slice(0, 12).reverse()) ?? game.statusText ?? '';
     const state = activityState(next, headline);
 
-    // 경기 시작: 라이브 액티비티를 켜 둔 응원 팀 팬에게 push-to-start (iOS 17.2+)
-    if (events.some((e) => e.type === 'start')) {
-      for (const d of store.devicesForTeams(game.away.code, game.home.code)) {
-        if (!d.prefs.liveActivity || !d.startToken || store.hasActivity(d.token, game.id)) continue;
-        if (!store.markSent(`${game.id}:la-start:${d.token}`)) continue;
-        const alert = render({ type: 'start' }, game, d.teams, { now: t });
-        const r = await apns.send({ env: d.env, token: d.startToken, pushType: 'liveactivity', priority: 10, payload: activityStartPayload(game, state, alert, { now: t }) });
-        if (!r.ok && isDeadToken(r)) store.clearStartToken(d.startToken);
-      }
-    }
+    // 보통은 경기 30분 전(check 의 pregame)에 이미 켜졌다. 못 켠 기기가 있으면 경기 시작 때 한 번 더 시도한다.
+    if (events.some((e) => e.type === 'start')) await pushStartActivities(game, state, t, 'start');
 
     const tokens = store.activitiesForGame(game.id);
     const done = ['final', 'canceled'].includes(next.status);
@@ -106,6 +109,8 @@ export function createWatcher({ provider, store, apns, photos = null, weather = 
       const until = Date.parse(g.startsAt) - t;
       if (until <= pregameMinutes * 60 * 1000 && until > -60 * 1000) {
         await sendAlerts({ type: 'pregame', key: `${g.id}:pregame` }, g, null, t);
+        // 잠금화면·다이내믹 아일랜드 카드도 이때(경기 시작 30분 전) 같이 띄운다
+        await pushStartActivities(g, activityState(snapshotOf({ game: g, situation: null, plays: [] }), ''), t, 'pregame');
       }
     }
 

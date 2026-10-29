@@ -32,8 +32,6 @@ struct GameDetailView: View {
     @State private var error: String?
     @State private var tab: DetailTab = .live
     @State private var tabChosen = false                   // 처음 받은 경기 상태로 첫 탭을 고른 뒤엔 그대로
-    @State private var activityOn = false
-    @State private var activityError: String?
     @State private var lastSeq: Int?                       // 지난번까지 본 문자중계
     @State private var burst: (id: Int, name: String, team: String)?   // 홈런 연출
     @State private var showDiary = false
@@ -52,11 +50,7 @@ struct GameDetailView: View {
                         }
                         ScoreHero(game: detail.game)
                         GameInfoCard(game: detail.game, series: postseason?.series(for: detail.game))
-                        // 응원톡 · 잠금화면 버튼을 한 줄에 반씩
-                        HStack(alignment: .top, spacing: 10) {
-                            chatButton(detail.game)
-                            activityButton(detail)
-                        }
+                        chatButton(detail.game)
                         DetailTabs(selection: $tab, status: detail.game.status)
                         switch tab {
                         case .preview: PreviewTab(game: detail.game, postseason: postseason)
@@ -158,7 +152,6 @@ struct GameDetailView: View {
             withAnimation(.snappy) { detail = next }   // 점수·상황이 부드럽게 바뀐다
             error = nil
             lastLoaded = Date()
-            activityOn = LiveActivityController.shared.activity(for: gameId) != nil
         } catch is CancellationError {
         } catch {
             self.error = error.localizedDescription
@@ -206,43 +199,6 @@ struct GameDetailView: View {
                     .glassCapsule()
             }
             .buttonStyle(.press)
-        }
-    }
-
-    @ViewBuilder
-    private func activityButton(_ detail: GameDetail) -> some View {
-        if detail.game.status == .live || detail.game.status == .scheduled {
-            VStack(spacing: 6) {
-                Button {
-                    Task {
-                        if activityOn {
-                            await LiveActivityController.shared.end(gameId: gameId)
-                            activityOn = false
-                        } else {
-                            do {
-                                try LiveActivityController.shared.start(detail: detail)
-                                activityOn = true
-                                activityError = nil
-                            } catch {
-                                activityError = LiveActivityController.shared.isEnabled
-                                    ? "잠금화면에 띄우지 못했어요: \(error.localizedDescription)"
-                                    : "설정 > HIT > 실시간 현황을 켜 주세요."
-                            }
-                        }
-                    }
-                } label: {
-                    Label(activityOn ? "잠금화면에서 내리기" : "잠금화면에 띄우기",
-                          systemImage: activityOn ? "lock.open.fill" : "lock.iphone")
-                        .font(Typo.style(.subheadline, .semibold))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .foregroundStyle(activityOn ? Palette.text : Palette.accent)
-                        .background(activityOn ? Palette.surfaceHigh : Palette.accent.opacity(0.14), in: Capsule())
-                }
-                if let activityError {
-                    Text(activityError).font(Typo.style(.caption)).foregroundStyle(Palette.red)
-                }
-            }
         }
     }
 }

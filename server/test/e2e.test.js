@@ -227,3 +227,27 @@ test('관심 선수 API: 검색·상세·TOP20, 기기와 계정에 저장', asy
     server.close();
   }
 });
+
+test('경기 30분 전에 잠금화면·다이내믹 아일랜드 카드를 push-to-start 로 띄우고, 경기 시작 때 또 켜지 않는다', async () => {
+  const { provider, store, apns, tick } = setup();
+  await tick();                                              // 경기 전 (재생 경기는 곧 시작): 30분 안
+  const early = apns.sent.filter((m) => m.token === SS_START);
+  assert.equal(early.length, 1, '시작 전에 한 번 켠다');
+  assert.equal(early[0].pushType, 'liveactivity');
+  assert.equal(early[0].payload.aps.event, 'start');
+  assert.equal(early[0].payload.aps['content-state'].status, 'scheduled', '경기 전 상태 카드');
+  assert.match(early[0].payload.aps.alert.title, /분 뒤 시작/);
+  assert.equal(apns.sent.filter((m) => m.token === LG_FAN && m.pushType === 'liveactivity').length, 0, '시작 토큰 없는 기기엔 안 간다');
+
+  await tick();                                              // 같은 구간을 다시 돌려도 중복 없음
+  provider.advance();                                        // 플레이볼
+  await tick();
+  assert.equal(apns.sent.filter((m) => m.token === SS_START).length, 1, '경기 시작 때 같은 기기에 또 켜지 않는다');
+
+  // 라이브 액티비티를 끈 기기에는 보내지 않는다
+  const OFF = tok('9');
+  store.upsertDevice({ token: OFF, env: 'sandbox', teams: ['SS'], prefs: { ...DEFAULT_PREFS, liveActivity: false } });
+  store.setStartToken(OFF, tok('8'));
+  await tick();
+  assert.equal(apns.sent.filter((m) => m.token === tok('8')).length, 0);
+});

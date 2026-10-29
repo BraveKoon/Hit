@@ -189,7 +189,7 @@ struct NotificationSettingsView: View {
                 if let err = push.lastError { Text(err).foregroundStyle(Palette.red) }
             }
             Section("내 팀 경기") {
-                toggle("경기 시작 10분 전", "선발 투수와 중계 채널", \.pregame)
+                toggle("경기 시작 30분 전", "알림과 선발 투수·중계 채널", \.pregame)
                 toggle("선발 투수 발표", "경기 당일 선발이 정해지면", \.starters)
                 toggle("라인업 발표", "경기 전에 타순이 나오면 (늦게 나오는 날은 생략)", \.lineup)
                 toggle("경기 시작", nil, \.start)
@@ -209,7 +209,7 @@ struct NotificationSettingsView: View {
                 toggle("내 글에 댓글", "누가 내 글에 댓글을 달면", \.comments)
             }
             Section("실시간 현황") {
-                toggle("경기 시작 때 잠금화면에 자동으로", "경기 중 실시간 점수판이 잠금화면과 다이내믹 아일랜드에 떠요", \.liveActivity)
+                toggle("경기 30분 전부터 잠금화면에 자동으로", "내 팀 경기 점수판이 잠금화면과 다이내믹 아일랜드에 자동으로 떠요", \.liveActivity)
             }
             Section {
                 DisclosureGroup("개발자 설정") {
