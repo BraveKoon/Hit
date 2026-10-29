@@ -76,6 +76,7 @@ targets:
     sources:
       - path: HITWidgets
       - path: Shared
+      - path: HIT/Resources      # 위젯도 경기 데이터를 직접 가져온다 (hit-core.js)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID).widgets

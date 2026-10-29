@@ -39,8 +39,7 @@ import { DEFAULT_PREFS } from './messages.js';
 import { isValidDate, kstDate } from './time.js';
 import { MODES, diaryEntries, diaryStats, monthRange } from './diary.js';
 import { ballot, candidatesOf } from './mvp.js';
-import { gamePreview } from './preview.js';
-import { postseason } from './postseason.js';
+import { HttpError, readRoutes } from './read-api.js';
 import { CHAT_GAP_MS, chatMessage, chatOpen, cleanText, ticketHash } from './chat.js';
 import { screen } from './moderation.js';
 import { COMMENT_GAP_MS, POST_GAP_MS, checkComment, checkPost, commentJson, postJson, readImage, saveImage } from './community.js';
@@ -50,9 +49,6 @@ import { NEWS_TAGS } from './news.js';
 const TOKEN = /^[0-9a-fA-F]{32,256}$/;
 const ENVS = new Set(['sandbox', 'production']);
 
-class HttpError extends Error {
-  constructor(status, message) { super(message); this.status = status; }
-}
 
 async function readJson(req, limit = 16 * 1024) {
   let size = 0;
@@ -140,20 +136,7 @@ export function createApi({ provider, store, auth = null, roster = null, uploads
   // [method, path, handler, bodyLimit?]
   const routes = [
     ['GET', /^\/health$/, async () => ({ ok: true, provider: provider.name, ...info })],
-    ['GET', /^\/v1\/games$/, async (_m, url) => {
-      const date = url.searchParams.get('date') ?? kstDate(now());
-      if (!isValidDate(date)) throw new HttpError(400, 'date must be YYYY-MM-DD');
-      return { date, games: await provider.schedule(date) };
-    }],
-    ['GET', /^\/v1\/games\/([\w-]{6,40})$/, async (m) => provider.detail(m[1])],
-    ['GET', /^\/v1\/games\/([\w-]{6,40})\/relay$/, async (m, url) => {
-      const inning = Number(url.searchParams.get('inning'));
-      if (!Number.isInteger(inning) || inning < 1 || inning > 15) throw new HttpError(400, 'inning must be 1-15');
-      const { away, home, ...rest } = await provider.relay(m[1], inning);
-      return rest;
-    }],
-    ['GET', /^\/v1\/games\/([\w-]{6,40})\/winrate$/, async (m) => provider.winTrend(m[1])],
-    ['GET', /^\/v1\/games\/([\w-]{6,40})\/preview$/, async (m) => gamePreview({ provider, roster, id: m[1] })],
+    ...readRoutes({ provider, roster, now }),
     ['GET', /^\/v1\/games\/([\w-]{6,40})\/mvp$/, async (m, _u, _b, req) =>
       ballot(await provider.detail(m[1]), store, auth?.userFrom(req)?.id, roster ? (t, n) => roster.photo(t, n) : undefined)],
     ['PUT', /^\/v1\/games\/([\w-]{6,40})\/mvp$/, async (m, _u, body, req) => {
@@ -166,24 +149,6 @@ export function createApi({ provider, store, auth = null, roster = null, uploads
       if (!pick) throw new HttpError(400, '후보에 없는 선수예요');
       store.voteMvp(detail.game.id, u.id, pick);
       return ballot(detail, store, u.id, photo);
-    }],
-    ['GET', /^\/v1\/calendar$/, async (_m, url) => {
-      const month = url.searchParams.get('month') ?? kstDate(now()).slice(0, 7);
-      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new HttpError(400, 'month must be YYYY-MM');
-      const team = url.searchParams.get('team');
-      if (team && !TEAM_CODES.includes(team)) throw new HttpError(400, 'unknown team');
-      const all = await provider.range(...monthRange(month));
-      return { month, team: team ?? null, games: team ? all.filter((g) => g.away.code === team || g.home.code === team) : all };
-    }],
-    ['GET', /^\/v1\/postseason$/, async (_m, url) => {
-      const season = url.searchParams.get('season') ?? kstDate(now()).slice(0, 4);
-      if (!/^\d{4}$/.test(season)) throw new HttpError(400, 'season must be YYYY');
-      return postseason({ provider, season, today: kstDate(now()) });
-    }],
-    ['GET', /^\/v1\/standings$/, async (_m, url) => {
-      const season = url.searchParams.get('season') ?? kstDate(now()).slice(0, 4);
-      if (!/^\d{4}$/.test(season)) throw new HttpError(400, 'season must be YYYY');
-      return { season, teams: await provider.standings(season) };
     }],
     ['PUT', /^\/v1\/devices\/([^/]+)$/, async (m, _u, body, req) => {
       const d = store.upsertDevice({
@@ -205,22 +170,6 @@ export function createApi({ provider, store, auth = null, roster = null, uploads
       return { ok: true };
     }],
     ['DELETE', /^\/v1\/live-activities\/([^/]+)$/, async (m) => ({ deleted: store.deleteActivity(token(m[1])) })],
-
-    ['GET', /^\/v1\/players$/, async (_m, url) => {
-      const q = (url.searchParams.get('q') ?? '').trim();
-      if (!q || q.length > 20) throw new HttpError(400, 'q: 1~20자');
-      return { query: q, players: needRoster().search(q) };
-    }],
-    ['GET', /^\/v1\/players\/([\w:%.-]{1,60})$/, async (m) => {
-      const p = needRoster().get(decodeURIComponent(m[1]));
-      if (!p) throw new HttpError(404, '선수를 찾을 수 없습니다');
-      return p;
-    }],
-    ['GET', /^\/v1\/leaders$/, async (_m, url) => {
-      const type = url.searchParams.get('type');
-      if (type !== 'pitcher' && type !== 'hitter') throw new HttpError(400, 'type: pitcher | hitter');
-      return { type, players: needRoster().leaders(type, 20) };
-    }],
 
     ['POST', /^\/v1\/auth\/apple$/, async (_m, _u, body) => {
       const { token: t, user } = await needAuth().signInWithApple({ identityToken: body.identityToken, name: body.name });

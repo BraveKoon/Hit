@@ -255,6 +255,21 @@ struct APIClient {
     }
 
     private func send<T: Decodable>(_ method: String, _ path: String, query: [URLQueryItem] = [], body: (any Encodable)? = nil) async throws -> T {
+        // 경기·순위·선수 같은 읽기 전용 데이터는 먼저 이 아이폰이 직접 가져온다 (서버가 네이버에 접속하지 못해도 되도록).
+        // 실패(엔진 없음·네이버 오류)하면 아래에서 서버에 묻는다.
+        if method == "GET", body == nil, LocalCore.handles(path), let core = LocalCore.shared {
+            var q = URLComponents()
+            if !query.isEmpty { q.queryItems = query }
+            let encodedPath = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
+            let target = "/" + encodedPath + (q.percentEncodedQuery.map { "?" + $0 } ?? "")
+            if let local = await core.get(target) {
+                if (200..<300).contains(local.status), let value = try? JSONDecoder().decode(T.self, from: local.data) { return value }
+                if (400..<500).contains(local.status) {
+                    let message = (try? JSONDecoder().decode(ErrorBody.self, from: local.data))?.error ?? "응답 \(local.status)"
+                    throw APIError(status: local.status, message: message)
+                }
+            }
+        }
         var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
         if !query.isEmpty { components.queryItems = query }
         var request = URLRequest(url: components.url!, timeoutInterval: 15)
