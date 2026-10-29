@@ -32,9 +32,24 @@ jobs:
           xcodegen
 
       - name: App Store Connect API 키 저장
+        env:
+          ASC_KEY_RAW: ${{ secrets.ASC_KEY_P8_BASE64 }}
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
-          echo "${{ secrets.ASC_KEY_P8_BASE64 }}" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          KEY=~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          # 시크릿은 base64 로 바꾼 값이어야 하지만, .p8 내용을 그대로 붙여 넣은 경우도 읽는다.
+          if printf '%s' "$ASC_KEY_RAW" | grep -q 'BEGIN PRIVATE KEY'; then
+            printf '%s\n' "$ASC_KEY_RAW" > "$KEY"
+          else
+            printf '%s' "$ASC_KEY_RAW" | tr -d ' \r\n\t' | base64 --decode > "$KEY" || true
+          fi
+          # 키가 올바른지 먼저 확인해서, 아니면 원인을 알려 주고 멈춘다 (키 내용은 출력하지 않는다)
+          if ! openssl pkey -in "$KEY" -noout 2>/dev/null; then
+            echo "::error::ASC_KEY_P8_BASE64 값을 .p8 키로 읽지 못했습니다. AuthKey_XXXX.p8 파일 전체(-----BEGIN PRIVATE KEY----- 부터 -----END PRIVATE KEY----- 까지)를 base64 로 바꿔 다시 저장하세요 (ios/TESTFLIGHT.md 참고)."
+            echo "읽은 크기: $(wc -c < "$KEY") 바이트, 첫 줄 모양: $(head -c 11 "$KEY" | tr -c '[:print:]' '?')"
+            exit 1
+          fi
+          echo "API 키 확인 완료 (Key ID: $ASC_KEY_ID)"
 
       - name: 아카이브
         working-directory: ios
