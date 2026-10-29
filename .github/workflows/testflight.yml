@@ -1,0 +1,75 @@
+name: TestFlight
+
+# Actions 탭 → TestFlight → Run workflow 로 실행합니다. 설정 방법은 ios/TESTFLIGHT.md 참고.
+on:
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      APP_BUNDLE_ID: ${{ vars.APP_BUNDLE_ID }}
+      APP_GROUP_ID: ${{ vars.APP_GROUP_ID }}
+      DEVELOPMENT_TEAM: ${{ vars.DEVELOPMENT_TEAM }}
+      HIT_API_BASE_URL: ${{ vars.HIT_API_BASE_URL }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 설정 확인
+        run: |
+          for v in APP_BUNDLE_ID APP_GROUP_ID DEVELOPMENT_TEAM HIT_API_BASE_URL ASC_KEY_ID ASC_ISSUER_ID; do
+            [ -n "${!v}" ] || { echo "::error::$v 값이 비어 있습니다 (ios/TESTFLIGHT.md 참고)"; exit 1; }
+          done
+          case "$HIT_API_BASE_URL" in https://*) ;; *) echo "::error::HIT_API_BASE_URL 은 https 주소여야 합니다"; exit 1;; esac
+
+      - name: XcodeGen 설치 · 프로젝트 생성
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen
+
+      - name: App Store Connect API 키 저장
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "${{ secrets.ASC_KEY_P8_BASE64 }}" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+
+      - name: 아카이브
+        working-directory: ios
+        run: |
+          xcodebuild archive \
+            -project HIT.xcodeproj -scheme HIT -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/HIT.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            APP_BUNDLE_ID="$APP_BUNDLE_ID" APP_GROUP_ID="$APP_GROUP_ID" \
+            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" HIT_API_BASE_URL="$HIT_API_BASE_URL" \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}"
+
+      - name: 내보내기 · TestFlight 업로드
+        working-directory: ios
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${DEVELOPMENT_TEAM}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/HIT.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
