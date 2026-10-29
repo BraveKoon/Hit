@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 직관 탭: 내 직관 승률 → 이달 달력(내 팀 승패) → 구장·상대·요일별 → 티켓처럼 쌓이는 기록
+/// 직관 탭: 내 승률 한 줄 → 이달 달력(눌러서 기록) → 티켓처럼 쌓이는 기록
 @MainActor
 struct DiaryView: View {
     @Environment(AppModel.self) private var model
@@ -18,25 +18,21 @@ struct DiaryView: View {
                     } else {
                         WinRateHero(stats: diary.stats, team: model.myTeam)
                             .appearIn(0)
-                        if let stats = diary.stats, stats.games > 0 {
-                            BreakdownCard(stats: stats).appearIn(1)
-                        }
                     }
-                    SectionHeader(title: "경기 달력", detail: "날짜를 눌러 기록")
                     MonthCalendar(team: model.myTeam, entries: diary.entries) { model.diaryPath.append(.game($0)) }
-                        .appearIn(2)
+                        .appearIn(1)
                     if diary.canRecord {
-                        SectionHeader(title: "내 티켓", detail: diary.entries.isEmpty ? nil : "\(diary.entries.count)장")
                         if diary.entries.isEmpty {
-                            Card {
-                                Label("달력에서 본 경기를 누르거나, 경기 화면의 '직관 기록'으로 첫 티켓을 남겨 보세요",
-                                      systemImage: "ticket")
-                                    .foregroundStyle(Palette.muted)
-                            }
+                            Text("본 경기 날짜를 누르면 티켓으로 남아요")
+                                .font(.footnote)
+                                .foregroundStyle(Palette.muted)
+                                .frame(maxWidth: .infinity)
+                        } else {
+                            SectionHeader(title: "내 티켓", detail: "\(diary.entries.count)장")
                         }
                         ForEach(Array(diary.entries.enumerated()), id: \.element.id) { i, entry in
                             TicketCard(entry: entry, team: model.myTeam)
-                                .appearIn(3 + i)
+                                .appearIn(2 + i)
                                 .onTapGesture { model.diaryPath.append(.game(entry.gameId)) }
                                 .contextMenu {
                                     Button(role: .destructive) { Task { await diary.delete(gameId: entry.gameId) } } label: {
@@ -64,126 +60,51 @@ struct DiaryView: View {
 
 // MARK: - 승률
 
-/// 큰 승률 링 + 승패, 연승 배지, 직관·집관 따로
+/// 내 팀 승률 한 줄: 큰 숫자, 승패, 연승 배지, 그 아래 직관·집관 승패
 struct WinRateHero: View {
     let stats: DiaryStats?
     let team: String?
 
-    private var pct: Double { stats?.pct ?? 0 }
-
     var body: some View {
         let color = Team.color(for: team)
-        VStack(spacing: 16) {
-            HStack(spacing: 18) {
-                ZStack {
-                    Circle().stroke(.white.opacity(0.12), lineWidth: 12)
-                    Circle()
-                        .trim(from: 0, to: stats?.pct == nil ? 0 : pct)
-                        .stroke(AngularGradient(colors: [Palette.amber, color, Palette.amber], center: .center),
-                                style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .animation(.spring(response: 0.9, dampingFraction: 0.8), value: pct)
-                    VStack(spacing: 0) {
-                        Text(stats?.pct == nil ? "-" : "\(Int((pct * 100).rounded()))")
-                            .font(.system(size: 36, weight: .heavy, design: .rounded))
-                            .contentTransition(.numericText(value: pct))
-                        Text("승률 %").font(.caption2.weight(.semibold)).foregroundStyle(Palette.muted)
-                    }
-                }
-                .frame(width: 112, height: 112)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("나의 승요력").font(.subheadline.weight(.semibold)).foregroundStyle(Palette.muted)
-                    if let stats, stats.games > 0 {
+        let played = (stats?.games ?? 0) > 0
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(played ? stats?.pct.map { "\(Int(($0 * 100).rounded()))%" } ?? "-" : "-")
+                    .font(.system(size: 40, weight: .heavy, design: .rounded))
+                    .contentTransition(.numericText())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("나의 승요력").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
+                    if let stats, played {
                         Text("\(stats.wins)승 \(stats.losses)패" + (stats.draws > 0 ? " \(stats.draws)무" : ""))
-                            .font(.title2.weight(.heavy))
-                        if let streak = stats.streak {
-                            Text(streak)
-                                .font(.caption.weight(.heavy))
-                                .padding(.horizontal, 10).padding(.vertical, 4)
-                                .foregroundStyle(streak.hasSuffix("연승") ? Color.black : Palette.text)
-                                .background(streak.hasSuffix("연승") ? Palette.amber : Palette.red.opacity(0.6), in: Capsule())
-                        }
+                            .font(.headline)
                     } else {
-                        Text("아직 기록이 없어요").font(.title3.weight(.bold))
-                        Text("본 경기를 남기면 내 팀 승률이 쌓여요")
-                            .font(.footnote).foregroundStyle(Palette.muted)
+                        Text("아직 기록이 없어요").font(.headline)
                     }
                 }
                 Spacer(minLength: 0)
-            }
-            if let stats, stats.games > 0 {
-                HStack(spacing: 10) {
-                    ForEach(stats.modes) { m in
-                        let mode = WatchMode(rawValue: m.key) ?? .stadium
-                        HStack(spacing: 10) {
-                            Image(systemName: mode.symbol)
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundStyle(mode == .stadium ? Palette.amber : Palette.text)
-                                .frame(width: 34, height: 34)
-                                .glassCircle()
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text("\(m.label) " + (m.pct.map { "\(Int(($0 * 100).rounded()))%" } ?? "-"))
-                                    .font(.subheadline.weight(.bold))
-                                Text(m.games > 0 ? m.record : "기록 없음").font(.caption).foregroundStyle(Palette.muted)
-                            }
-                            Spacer(minLength: 0)
-                        }
-                        .padding(10)
-                        .glassCard(16)
-                    }
+                if let streak = stats?.streak {
+                    Text(streak)
+                        .font(.caption.weight(.heavy))
+                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .foregroundStyle(streak.hasSuffix("연승") ? Color.black : Palette.text)
+                        .background(streak.hasSuffix("연승") ? Palette.amber : Palette.red.opacity(0.6), in: Capsule())
                 }
+            }
+            if let stats, played {
+                // 직관 3승 1패 · 집관 1승 0패
+                Text(stats.modes.filter { $0.games > 0 }.map { "\($0.label) \($0.record)" }.joined(separator: " · "))
+                    .font(.footnote)
+                    .foregroundStyle(Palette.text.opacity(0.75))
             }
         }
         .padding(18)
         .background {
-            LinearGradient(colors: [color.opacity(0.55), color.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            LinearGradient(colors: [color.opacity(0.5), color.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
-        .glassCard(26)
-    }
-}
-
-/// 구장별 · 상대 팀별 · 요일별 승률 막대
-struct BreakdownCard: View {
-    let stats: DiaryStats
-    enum Kind: Hashable { case stadium, opponent, weekday }
-    @State private var kind: Kind = .stadium
-
-    private var rows: [DiaryBucket] {
-        switch kind {
-        case .stadium: stats.stadiums
-        case .opponent: stats.opponents
-        case .weekday: stats.weekdays
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PillChips(items: [(Kind.stadium, "구장별"), (.opponent, "상대별"), (.weekday, "요일별")], selection: $kind)
-            VStack(spacing: 10) {
-                ForEach(rows) { b in
-                    HStack(spacing: 10) {
-                        if kind == .opponent { TeamBadge(code: b.key, size: 24) }
-                        Text(b.label).font(.subheadline.weight(.semibold)).frame(width: kind == .opponent ? 44 : 64, alignment: .leading)
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(.white.opacity(0.1))
-                                Capsule().fill(LinearGradient(colors: [Palette.amber.opacity(0.7), Palette.amber], startPoint: .leading, endPoint: .trailing))
-                                    .frame(width: max(6, geo.size.width * (b.pct ?? 0)))
-                            }
-                        }
-                        .frame(height: 8)
-                        Text(b.pct.map { "\(Int(($0 * 100).rounded()))%" } ?? "-")
-                            .font(.subheadline.weight(.bold)).monospacedDigit().frame(width: 44, alignment: .trailing)
-                        Text(b.record).font(.caption).foregroundStyle(Palette.muted).frame(width: 58, alignment: .trailing)
-                    }
-                }
-            }
-            .animation(.snappy, value: kind)
-        }
-        .padding(16)
         .glassCard(22)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -236,12 +157,6 @@ struct MonthCalendar: View {
             if failed {
                 Text("일정을 불러오지 못했어요").font(.caption).foregroundStyle(Palette.muted)
             }
-            HStack(spacing: 14) {
-                legend(Palette.amber, "승"); legend(.white.opacity(0.35), "패"); legend(.white, "무")
-                Label("기록", systemImage: "ticket.fill").font(.caption2).foregroundStyle(Palette.amber)
-            }
-            .font(.caption2)
-            .foregroundStyle(Palette.muted)
         }
         .padding(14)
         .glassCard(22)
@@ -311,10 +226,6 @@ struct MonthCalendar: View {
         if let result { s += ", \(result.title)" }
         if let entry { s += ", \(entry.mode.title) 기록함" }
         return s
-    }
-
-    private func legend(_ c: Color, _ t: String) -> some View {
-        HStack(spacing: 4) { RoundedRectangle(cornerRadius: 3).fill(c).frame(width: 10, height: 10); Text(t) }
     }
 
     private func shift(_ n: Int) {
@@ -395,7 +306,6 @@ struct TicketCard: View {
                     Text(memo).font(.caption).foregroundStyle(Palette.text.opacity(0.75)).lineLimit(1)
                 }
                 Spacer(minLength: 0)
-                LogoMark(height: 9, color: .white.opacity(0.5))
             }
             .padding(.horizontal, 20)
             .frame(height: 44)
@@ -475,24 +385,12 @@ struct DiaryEditor: View {
                 if !diary.canRecord {
                     GuestDiaryCard()
                 } else {
-                    HStack(spacing: 10) {
+                    Picker("어떻게 봤나요", selection: $mode.animation(.snappy)) {
                         ForEach(WatchMode.allCases) { m in
-                            let on = m == mode
-                            Button { withAnimation(.snappy) { mode = m } } label: {
-                                VStack(spacing: 6) {
-                                    Image(systemName: m.symbol).font(.system(size: 22, weight: .bold))
-                                        .symbolEffect(.bounce, value: on)
-                                    Text(m == .stadium ? "직관 · 경기장에서" : "집관 · 중계로").font(.footnote.weight(.bold))
-                                }
-                                .frame(maxWidth: .infinity, minHeight: 84)
-                                .foregroundStyle(on ? Color.black : Palette.text)
-                                .background { if on { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Palette.amber) } }
-                                .glassCard(18)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityAddTraits(on ? .isSelected : [])
+                            Label(m == .stadium ? "직관 · 경기장" : "집관 · 중계", systemImage: m.symbol).tag(m)
                         }
                     }
+                    .pickerStyle(.segmented)
                     VStack(spacing: 0) {
                         TextField(mode == .stadium ? "좌석 (예: 1루 응원석 12열)" : "어디서 봤나요 (예: 집, 친구네)", text: $seat)
                             .padding(14)

@@ -347,13 +347,16 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .dguest{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:22px 18px;border-radius:22px;background:var(--sf);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12);margin-top:12px}
 .dguest .ic{color:var(--am)}.dguest .ic svg{width:30px;height:30px}.dguest small{color:var(--mu);font-size:12.5px;margin-bottom:6px}
 .dhero2{margin-top:12px;padding:18px;border-radius:26px;background:linear-gradient(135deg,color-mix(in srgb,var(--tc) 55%,transparent),color-mix(in srgb,var(--tc) 8%,transparent));box-shadow:inset 0 0 0 .5px rgba(255,255,255,.16);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
-.dhero2 .top{display:flex;align-items:center;gap:18px}
+.dhero2 .top{display:flex;align-items:center;gap:12px}
+.dhero2 .pct{font-family:var(--round);font-size:40px;font-weight:900;line-height:1}
+.dhero2 .top em{margin-left:auto}
+.dhero2 .mline{margin:10px 0 0;font-size:13px;color:rgba(255,255,255,.75)}
 .ring{--p:0;width:112px;height:112px;border-radius:50%;flex:none;display:grid;place-content:center;text-align:center;position:relative}
 .ring::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(var(--am) calc(var(--p)*1turn),rgba(255,255,255,.12) 0);
   -webkit-mask:radial-gradient(circle 44px,transparent 98%,#000);mask:radial-gradient(circle 44px,transparent 98%,#000)}
 .ring b{display:block;font-size:36px;font-weight:900;line-height:1}.ring small{font-size:10.5px;color:var(--mu);font-weight:700}
 .dhero2 .txt{display:flex;flex-direction:column;gap:6px;min-width:0}.dhero2 .txt>small{color:rgba(255,255,255,.7);font-size:13px;font-weight:600}
-.dhero2 .txt b{font-size:24px;font-weight:900}
+.dhero2 .txt b{font-size:17px;font-weight:800}
 .dhero2 em{font-style:normal;align-self:flex-start;font-size:12px;font-weight:900;padding:4px 10px;border-radius:99px}.dhero2 em.up{background:var(--am);color:#000}.dhero2 em.down{background:rgba(226,84,74,.6)}
 .modes{display:flex;gap:10px;margin-top:16px}
 .modes>div{flex:1;display:flex;align-items:center;gap:10px;padding:10px;border-radius:16px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.14)}
@@ -395,7 +398,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .dsheet .dsh{display:flex;align-items:center;justify-content:center;gap:16px;margin:6px 0 10px}.dsheet .dsh .m{display:flex;flex-direction:column;align-items:center}
 .dsheet .dsh b{font-size:26px;font-weight:900}.dsheet .dsh small{color:var(--mu);font-size:12px}
 .gopill{display:block;margin:0 auto 16px;height:34px;padding:0 16px;border-radius:99px;border:0;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.16);color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
-.dmodes{display:flex;gap:10px}.dmodes button{flex:1;height:84px;border-radius:18px;border:0;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.14);color:#fff;font:inherit;font-size:13px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:background .2s,color .2s}
+.dmodes{display:flex;gap:4px;padding:3px;border-radius:12px;background:rgba(255,255,255,.08)}.dmodes button{flex:1;height:34px;border-radius:9px;border:0;background:none;color:#fff;font:inherit;font-size:13px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:background .2s,color .2s}
 .dmodes button span{font-size:20px;line-height:1}.dmodes button svg{width:22px;height:22px}
 .dmodes button[aria-pressed="true"]{background:var(--am);color:#000}
 .dfields{margin:14px 0;border-radius:16px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.14);overflow:hidden}
@@ -1044,21 +1047,13 @@ function vDiary(){
       '<button class="btn amber" data-act="logout">로그인 · 회원가입</button></div>'+calendar()+'</div>';
   }
   var list=diaryEntries(), st=diaryStats(list), p=pctOf(st.all), n=st.all.w+st.all.lo+st.all.d;
-  h+='<div class="dhero2" style="--tc:'+T[S.my].c+'"><div class="top"><div class="ring" style="--p:'+(p==null?0:p)+'"><div><b>'+(p==null?'-':Math.round(p*100))+'</b><small>승률 %</small></div></div>'+
-    '<div class="txt"><small>나의 승요력</small>'+(n?'<b>'+recOf(st.all)+'</b>'+(st.streak?'<em class="'+(/연승/.test(st.streak)?'up':'down')+'">'+st.streak+'</em>':''):
-      '<b style="font-size:19px">아직 기록이 없어요</b><small>본 경기를 남기면 내 팀 승률이 쌓여요</small>')+'</div></div>';
-  if (n) h+='<div class="modes">'+st.modes.map(function(m){ return '<div><span class="mi'+(m.k==='stadium'?' am':'')+'">'+(m.k==='stadium'?ICON.ticket:'📺')+'</span><span><b>'+m.l+' '+pct100(pctOf(m))+'</b><small>'+(m.w+m.lo+m.d?recOf(m):'기록 없음')+'</small></span></div>'; }).join('')+'</div>';
-  h+='</div>';
-  if (n){
-    var rows=Object.keys(st.by[S.bk]).map(function(k){ return st.by[S.bk][k]; });
-    if (S.bk==='weekday') rows.sort(function(a,b){ return +a.k-+b.k; });
-    h+='<div class="bkcard"><div class="chips" role="tablist">'+[['stadium','구장별'],['opponent','상대별'],['weekday','요일별']].map(function(c){
-      return '<button class="pchip" data-act="bk" data-v="'+c[0]+'" aria-pressed="'+(S.bk===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>'+
-      rows.map(function(b){ var q=pctOf(b); return '<div class="bkrow">'+(S.bk==='opponent'?emb(b.k,24):'')+'<span class="l">'+esc(b.l)+'</span><span class="bar"><i style="width:'+Math.max(4,(q||0)*100)+'%"></i></span><b>'+pct100(q)+'</b><small>'+recOf(b)+'</small></div>'; }).join('')+'</div>';
-  }
+  h+='<div class="dhero2" style="--tc:'+T[S.my].c+'"><div class="top"><b class="pct">'+(p==null?'-':Math.round(p*100)+'%')+'</b>'+
+    '<div class="txt"><small>나의 승요력</small><b>'+(n?recOf(st.all):'아직 기록이 없어요')+'</b></div>'+
+    (st.streak?'<em class="'+(/연승/.test(st.streak)?'up':'down')+'">'+st.streak+'</em>':'')+'</div>'+
+    (n?'<p class="mline">'+st.modes.filter(function(m){ return m.w+m.lo+m.d; }).map(function(m){ return m.l+' '+recOf(m); }).join(' · ')+'</p>':'')+'</div>';
   h+=calendar();
-  h+='<div class="sh"><h3>내 티켓</h3>'+(list.length?'<span>'+list.length+'장</span>':'')+'</div>';
-  if (!list.length) h+='<div class="card info">달력에서 본 경기를 누르거나, 경기 화면의 티켓 버튼으로 첫 티켓을 남겨 보세요.</div>';
+  if (!list.length) h+='<p class="cnote">본 경기 날짜를 누르면 티켓으로 남아요</p>';
+  else h+='<div class="sh"><h3>내 티켓</h3><span>'+list.length+'장</span></div>';
   h+=list.map(ticket).join('');
   return h+'<p class="gfoot" style="margin-top:12px">미리보기에는 예시 티켓 2장이 들어 있어요. 앱에서는 로그인한 계정에 저장돼 어느 기기에서든 보여요.</p></div>';
 }
@@ -1069,12 +1064,12 @@ function ticket(e){
     '<div class="tt"><span class="dt"><b>'+md+'</b><small>'+'일월화수목금토'.charAt(d.getUTCDay())+'요일 · '+esc(g.park)+'</small></span>'+
     '<span class="vs">'+emb(g.a,34)+'<b>'+(g.status==='final'?as+' : '+hs:'vs')+'</b>'+emb(g.h,34)+'</span>'+
     '<span class="stamp '+(r||'')+'">'+(r==='win'?'승':r==='lose'?'패':r==='draw'?'무':'–')+'</span></div>'+
-    '<div class="tb"><span class="md '+e.mode+'">'+(e.mode==='stadium'?ICON.ticket+' 직관':'📺 집관')+'</span>'+(e.seat?'<b>'+esc(e.seat)+'</b>':'')+(e.memo?'<span class="memo">'+esc(e.memo)+'</span>':'')+'<i class="logo"></i></div></button>';
+    '<div class="tb"><span class="md '+e.mode+'">'+(e.mode==='stadium'?ICON.ticket+' 직관':'📺 집관')+'</span>'+(e.seat?'<b>'+esc(e.seat)+'</b>':'')+(e.memo?'<span class="memo">'+esc(e.memo)+'</span>':'')+'</div></button>';
 }
 function calendar(){
   var ym=S.cal.split('-').map(Number), first=new Date(Date.UTC(ym[0],ym[1]-1,1)).getUTCDay(), days=new Date(Date.UTC(ym[0],ym[1],0)).getUTCDate();
   var games=[PO1,po2Final(),PO3].filter(function(g){ return g.date.slice(0,7)===S.cal && involves(g,S.my); });
-  var h='<div class="sh"><h3>경기 달력</h3><span>날짜를 눌러 기록</span></div><div class="cal"><div class="ch"><button data-act="cal" data-v="-1" aria-label="이전 달">‹</button><b>'+ym[0]+'년 '+ym[1]+'월</b><button data-act="cal" data-v="1" aria-label="다음 달">›</button></div><div class="cg">';
+  var h='<div class="cal" style="margin-top:12px"><div class="ch"><button data-act="cal" data-v="-1" aria-label="이전 달">‹</button><b>'+ym[0]+'년 '+ym[1]+'월</b><button data-act="cal" data-v="1" aria-label="다음 달">›</button></div><div class="cg">';
   '일월화수목금토'.split('').forEach(function(w,i){ h+='<span class="wd'+(i===0?' sun':'')+'">'+w+'</span>'; });
   for (var i=0;i<first;i++) h+='<span></span>';
   for (var dd=1;dd<=days;dd++){
@@ -1083,7 +1078,7 @@ function calendar(){
     var inner=r?'<em class="r '+r+'">'+(r==='win'?'승':r==='lose'?'패':'무')+'</em>':g?emb(g.a===S.my?g.h:g.a,20):'';
     h+='<button class="cd'+(g?' has':'')+(rec?' rec':'')+(day===TODAY?' today':'')+'"'+(g?' data-act="diaryopen" data-v="'+g.id+'"':' disabled')+'><span class="n">'+dd+'</span>'+inner+(rec?'<i class="tk">'+ICON.ticket+'</i>':'')+'</button>';
   }
-  h+='</div><div class="lg"><span><i style="background:var(--am)"></i>승</span><span><i style="background:rgba(255,255,255,.3)"></i>패</span><span><i style="background:#fff"></i>무</span><span style="color:var(--am)">'+ICON.ticket+' 기록</span></div>';
+  h+='</div>';
   if (!games.length) h+='<p class="cnote">미리보기에는 2026 포스트시즌(삼성·KIA) 경기만 들어 있어요. 앱에서는 한 달 전체 일정과 결과가 나옵니다.</p>';
   return h+'</div>';
 }
@@ -1093,8 +1088,8 @@ function vDiarySheet(){
     '<div class="dsh"><span>'+emb(g.a,46)+'</span><span class="m"><b>'+(g.status==='final'?score(g,'a')+' : '+score(g,'h'):'vs')+'</b><small>'+dayLabel(g.date)+' · '+esc(g.park)+'</small></span><span>'+emb(g.h,46)+'</span></div>'+
     '<button class="gopill" data-act="dgo">'+(g.status==='final'?'경기 결과 보기':'경기 보기')+' ›</button>';
   if (!S.user) return h+'<div class="dguest"><b>로그인하면 직관 기록을 남길 수 있어요</b><button class="btn amber" data-act="logout">로그인 · 회원가입</button></div></div></div>';
-  h+='<div class="dmodes">'+[['stadium',ICON.ticket,'직관 · 경기장에서'],['home','📺','집관 · 중계로']].map(function(m){
-    return '<button data-act="dmode" data-v="'+m[0]+'" aria-pressed="'+(S.dmode===m[0])+'"><span>'+m[1]+'</span>'+m[2]+'</button>'; }).join('')+'</div>'+
+  h+='<div class="dmodes">'+[['stadium','직관 · 경기장'],['home','집관 · 중계']].map(function(m){
+    return '<button data-act="dmode" data-v="'+m[0]+'" aria-pressed="'+(S.dmode===m[0])+'">'+m[1]+'</button>'; }).join('')+'</div>'+
     '<div class="dfields"><input id="d-seat" placeholder="'+(S.dmode==='stadium'?'좌석 (예: 1루 응원석 12열)':'어디서 봤나요 (예: 집, 친구네)')+'" value="'+esc(ex?ex.seat:'')+'" maxlength="40"><textarea id="d-memo" rows="2" placeholder="한 줄 메모" maxlength="500">'+esc(ex?ex.memo:'')+'</textarea></div>'+
     '<button class="btn amber" data-act="dsave">'+(ex?'고쳐서 저장':'티켓 남기기')+'</button>'+(ex?'<button class="ddel" data-act="ddel">이 기록 지우기</button>':'');
   return h+'</div></div>';
