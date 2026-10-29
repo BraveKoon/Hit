@@ -213,13 +213,14 @@ struct APIClient {
 
     // MARK: 승부예측
 
-    func prediction(gameId: String) async throws -> Prediction {
-        try await send("GET", "v1/games/\(gameId)/prediction")
+    /// startsAt: 서버가 네이버를 읽지 못할 때 마감을 판단하도록 앱이 아는 시작 시각을 같이 보낸다
+    func prediction(gameId: String, startsAt: String? = nil) async throws -> Prediction {
+        try await send("GET", "v1/games/\(gameId)/prediction", query: startsAt.map { [URLQueryItem(name: "startsAt", value: $0)] } ?? [])
     }
 
-    func predict(gameId: String, pick: String) async throws -> Prediction {
-        struct Body: Encodable { let pick: String }
-        return try await send("PUT", "v1/games/\(gameId)/prediction", body: Body(pick: pick))
+    func predict(gameId: String, pick: String, startsAt: String? = nil) async throws -> Prediction {
+        struct Body: Encodable { let pick: String; let startsAt: String? }
+        return try await send("PUT", "v1/games/\(gameId)/prediction", body: Body(pick: pick, startsAt: startsAt))
     }
 
     func myPredictions() async throws -> PredictionRecord {

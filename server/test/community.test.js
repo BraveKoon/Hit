@@ -144,3 +144,26 @@ test('HTTP: 승부예측 — 시작 전에만 고르고 바꿀 수 있다', asyn
     assert.deepEqual(mine.json, { total: 1, decided: 0, correct: 0, rate: null, streak: 0 });
   } finally { close(); }
 });
+
+test('HTTP: 승부예측 — 서버가 네이버를 읽지 못해도 앱이 알려 준 시작 시각으로 마감한다', async () => {
+  const ID = '20261029SSHT02026';
+  const { users, call, close, tick } = await setup({ games: {} });   // provider.detail 이 실패하는 상태
+  try {
+    const startsAt = '2026-10-29T18:30:00+09:00';              // 지금(한국 17시)보다 뒤
+    const none = await call('GET', `/v1/games/${ID}/prediction`);
+    assert.deepEqual([none.status, none.json.open], [200, false], '시작 시각을 모르면 마감 상태로 알린다');
+    const open = await call('GET', `/v1/games/${ID}/prediction?startsAt=${encodeURIComponent(startsAt)}`);
+    assert.equal(open.json.open, true);
+
+    assert.equal((await call('PUT', `/v1/games/${ID}/prediction`, { pick: 'home' }, users[0].tok)).status, 503, '시각 정보가 없으면 거절');
+    assert.equal((await call('PUT', `/v1/games/${ID}/prediction`, { pick: 'home', startsAt: '2026-10-30T18:30:00+09:00' }, users[0].tok)).status, 503, '경기 날짜와 다른 날짜 거절');
+    assert.equal((await call('PUT', `/v1/games/${ID}/prediction`, { pick: 'home', startsAt: '2026-10-29T03:00:00+09:00' }, users[0].tok)).status, 503, '새벽 시각은 믿지 않음');
+    const ok = await call('PUT', `/v1/games/${ID}/prediction`, { pick: 'home', startsAt }, users[0].tok);
+    assert.deepEqual([ok.status, ok.json.myPick, ok.json.home, ok.json.open], [200, 'home', 1, true]);
+    const changed = await call('PUT', `/v1/games/${ID}/prediction`, { pick: 'away', startsAt }, users[0].tok);
+    assert.deepEqual([changed.json.myPick, changed.json.away, changed.json.home], ['away', 1, 0], '다시 고르면 바뀐다');
+
+    tick(2 * 3600_000);                                          // 한국 19시: 시작 시각이 지남
+    assert.equal((await call('PUT', `/v1/games/${ID}/prediction`, { pick: 'home', startsAt }, users[0].tok)).status, 409);
+  } finally { close(); }
+});
