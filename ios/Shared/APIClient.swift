@@ -75,6 +75,10 @@ struct APIClient {
         try await send("GET", "v1/games/\(id)/winrate")
     }
 
+    func preview(id: String) async throws -> GamePreview {
+        try await send("GET", "v1/games/\(id)/preview")
+    }
+
     func mvp(id: String) async throws -> MvpResponse {
         try await send("GET", "v1/games/\(id)/mvp")
     }

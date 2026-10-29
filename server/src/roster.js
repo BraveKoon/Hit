@@ -26,9 +26,9 @@ function toPlayer(p, team, type) {
     number: num(p.backNumber),
     photo: p.playerImageUrl || null,
     stats: hitter
-      ? { war: num(p.hitterWar), avg: num(p.hitterHra), hr: num(p.hitterHr), rbi: num(p.hitterRbi), hits: num(p.hitterHit),
+      ? { games: num(p.hitterGameCount ?? p.gameCount), war: num(p.hitterWar), avg: num(p.hitterHra), hr: num(p.hitterHr), rbi: num(p.hitterRbi), hits: num(p.hitterHit),
           runs: num(p.hitterRun), sb: num(p.hitterSb), ops: num(p.hitterOps), obp: num(p.hitterObp), slg: num(p.hitterSlg) }
-      : { war: num(p.pitcherWar), era: num(p.pitcherEra), wins: num(p.pitcherWin), losses: num(p.pitcherLose),
+      : { games: num(p.pitcherGameCount ?? p.gameCount), war: num(p.pitcherWar), era: num(p.pitcherEra), wins: num(p.pitcherWin), losses: num(p.pitcherLose),
           saves: num(p.pitcherSave), holds: num(p.pitcherHold), innings: p.pitcherInning == null ? null : String(p.pitcherInning),
           so: num(p.pitcherKk), whip: num(p.pitcherWhip) },
   };

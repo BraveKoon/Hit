@@ -10,6 +10,7 @@ import { openStore } from '../server/src/store.js';
 import { publicUser } from '../server/src/http.js';
 import { diaryEntries, diaryStats } from '../server/src/diary.js';
 import { ballot } from '../server/src/mvp.js';
+import { gamePreview } from '../server/src/preview.js';
 
 const fx = (n) => JSON.parse(readFileSync(new URL(`../server/test/fixtures/${n}`, import.meta.url))).result;
 const live = { ...normalizeDetail(fx('naver-game-live.json').game, fx('naver-relay-live.json').textRelayData), fetchedAt: new Date().toISOString() };
@@ -49,6 +50,10 @@ const finalWithLineups = { ...final, lineups: live.lineups, pitchers: { ...final
 const mvpEmpty = ballot(finalWithLineups, store, null);
 store.voteMvp(final.game.id, configured.id, mvpEmpty.candidates[0]);
 const mvpVoted = ballot(finalWithLineups, store, configured.id, () => 'https://img/x.png');
+const standingsRows = fx('naver-standings.json').seasonTeamStats.map(normalizeStanding);
+const previewProvider = { detail: async () => before, standings: async () => standingsRows, range: async () => [...sched, { ...sched[0], id: 'OLD', status: 'final', winner: 'away', away: { ...sched[0].away, score: 3 }, home: { ...sched[0].home, score: 1 } }] };
+const preview = await gamePreview({ provider: previewProvider, roster: photos, id: before.game.id });
+const previewBare = await gamePreview({ provider: { detail: async () => before, standings: async () => [], range: async () => [] }, roster: null, id: before.game.id });
 const start = activityStartPayload(live.game, state, { title: 't', body: 'b' });
 
 console.log(JSON.stringify({
@@ -67,6 +72,7 @@ console.log(JSON.stringify({
   DiaryEntry: [finalEntry, entries[1]],
   CalendarResponse: [{ month: '2026-10', team: 'SS', games: sched }, { month: '2026-10', team: null, games: [] }],
   Player: [photos.get('1'), photos.get('2'), photos.get('4')],
+  GamePreview: [preview, previewBare],
   MvpResponse: [mvpEmpty, mvpVoted, ballot(before, store, null)],
   WinTrendResponse: [{ gameId: live.game.id, points: winPointsOf(fx('naver-relay-live.json').textRelayData, 3) }, await replay.winTrend(rgame.id)],
 }));

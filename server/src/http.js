@@ -16,6 +16,7 @@
 //   GET    /v1/leaders?type=pitcher|hitter  투수·타자 TOP20 (WAR)
 //   GET    /v1/games/:id/relay?inning=N     그 이닝의 문자중계 전체
 //   GET    /v1/games/:id/winrate            타석별 홈팀 승리 확률 흐름 (그래프)
+//   GET    /v1/games/:id/preview            프리뷰: 경기 정보, 선발 투수 시즌 기록, 두 팀 순위, 시즌 맞대결
 //   GET    /v1/games/:id/mvp · PUT { team, name }  오늘의 MVP 후보·집계·내 표 (투표는 로그인 필요, 끝난 경기만)
 //   GET    /v1/calendar?month=YYYY-MM&team=SS  한 달 경기 (달력)
 //   GET    /v1/me/diary · PUT·DELETE /v1/me/diary/:gameId { date, mode, seat, memo }  직관 다이어리와 승률
@@ -25,6 +26,7 @@ import { DEFAULT_PREFS } from './messages.js';
 import { isValidDate, kstDate } from './time.js';
 import { MODES, diaryEntries, diaryStats, monthRange } from './diary.js';
 import { ballot, candidatesOf } from './mvp.js';
+import { gamePreview } from './preview.js';
 
 const TOKEN = /^[0-9a-fA-F]{32,256}$/;
 const ENVS = new Set(['sandbox', 'production']);
@@ -120,6 +122,7 @@ export function createApi({ provider, store, auth = null, roster = null, info = 
       return rest;
     }],
     ['GET', /^\/v1\/games\/([\w-]{6,40})\/winrate$/, async (m) => provider.winTrend(m[1])],
+    ['GET', /^\/v1\/games\/([\w-]{6,40})\/preview$/, async (m) => gamePreview({ provider, roster, id: m[1] })],
     ['GET', /^\/v1\/games\/([\w-]{6,40})\/mvp$/, async (m, _u, _b, req) =>
       ballot(await provider.detail(m[1]), store, auth?.userFrom(req)?.id, roster ? (t, n) => roster.photo(t, n) : undefined)],
     ['PUT', /^\/v1\/games\/([\w-]{6,40})\/mvp$/, async (m, _u, body, req) => {

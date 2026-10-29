@@ -171,6 +171,57 @@ struct WinTrendResponse: Codable, Hashable {
     let points: [WinPoint]
 }
 
+// MARK: - 경기 프리뷰
+
+struct GamePreview: Codable, Hashable {
+    let gameId: String
+    let info: PreviewInfo
+    let starters: PreviewStarters
+    let teams: PreviewTeams
+    let headToHead: HeadToHead
+}
+
+struct PreviewInfo: Codable, Hashable {
+    let date: String?
+    let startsAt: String?
+    let stadium: String?
+    let broadcast: String?
+}
+
+struct PreviewStarter: Codable, Hashable {
+    let team: String
+    let name: String?
+    let photo: String?
+    let stats: PlayerStats?
+}
+
+struct PreviewStarters: Codable, Hashable {
+    let away: PreviewStarter
+    let home: PreviewStarter
+}
+
+struct PreviewTeams: Codable, Hashable {
+    let away: Standing?
+    let home: Standing?
+}
+
+/// 올 시즌 맞대결 (원정 팀 기준 승·패)
+struct HeadToHead: Codable, Hashable {
+    let wins: Int
+    let losses: Int
+    let draws: Int
+    let recent: [HeadToHeadGame]
+}
+
+struct HeadToHeadGame: Codable, Hashable, Identifiable {
+    let id: String
+    let date: String?
+    let away: String
+    let home: String
+    let awayScore: Int
+    let homeScore: Int
+}
+
 // MARK: - 오늘의 MVP
 
 struct MvpCandidate: Codable, Hashable, Identifiable {
@@ -286,6 +337,7 @@ struct FavoritePlayer: Codable, Hashable {
 }
 
 struct PlayerStats: Codable, Hashable {
+    var games: Int? = nil
     let war: Double?
     // 타자
     let avg: Double?
@@ -445,6 +497,7 @@ enum KST {
     static let clock = formatter("HH:mm")
     static let display = formatter("M월 d일 (E)", korean: true)
     static let short = formatter("MM.dd (E)", korean: true)
+    static let fullDate = formatter("yyyy.MM.dd (E)", korean: true)
 
     static let iso: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()

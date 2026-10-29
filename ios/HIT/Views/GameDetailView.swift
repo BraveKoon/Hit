@@ -1,9 +1,26 @@
 import Charts
 import SwiftUI
 
+/// 경기 화면 탭. 다른 야구 앱처럼 경기 전엔 프리뷰, 경기 중엔 중계, 끝나면 요약부터 연다.
 enum DetailTab: String, CaseIterable, Identifiable {
-    case live = "중계", lineup = "라인업", record = "기록"
+    case preview = "프리뷰", lineup = "라인업", summary = "요약", live = "중계", record = "기록"
     var id: String { rawValue }
+
+    /// 경기 전에는 요약·중계·기록을 흐리게 막는다
+    func isAvailable(_ status: GameStatus) -> Bool {
+        switch self {
+        case .preview, .lineup: true
+        default: status != .scheduled
+        }
+    }
+
+    static func initial(for status: GameStatus) -> DetailTab {
+        switch status {
+        case .scheduled, .canceled: .preview
+        case .live, .suspended: .live
+        case .final: .summary
+        }
+    }
 }
 
 /// 경기 중계: 점수판 → [중계 | 라인업 | 기록]
@@ -13,6 +30,7 @@ struct GameDetailView: View {
     @State private var detail: GameDetail?
     @State private var error: String?
     @State private var tab: DetailTab = .live
+    @State private var tabChosen = false                   // 처음 받은 경기 상태로 첫 탭을 고른 뒤엔 그대로
     @State private var activityOn = false
     @State private var activityError: String?
     @State private var lastSeq: Int?                       // 지난번까지 본 문자중계
@@ -32,10 +50,12 @@ struct GameDetailView: View {
                         }
                         ScoreHero(game: detail.game)
                         activityButton(detail)
-                        DetailTabs(selection: $tab)
+                        DetailTabs(selection: $tab, status: detail.game.status)
                         switch tab {
-                        case .live: LiveTab(detail: detail, focusInning: focusInning)
+                        case .preview: PreviewTab(game: detail.game)
                         case .lineup: LineupTab(detail: detail)
+                        case .summary: SummaryTab(detail: detail)
+                        case .live: LiveTab(detail: detail, focusInning: focusInning)
                         case .record: RecordTab(detail: detail)
                         }
                     } else if let error {
@@ -53,6 +73,7 @@ struct GameDetailView: View {
             .task(id: AppModel.shared.focus) {
                 guard let f = AppModel.shared.focus, f.gameId == gameId else { return }
                 tab = .live
+                tabChosen = true
                 focusInning = f.inning
                 // focus 를 지우면 이 task 가 다시 시작되므로 다 쓰고 나서 지운다
                 defer { AppModel.shared.focus = nil }
@@ -113,6 +134,10 @@ struct GameDetailView: View {
         do {
             let next = try await APIClient().detail(id: gameId)
             celebrate(next)
+            if !tabChosen {
+                tab = .initial(for: next.game.status)
+                tabChosen = true
+            }
             withAnimation(.snappy) { detail = next }   // 점수·상황이 부드럽게 바뀐다
             error = nil
             lastLoaded = Date()
@@ -225,9 +250,10 @@ struct ScoreHero: View {
                             }
                         }
                 } else {
-                    VStack(spacing: 2) {
-                        Text(game.clockText).font(Typo.font(34, .heavy))
-                        Text(game.broadcast ?? "경기 시작").font(Typo.style(.caption2)).foregroundStyle(Palette.muted)
+                    // 경기 전: 시작 시각을 크게, 그 아래 구장
+                    VStack(spacing: 4) {
+                        Text(game.clockText).font(Typo.score(34))
+                        Text(game.stadium ?? "").font(Typo.style(.caption)).foregroundStyle(Palette.muted)
                     }
                 }
                 Spacer()
@@ -258,9 +284,16 @@ struct ScoreHero: View {
         VStack(spacing: 7) {
             TeamBadge(code: s.code, size: 56)
             Text(s.name).font(Typo.style(.subheadline, .bold))
-            Text(won ? "승리" : " ")
-                .font(Typo.style(.caption2, .heavy))
-                .foregroundStyle(Palette.accent)
+            // 경기 전엔 선발 투수, 끝나면 이긴 쪽에 "승리"
+            Group {
+                if game.status == .scheduled {
+                    Text(s.starter ?? "선발 미정").foregroundStyle(Palette.muted)
+                } else {
+                    Text(won ? "승리" : " ").foregroundStyle(Palette.accent)
+                }
+            }
+            .font(Typo.style(.caption, .semibold))
+            .lineLimit(1)
         }
         .frame(width: 86)
     }
@@ -268,16 +301,18 @@ struct ScoreHero: View {
 
 struct DetailTabs: View {
     @Binding var selection: DetailTab
+    var status: GameStatus = .live
     @Namespace private var underline
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(DetailTab.allCases) { t in
+                let open = t.isAvailable(status)
                 Button { withAnimation(.snappy) { selection = t } } label: {
                     VStack(spacing: 8) {
                         Text(t.rawValue)
                             .font(Typo.style(.subheadline, selection == t ? .bold : .medium))
-                            .foregroundStyle(selection == t ? Palette.text : Palette.muted)
+                            .foregroundStyle(selection == t ? Palette.text : Palette.muted.opacity(open ? 1 : 0.4))
                         ZStack {
                             Capsule().fill(.clear).frame(height: 3)
                             if selection == t {
@@ -288,6 +323,7 @@ struct DetailTabs: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.plain)
+                .disabled(!open)
             }
         }
         .padding(.top, 4)
@@ -308,11 +344,8 @@ struct LiveTab: View {
                 if let s = detail.situation {
                     GamedayCard(game: detail.game, situation: s, pitches: detail.atBat)
                 }
-            case .scheduled:
-                StartersCard(game: detail.game)
             default:
-                if let p = detail.pitchers, p.win != nil { DecisionCard(game: detail.game, pitchers: p) }
-                if detail.game.status == .final { MvpCard(game: detail.game) }
+                EmptyView()
             }
             if detail.plays.isEmpty && detail.game.status == .scheduled {
                 Card { Label("경기가 시작하면 문자중계가 여기에 나와요", systemImage: "text.bubble").foregroundStyle(Palette.muted) }
@@ -697,30 +730,6 @@ struct StrikeZoneView: View {
     }
 }
 
-/// 경기 전: 선발 맞대결
-struct StartersCard: View {
-    let game: Game
-    var body: some View {
-        Card {
-            VStack(spacing: 14) {
-                Text("선발 투수").font(Typo.style(.subheadline, .bold)).frame(maxWidth: .infinity, alignment: .leading)
-                HStack {
-                    starter(game.away)
-                    Text("VS").font(Typo.style(.caption, .heavy)).foregroundStyle(Palette.muted)
-                    starter(game.home)
-                }
-            }
-        }
-    }
-    private func starter(_ s: GameSide) -> some View {
-        VStack(spacing: 8) {
-            PlayerAvatar(url: s.starterPhoto, name: s.starter ?? s.name, team: s.code, size: 72)
-            Text(s.starter ?? "미정").font(Typo.style(.headline))
-            Text(s.name).font(Typo.style(.caption)).foregroundStyle(Palette.muted)
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
 
 /// 경기 후: 승리·패전 투수
 struct DecisionCard: View {
@@ -880,10 +889,45 @@ struct RecordTab: View {
             } else {
                 Card { Label("경기가 시작하면 이닝별 점수가 나와요", systemImage: "tablecells").foregroundStyle(Palette.muted) }
             }
-            WinTrendSection(detail: detail)
-            if let p = detail.pitchers, p.win != nil {
-                DecisionCard(game: detail.game, pitchers: p)
+            if let t = detail.totals, let a = t.away, let h = t.home {
+                TeamTotalsCard(game: detail.game, away: a, home: h)
             }
+        }
+    }
+}
+
+/// 팀 기록 비교: 득점·안타·실책·볼넷을 가운데 이름, 양옆 숫자로
+struct TeamTotalsCard: View {
+    let game: Game
+    let away: Totals
+    let home: Totals
+
+    var body: some View {
+        Card {
+            VStack(spacing: 12) {
+                HStack {
+                    TeamBadge(code: game.away.code, size: 22)
+                    Spacer()
+                    Text("팀 기록").font(Typo.style(.subheadline, .bold))
+                    Spacer()
+                    TeamBadge(code: game.home.code, size: 22)
+                }
+                row("득점", away.r, home.r)
+                row("안타", away.h, home.h)
+                row("실책", away.e, home.e, lowerIsBetter: true)
+                row("볼넷", away.b, home.b)
+            }
+        }
+    }
+
+    private func row(_ label: String, _ a: Int, _ h: Int, lowerIsBetter: Bool = false) -> some View {
+        let aWins = lowerIsBetter ? a < h : a > h, hWins = lowerIsBetter ? h < a : h > a
+        return HStack {
+            Text("\(a)").font(Typo.score(17)).foregroundStyle(aWins ? Palette.accent : Palette.text)
+            Spacer()
+            Text(label).font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+            Spacer()
+            Text("\(h)").font(Typo.score(17)).foregroundStyle(hWins ? Palette.accent : Palette.text)
         }
     }
 }
@@ -1212,6 +1256,263 @@ struct MvpCard: View {
             } catch {
                 failed = error.localizedDescription
             }
+        }
+    }
+}
+
+// MARK: - 프리뷰 탭 (경기정보 · 선발 비교 · 팀 비교 · 맞대결)
+
+struct PreviewTab: View {
+    let game: Game
+    enum Section: Hashable { case starters, teams, h2h }
+    @State private var section: Section = .starters
+    @State private var preview: GamePreview?
+    @State private var failed = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            infoCard
+            if let p = preview {
+                PillChips(items: [(Section.starters, "선발 비교"), (.teams, "팀 비교"), (.h2h, "맞대결")], selection: $section)
+                switch section {
+                case .starters: StarterCompare(game: game, starters: p.starters)
+                case .teams: TeamCompare(game: game, teams: p.teams)
+                case .h2h: HeadToHeadCard(game: game, h2h: p.headToHead)
+                }
+            } else if failed {
+                Card { Label("프리뷰를 불러오지 못했어요", systemImage: "wifi.exclamationmark").foregroundStyle(Palette.muted) }
+            } else {
+                ProgressView().frame(maxWidth: .infinity).padding(.top, 20)
+            }
+        }
+        .task(id: game.id) {
+            do { let p = try await APIClient().preview(id: game.id); withAnimation(.snappy) { preview = p } }
+            catch is CancellationError {}
+            catch { failed = true }
+        }
+    }
+
+    /// 날짜 · 경기장 · 방송사
+    private var infoCard: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("경기정보").font(Typo.style(.headline))
+                info("날짜", game.startDate.map { "\(KST.fullDate.string(from: $0)) \(KST.clock.string(from: $0))" })
+                info("경기장", game.stadium)
+                info("방송사", game.broadcast)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func info(_ label: String, _ value: String?) -> some View {
+        if let value, !value.isEmpty {
+            HStack(spacing: 0) {
+                Text(label).font(Typo.style(.subheadline)).foregroundStyle(Palette.muted).frame(width: 72, alignment: .leading)
+                Text(value).font(Typo.style(.subheadline, .medium))
+            }
+        }
+    }
+}
+
+/// 비교표 한 줄: 왼쪽 값 · 가운데 항목 · 오른쪽 값, 나은 쪽은 강조색
+struct CompareRow: View {
+    let label: String
+    let left: String
+    let right: String
+    var better: Int = 0   // -1 왼쪽, 1 오른쪽, 0 없음
+
+    var body: some View {
+        HStack {
+            Text(left).font(Typo.style(.subheadline, better < 0 ? .bold : .regular))
+                .foregroundStyle(better < 0 ? Palette.accent : Palette.text)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(label).font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+            Text(right).font(Typo.style(.subheadline, better > 0 ? .bold : .regular))
+                .foregroundStyle(better > 0 ? Palette.accent : Palette.text)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .monospacedDigit()
+    }
+
+    /// 숫자 둘을 비교해 나은 쪽 (낮을수록 좋은 기록이면 lower)
+    static func pick(_ a: Double?, _ b: Double?, lower: Bool = false) -> Int {
+        guard let a, let b, a != b else { return 0 }
+        return (a < b) == lower ? -1 : 1
+    }
+}
+
+/// 선발투수 비교 (정규시즌 기록)
+struct StarterCompare: View {
+    let game: Game
+    let starters: PreviewStarters
+
+    var body: some View {
+        let a = starters.away.stats, h = starters.home.stats
+        Card {
+            VStack(spacing: 16) {
+                HStack(alignment: .top) {
+                    face(starters.away)
+                    Spacer()
+                    Text("정규시즌").font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted).padding(.top, 40)
+                    Spacer()
+                    face(starters.home)
+                }
+                if a == nil && h == nil {
+                    Text(starters.away.name == nil && starters.home.name == nil ? "선발 투수가 아직 발표되지 않았어요" : "시즌 기록이 없어요")
+                        .font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+                } else {
+                    VStack(spacing: 12) {
+                        row("경기", a?.games.map { "\($0)" }, h?.games.map { "\($0)" }, CompareRow.pick(a?.games.map { Double($0) }, h?.games.map { Double($0) }))
+                        row("승-패", record(a), record(h), CompareRow.pick(a?.wins.map { Double($0) }, h?.wins.map { Double($0) }))
+                        row("평균자책", a?.era.map { String(format: "%.2f", $0) }, h?.era.map { String(format: "%.2f", $0) }, CompareRow.pick(a?.era, h?.era, lower: true))
+                        row("이닝", a?.innings, h?.innings, 0)
+                        row("탈삼진", a?.so.map { "\($0)" }, h?.so.map { "\($0)" }, CompareRow.pick(a?.so.map { Double($0) }, h?.so.map { Double($0) }))
+                        row("WHIP", a?.whip.map { String(format: "%.2f", $0) }, h?.whip.map { String(format: "%.2f", $0) }, CompareRow.pick(a?.whip, h?.whip, lower: true))
+                        row("WAR", a?.war.map { String(format: "%.2f", $0) }, h?.war.map { String(format: "%.2f", $0) }, CompareRow.pick(a?.war, h?.war))
+                    }
+                }
+            }
+        }
+    }
+
+    private func record(_ s: PlayerStats?) -> String? {
+        guard let s, let w = s.wins, let l = s.losses else { return nil }
+        return "\(w)승 \(l)패"
+    }
+
+    @ViewBuilder
+    private func row(_ label: String, _ l: String?, _ r: String?, _ better: Int) -> some View {
+        if l != nil || r != nil { CompareRow(label: label, left: l ?? "-", right: r ?? "-", better: better) }
+    }
+
+    /// 사진은 다른 앱처럼 둥근 사각 카드에
+    private func face(_ s: PreviewStarter) -> some View {
+        VStack(spacing: 8) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Palette.surfaceHigh)
+                if let url = s.photo.flatMap(URL.init(string:)) {
+                    AsyncImage(url: url) { phase in
+                        if case .success(let img) = phase { img.resizable().scaledToFill() } else { Color.clear }
+                    }
+                } else {
+                    TeamBadge(code: s.team, size: 44).opacity(0.6)
+                }
+            }
+            .frame(width: 84, height: 100)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            Text(s.name ?? "미정").font(Typo.style(.headline))
+            Text(Team.find(s.team)?.name ?? s.team).font(Typo.style(.caption)).foregroundStyle(Palette.muted)
+        }
+        .frame(width: 110)
+    }
+}
+
+/// 팀 비교 (순위표 기준)
+struct TeamCompare: View {
+    let game: Game
+    let teams: PreviewTeams
+
+    var body: some View {
+        let a = teams.away, h = teams.home
+        Card {
+            VStack(spacing: 12) {
+                HStack {
+                    HStack(spacing: 6) { TeamBadge(code: game.away.code, size: 24); Text(game.away.name).font(Typo.style(.subheadline, .bold)) }
+                    Spacer()
+                    HStack(spacing: 6) { Text(game.home.name).font(Typo.style(.subheadline, .bold)); TeamBadge(code: game.home.code, size: 24) }
+                }
+                if a == nil && h == nil {
+                    Text("순위 정보가 없어요").font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+                } else {
+                    CompareRow(label: "순위", left: a.map { "\($0.rank)위" } ?? "-", right: h.map { "\($0.rank)위" } ?? "-",
+                               better: CompareRow.pick(a.map { Double($0.rank) }, h.map { Double($0.rank) }, lower: true))
+                    CompareRow(label: "승-패-무", left: a.map { "\($0.wins)-\($0.losses)-\($0.draws)" } ?? "-", right: h.map { "\($0.wins)-\($0.losses)-\($0.draws)" } ?? "-")
+                    CompareRow(label: "승률", left: a?.pct.map { String(format: "%.3f", $0) } ?? "-", right: h?.pct.map { String(format: "%.3f", $0) } ?? "-",
+                               better: CompareRow.pick(a?.pct, h?.pct))
+                    CompareRow(label: "게임차", left: a?.gamesBehind.map { $0 == 0 ? "-" : String(format: "%g", $0) } ?? "-",
+                               right: h?.gamesBehind.map { $0 == 0 ? "-" : String(format: "%g", $0) } ?? "-")
+                    if a?.lastFive != nil || h?.lastFive != nil {
+                        HStack {
+                            form(a?.lastFive).frame(maxWidth: .infinity, alignment: .leading)
+                            Text("최근 5경기").font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+                            form(h?.lastFive).frame(maxWidth: .infinity, alignment: .trailing)
+                        }
+                    }
+                    CompareRow(label: "연속", left: a?.streak ?? "-", right: h?.streak ?? "-")
+                }
+            }
+        }
+    }
+
+    /// "WWLWD" → 승 강조색, 패 회색, 무 흰색 점
+    private func form(_ s: String?) -> some View {
+        HStack(spacing: 4) {
+            ForEach(Array((s ?? "").enumerated()), id: \.offset) { _, c in
+                Circle().fill(c == "W" ? Palette.accent : c == "L" ? Color.white.opacity(0.2) : Color.white.opacity(0.6))
+                    .frame(width: 9, height: 9)
+            }
+        }
+    }
+}
+
+/// 올 시즌 맞대결
+struct HeadToHeadCard: View {
+    let game: Game
+    let h2h: HeadToHead
+
+    var body: some View {
+        Card {
+            VStack(spacing: 14) {
+                Text("올 시즌 맞대결").font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted)
+                HStack(spacing: 14) {
+                    TeamBadge(code: game.away.code, size: 36)
+                    Text("\(h2h.wins)").font(Typo.score(34)).foregroundStyle(Palette.text.opacity(h2h.wins < h2h.losses ? 0.35 : 1))
+                    Text(":").font(Typo.font(24, .medium)).foregroundStyle(Palette.muted)
+                    Text("\(h2h.losses)").font(Typo.score(34)).foregroundStyle(Palette.text.opacity(h2h.losses < h2h.wins ? 0.35 : 1))
+                    TeamBadge(code: game.home.code, size: 36)
+                }
+                if h2h.draws > 0 { Text("무승부 \(h2h.draws)").font(Typo.style(.caption)).foregroundStyle(Palette.muted) }
+                if h2h.recent.isEmpty {
+                    Text("올 시즌 맞대결이 아직 없어요").font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(h2h.recent) { g in
+                            HStack {
+                                Text(g.date.map { KST.ticketDate($0) } ?? "").font(Typo.style(.footnote)).foregroundStyle(Palette.muted).frame(width: 48, alignment: .leading)
+                                Spacer()
+                                TeamBadge(code: g.away, size: 20)
+                                Text("\(g.awayScore) : \(g.homeScore)").font(Typo.score(15)).frame(width: 64)
+                                TeamBadge(code: g.home, size: 20)
+                                Spacer()
+                                Color.clear.frame(width: 48, height: 1)
+                            }
+                            .padding(.vertical, 8)
+                            .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.06)).frame(height: 1) }
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+// MARK: - 요약 탭 (이닝별 점수 · 승패 투수 · 승리 확률 · MVP)
+
+struct SummaryTab: View {
+    let detail: GameDetail
+
+    var body: some View {
+        VStack(spacing: 14) {
+            if let line = detail.lineScore {
+                LineScoreView(game: detail.game, line: line, totals: detail.totals)
+            }
+            if let p = detail.pitchers, p.win != nil || p.lose != nil {
+                DecisionCard(game: detail.game, pitchers: p)
+            }
+            WinTrendSection(detail: detail)
+            if detail.game.status == .final { MvpCard(game: detail.game) }
         }
     }
 }

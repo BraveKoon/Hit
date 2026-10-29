@@ -220,6 +220,20 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .cnt b{width:16px;font-family:var(--round);font-weight:700;color:var(--mu)}
 .lamp{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.1)}
 .lamp.b{background:var(--lv);box-shadow:0 0 6px rgba(54,213,131,.6)}.lamp.s{background:var(--am);box-shadow:0 0 6px rgba(255,138,76,.6)}.lamp.o{background:var(--rd);box-shadow:0 0 6px rgba(226,84,74,.6)}
+/* 프리뷰 · 요약 */
+.dtabs button[disabled]{opacity:.35;cursor:default}
+.pinfo{display:flex;flex-direction:column;gap:10px}.pinfo .t{font-size:16px}.pinfo div{display:flex;font-size:14.5px}.pinfo span{width:72px;color:var(--mu);flex:none}
+.spc{display:flex;flex-direction:column;gap:12px}
+.spc .faces{display:flex;align-items:flex-start;justify-content:space-between}.spc .faces>small{padding-top:44px;font-size:12px;color:var(--mu);font-weight:600}
+.spc .face{width:110px;display:flex;flex-direction:column;align-items:center;gap:6px}.spc .face b{font-size:16px}.spc .face small{font-size:12px;color:var(--mu)}
+.spc .ph{width:84px;height:100px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(160deg,color-mix(in srgb,var(--tc) 45%,#2c2c2e),#1c1c1e)}
+.spc .th{display:flex;justify-content:space-between;font-size:14px;font-weight:700}.spc .th span{display:flex;align-items:center;gap:6px}
+.cr{display:flex;align-items:center;font-variant-numeric:tabular-nums;font-size:14.5px}.cr span{flex:1}.cr span:last-child{text-align:right}
+.cr em{font-style:normal;font-size:12.5px;color:var(--mu)}.cr .b{color:var(--am);font-weight:700}
+.h2h{display:flex;flex-direction:column;align-items:center;gap:12px}.h2h>small{font-size:12px;color:var(--mu);font-weight:600}
+.h2h .big{display:flex;align-items:center;gap:14px}.h2h .big b{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums}.h2h .big i{font-style:normal;font-size:24px;color:var(--mu)}.h2h .big .lose{opacity:.35}
+.h2h .hr2{width:100%;display:grid;grid-template-columns:48px 1fr auto 1fr 48px;align-items:center;justify-items:center;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);font-size:13px}
+.h2h .hr2 span:first-child{justify-self:start;color:var(--mu)}.h2h .hr2 b{padding:0 12px;font-variant-numeric:tabular-nums}.h2h .hr2 img:first-of-type{justify-self:end}.h2h .hr2 img:last-of-type{justify-self:start}
 .gd{padding:0;overflow:hidden}
 .gd .top{display:flex;align-items:center;gap:8px;padding:12px 16px}.gd .top b{font-size:14.5px}.gd .top span{color:var(--mu);font-size:14px}
 .gd .cl{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--mu)}
@@ -949,19 +963,78 @@ function vGame(){
   var g=gameById(S.seg), has=g.status!=='scheduled', as=score(g,'a'), hs=score(g,'h');
   var rec=S.user&&S.diary.some(function(e){ return e.id===g.id; });
   var h=nav(T[g.a].s+' 대 '+T[g.h].s).replace('<span></span></div>','<button class="tkbtn'+(rec?' on':'')+'" data-act="diaryopen" data-v="'+g.id+'">'+ICON.ticket+(rec?'기록됨':'직관 기록')+'</button></div>')+'<div class="pad">';
-  function side(c,won){ return '<div class="side">'+emb(c,56)+'<b>'+esc(T[c].s)+'</b><small style="font-size:10px;font-weight:900;color:var(--am);min-height:13px">'+(won?'승리':'')+'</small></div>'; }
+  function side(c,won){
+    var sub=g.status==='scheduled'?'<small style="font-size:11.5px;font-weight:600;color:var(--mu);min-height:13px">'+esc((c===g.a?g.sp.a:g.sp.h)||'선발 미정')+'</small>'
+      :'<small style="font-size:11px;font-weight:700;color:var(--am);min-height:13px">'+(won?'승리':'')+'</small>';
+    return '<div class="side">'+emb(c,56)+'<b>'+esc(T[c].s)+'</b>'+sub+'</div>'; }
   h+='<div class="dhero" style="'+split(g.a,g.h)+'"><div class="top">'+pill(g)+'<span>'+dayLabel(g.date)+' · '+esc(g.park)+'</span></div>'+
     '<div class="mid">'+side(g.a,g.status==='final'&&as>hs)+
-    (has?'<div class="bigscore" style="font-size:48px"><span data-score="d-'+g.id+'"><span class="'+(g.status==='final'&&as<hs?'lose':'')+'">'+as+'</span><span class="c">&nbsp;:&nbsp;</span><span class="'+(g.status==='final'&&hs<as?'lose':'')+'">'+hs+'</span></span></div>':'<div class="bigtime" style="font-size:34px">'+g.time+'<small>플레이오프 3차전</small></div>')+
+    (has?'<div class="bigscore" style="font-size:48px"><span data-score="d-'+g.id+'"><span class="'+(g.status==='final'&&as<hs?'lose':'')+'">'+as+'</span><span class="c">&nbsp;:&nbsp;</span><span class="'+(g.status==='final'&&hs<as?'lose':'')+'">'+hs+'</span></span></div>':'<div class="bigtime" style="font-size:34px;font-weight:700">'+g.time+'<small>'+esc(g.park)+'</small></div>')+
     side(g.h,g.status==='final'&&hs>as)+'</div></div>';
   if (g.status!=='final') h+='<button class="lapill'+(S.la?' on':'')+'" data-act="la">'+ICON.lock+(S.la?'잠금화면에서 내리기':'잠금화면에 실시간 점수 띄우기')+'</button>';
-  h+='<div class="dtabs" role="tablist">'+[['live','중계'],['lineup','라인업'],['record','기록']].map(function(t){
-    return '<button role="tab" data-act="dtab" data-v="'+t[0]+'" aria-selected="'+(S.dtab===t[0])+'">'+t[1]+'<i></i></button>';
+  // 다른 야구 앱처럼 경기 전엔 프리뷰, 경기 중엔 중계, 끝나면 요약부터. 경기 전엔 요약·중계·기록을 흐리게
+  var tab=S.dtab||(g.status==='scheduled'?'preview':g.status==='live'?'live':'summary');
+  if (g.status==='scheduled' && ['summary','live','record'].indexOf(tab)>=0) tab='preview';
+  h+='<div class="dtabs" role="tablist">'+[['preview','프리뷰'],['lineup','라인업'],['summary','요약'],['live','중계'],['record','기록']].map(function(t){
+    var off=g.status==='scheduled' && ['summary','live','record'].indexOf(t[0])>=0;
+    return '<button role="tab" data-act="dtab" data-v="'+t[0]+'" aria-selected="'+(tab===t[0])+'"'+(off?' disabled':'')+'>'+t[1]+'<i></i></button>';
   }).join('')+'</div><div class="stack">';
-  if (S.dtab==='live') h+=liveTab(g);
-  else if (S.dtab==='lineup') h+='<div class="card info">'+(g.status==='scheduled'?'라인업은 경기가 시작하면 나와요.':'이 미리보기에는 라인업 기록이 없어요. 앱에서는 선수 사진과 함께 타순이 나옵니다.')+'</div>';
+  if (tab==='preview') h+=previewTab(g);
+  else if (tab==='summary') h+=summaryTab(g);
+  else if (tab==='live') h+=liveTab(g);
+  else if (tab==='lineup') h+='<div class="card info">'+(g.status==='scheduled'?'라인업은 경기가 시작하면 나와요.':'이 미리보기에는 라인업 기록이 없어요. 앱에서는 선수 사진과 함께 타순이 나옵니다.')+'</div>';
   else h+=recordTab(g);
   return h+'</div></div>';
+}
+/* 프리뷰 탭: 경기정보 → 선발 비교 · 팀 비교 · 맞대결 (앱 PreviewTab 과 같은 배치)
+   선발 시즌 기록은 사용자가 보내 준 다른 앱 화면(10.29 PO 3차전 프리뷰)의 정규시즌 기록. 나머지 경기 선발은 기록이 없어 비워 둔다. */
+var SP_STATS = { '최원태':{g:24,w:7,l:5,era:4.68}, '시라카와':{g:18,w:4,l:5,era:4.75} };
+var BROADCAST = { po3:'SBS TV' };
+function cmpRow(label,l,r,better){
+  return '<div class="cr"><span class="'+(better<0?'b':'')+'">'+l+'</span><em>'+label+'</em><span class="'+(better>0?'b':'')+'">'+r+'</span></div>';
+}
+function pick(a,b,lower){ if (a==null||b==null||a===b) return 0; return (a<b)===!!lower?-1:1; }
+function previewTab(g){
+  var dt=new Date(g.date+'T12:00:00+09:00'), wd='일월화수목금토'.charAt(dt.getUTCDay());
+  var h='<div class="card pinfo"><b class="t">경기정보</b>'+
+    '<div><span>날짜</span>'+g.date.replace(/-/g,'.')+' ('+wd+') '+g.time+'</div><div><span>경기장</span>'+esc(g.park)+'</div>'+
+    (BROADCAST[g.id]?'<div><span>방송사</span>'+BROADCAST[g.id]+'</div>':'')+'</div>';
+  var sec=S.pvs||'sp';
+  h+='<div class="chips" role="tablist">'+[['sp','선발 비교'],['team','팀 비교'],['h2h','맞대결']].map(function(c){
+    return '<button class="pchip" data-act="pvs" data-v="'+c[0]+'" aria-pressed="'+(sec===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>';
+  if (sec==='sp'){
+    var a=SP_STATS[g.sp.a], b=SP_STATS[g.sp.h];
+    function face(name,team){ return '<div class="face"><span class="ph" style="--tc:'+T[team].c+'">'+emb(team,40)+'</span><b>'+esc(name||'미정')+'</b><small>'+esc(T[team].n)+'</small></div>'; }
+    h+='<div class="card spc"><div class="faces">'+face(g.sp.a,g.a)+'<small>정규시즌</small>'+face(g.sp.h,g.h)+'</div>';
+    if (a||b){
+      h+=cmpRow('경기',a?a.g:'-',b?b.g:'-',pick(a&&a.g,b&&b.g))+
+        cmpRow('승-패',a?a.w+'승 '+a.l+'패':'-',b?b.w+'승 '+b.l+'패':'-',pick(a&&a.w,b&&b.w))+
+        cmpRow('평균자책',a?a.era.toFixed(2):'-',b?b.era.toFixed(2):'-',pick(a&&a.era,b&&b.era,true));
+    } else h+='<p class="mnone">이 미리보기에는 이 경기 선발의 시즌 기록이 없어요. 앱에서는 네이버 시즌 기록이 나와요.</p>';
+    h+='</div>';
+  } else if (sec==='team'){
+    function st(code){ for (var i=0;i<STAND.length;i++) if (STAND[i][0]===code) return {rank:i+1,w:STAND[i][1],l:STAND[i][2],d:STAND[i][3],gb:STAND[i][4]}; return null; }
+    var x=st(g.a), y=st(g.h);
+    h+='<div class="card spc"><div class="th"><span>'+emb(g.a,24)+esc(T[g.a].s)+'</span><span>'+esc(T[g.h].s)+emb(g.h,24)+'</span></div>'+
+      cmpRow('순위',x.rank+'위',y.rank+'위',pick(x.rank,y.rank,true))+
+      cmpRow('승-패-무',x.w+'-'+x.l+'-'+x.d,y.w+'-'+y.l+'-'+y.d,0)+
+      cmpRow('승률',(x.w/(x.w+x.l)).toFixed(3),(y.w/(y.w+y.l)).toFixed(3),pick(x.w/(x.w+x.l),y.w/(y.w+y.l)))+
+      cmpRow('게임차',x.gb?x.gb.toFixed(1):'-',y.gb?y.gb.toFixed(1):'-',0)+'<p class="mnone" style="text-align:center">2026 정규시즌 최종</p></div>';
+  } else {
+    var past=[PO1,po2Final()].filter(function(x){ return x.date<g.date && x.status==='final' && involves(x,g.a) && involves(x,g.h); });
+    var w=past.filter(function(x){ var aw=score(x,'a')>score(x,'h'); return (aw?x.a:x.h)===g.a; }).length, l=past.length-w;
+    h+='<div class="card h2h"><small>플레이오프 맞대결</small><div class="big">'+emb(g.a,36)+'<b'+(w<l?' class="lose"':'')+'>'+w+'</b><i>:</i><b'+(l<w?' class="lose"':'')+'>'+l+'</b>'+emb(g.h,36)+'</div>'+
+      (past.length?past.slice().reverse().map(function(x){ return '<div class="hr2"><span>'+x.date.slice(5).replace('-','.')+'</span>'+emb(x.a,20)+'<b>'+score(x,'a')+' : '+score(x,'h')+'</b>'+emb(x.h,20)+'<span></span></div>'; }).join(''):'<p class="mnone">아직 맞대결이 없어요</p>')+
+      '</div>';
+  }
+  return h;
+}
+/* 요약 탭: 이닝별 점수 → 승패 투수 → 오늘의 MVP */
+function summaryTab(g){
+  var h=recordTab(g).replace(/<p style="margin:0;font-size:11.5px[^]*$/,'');
+  if (g.win) h+=decision(g);
+  if (g.status==='final') h+=mvpCard(g);
+  return h;
 }
 function fieldSVG(b,pitcher,batter){
   function base(x,y,on){ return '<rect x="'+(x-8)+'" y="'+(y-8)+'" width="16" height="16" rx="2" transform="rotate(45 '+x+' '+y+')" fill="'+(on?'#ff8a4c':'#fff')+'"/>'; }
@@ -988,16 +1061,7 @@ function liveTab(g){
       '<div class="cl">B'+dots(0,3,'b')+'S'+dots(0,2,'s')+'O'+dots(g.outs,2,'o')+'</div></div>'+
       fieldSVG(g.bases,g.pit&&g.pit[1],g.bat&&g.bat[1])+
       '<div class="mu">'+who('투수',g.pit,pitTeam,false)+'<em>VS</em>'+who('타자',g.bat,batTeam,true)+'</div></div>';
-  } else if (g.status==='scheduled'){
-    h+='<div class="card"><b style="font-size:15px">선발 투수</b><div class="vs" style="margin-top:14px">'+
-      '<div class="p">'+ava(g.sp.a,g.a,72)+'<b style="font-size:17px">'+esc(g.sp.a)+'</b><em>'+esc(T[g.a].s)+'</em></div><span class="x" style="padding-top:30px">VS</span>'+
-      '<div class="p">'+ava(g.sp.h,g.h,72)+'<b style="font-size:17px">'+esc(g.sp.h)+'</b><em>'+esc(T[g.h].s)+'</em></div></div></div>'+
-      '<div class="card info">경기가 시작하면 문자중계가 여기에 나와요.</div>';
-    return h;
-  } else if (g.win){
-    h+=decision(g);
   }
-  if (g.status==='final') h+=mvpCard(g);
   if (g.plays.length){
     // 이닝 알약: 안 고르면 지금 이닝을 따라간다
     var n=g.plays.reduce(function(m,p){ return Math.max(m,p.i||0); },g.inn||1);
@@ -1063,7 +1127,6 @@ function recordTab(g){
   }
   var head='<tr><th></th>'; for (var i=1;i<=n;i++) head+='<th>'+i+'</th>'; head+='<th>R</th><th>H</th><th>E</th><th>B</th></tr>';
   var h='<div class="lsbox"><table class="ls"><thead>'+head+'</thead><tbody>'+row('a',g.a,g.hf==='top'?cur:-1)+row('h',g.h,g.hf==='bottom'?cur:-1)+'</tbody></table></div>';
-  if (g.win) h+=decision(g);
   return h+'<p style="margin:0;font-size:11.5px;color:var(--mu)">안타·실책·볼넷 수는 기사로 확인되지 않아 비워 뒀어요. 앱에서는 실제 기록이 나옵니다.</p>';
 }
 
@@ -1468,7 +1531,7 @@ document.getElementById('screen').addEventListener('click',function(e){
       S.diary=S.diary.filter(function(e){ return e.id!==S.dgame; }); S.diary.unshift({id:S.dgame,mode:S.dmode,seat:seat,memo:memo});
       S.overlay=null; if (S.tab!=='diary'||S.sub){ S.tab='diary'; S.sub=null; S.hist=[]; S.anim='tab'; } render(); break;
     case 'ddel': S.diary=S.diary.filter(function(e){ return e.id!==S.dgame; }); S.overlay=null; render(); break;
-    case 'dgo': S.overlay=null; S.seg=S.dgame; S.dtab='live'; S.inn=null; navTo('game'); break;
+    case 'dgo': S.overlay=null; S.seg=S.dgame; S.dtab=null; S.inn=null; navTo('game'); break;
     case 'inn': var ni=+v, gg=gameById(S.seg); S.inn=(gg.status==='live'&&ni===gg.inn)?null:ni; S.innAnim=true; render(); centerInn(); break;
     case 'island': clearTimeout(S.islT); S.isl=!S.isl; renderIsland(); break;
     case 'chip': S.rec=v; S.anim='fade'; render(); break;
@@ -1478,9 +1541,10 @@ document.getElementById('screen').addEventListener('click',function(e){
     case 'star': var i=S.fav.indexOf(v); if (i>=0) S.fav.splice(i,1); else { S.fav.unshift(v); S.popId=v; } render(); break;
     case 'noti': S.overlay='noti'; render(); break;
     case 'day': S.day=v; S.anim='fade'; render(); break;
-    case 'game': S.seg=v; S.dtab='live'; S.inn=null; navTo('game'); break;
+    case 'game': S.seg=v; S.dtab=null; S.inn=null; navTo('game'); break;
     case 'back': S.sub=S.hist.length?S.hist.pop():null; S.anim='pop'; render(); break;
     case 'dtab': S.dtab=v; render(); break;
+    case 'pvs': S.pvs=v; render(); break;
     case 'la': S.la=!S.la; render(); break;
     case 'mvp': var mv=v.split('|'); S.mvp[mv[0]]=[mv[1],mv[2]]; S.mvpRe=null; render(); break;
     case 'mvpre': S.mvpRe=v; render(); break;
