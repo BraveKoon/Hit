@@ -192,6 +192,16 @@ docker run -d -p 8787:8787 -v hit-data:/data --env-file .env \
 
 **안타·볼넷 알림.** 풀카운트처럼 알림 설정에서 "안타", "볼넷·사구"를 켜면, 내 팀 타자가 칠 때마다(상대 팀 말고) 알림이 옵니다. 많이 오기 때문에 기본은 꺼져 있습니다.
 
+## 앱이 네이버에서 직접 가져오기 (서버가 해외에 있을 때)
+
+네이버 스포츠 API(`api-gw.sports.naver.com`)는 해외 서버(Fly 도쿄, GitHub 미국 서버)에서 연결은 되지만 응답을 주지 않습니다. 그래서 **경기·순위·선수·기록처럼 서버 DB가 필요 없는 읽기 전용 화면은 아이폰이 직접 가져옵니다.**
+
+- 서버에서 이미 시험한 JavaScript 코드(`server/src/*.js`)를 그대로 묶어 앱에 넣고(`ios/HIT/Resources/hit-core.js`), 아이폰의 JavaScriptCore로 실행합니다. 네이버 요청은 아이폰이 `URLSession`으로 보냅니다 (`ios/Shared/LocalCore.swift`).
+- 서버 코드를 고치면 `node tools/build-embedded.mjs`로 묶음을 다시 만드세요. 최신이 아니면 서버 테스트(`embedded.test.js`)가 실패합니다.
+- 앱 안에서 처리하는 경로: `/v1/games`, `/v1/games/:id`(+`relay`·`winrate`·`preview`), `/v1/calendar`, `/v1/postseason`, `/v1/standings`, `/v1/players`, `/v1/leaders`. 앱 안에서 실패하면 서버에 묻습니다.
+- **서버가 네이버에 접속해야 하는 것은 그대로 서버에 의존합니다**: 푸시 알림·잠금화면 실시간 업데이트, 직관 기록의 승패 표시, 오늘의 MVP 후보, 승부예측 마감 확인, 응원톡 열림 확인, 구장 날씨, 내 팀 소식. 이것들은 서버를 한국에서 접속되는 곳(국내 클라우드나 집 컴퓨터)으로 옮겨야 동작합니다.
+- 네이버의 비공식 API를 쓰는 것이라, 앱스토어에 정식 출시하기 전에 이용 권한을 확인해야 합니다 (아래 "데이터 출처 주의").
+
 ## 서버 API
 
 | | |
