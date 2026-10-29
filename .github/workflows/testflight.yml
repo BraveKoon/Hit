@@ -25,6 +25,17 @@ jobs:
           done
           case "$HIT_API_BASE_URL" in https://*) ;; *) echo "::error::HIT_API_BASE_URL 은 https 주소여야 합니다"; exit 1;; esac
 
+      - name: Xcode 26 선택
+        run: |
+          # App Store Connect 는 iOS 26 SDK(Xcode 26 이상)로 빌드한 앱만 받는다.
+          echo "설치된 Xcode: $(ls -d /Applications/Xcode*.app | tr '\n' ' ')"
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -v -i beta | sort -V | tail -1)
+          [ -n "$XC" ] || XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          [ -n "$XC" ] || { echo "::error::이 러너에는 Xcode 26 이 없습니다. runs-on 을 macos-26 으로 바꿔 보세요."; exit 1; }
+          sudo xcode-select -s "$XC/Contents/Developer"
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i 'iOS 2' || true
+
       - name: XcodeGen 설치 · 프로젝트 생성
         working-directory: ios
         run: |
