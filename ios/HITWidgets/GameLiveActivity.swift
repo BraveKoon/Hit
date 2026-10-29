@@ -8,7 +8,7 @@ struct GameLiveActivity: Widget {
         ActivityConfiguration(for: GameActivityAttributes.self) { context in
             LockScreenScoreboard(attributes: context.attributes, state: context.state, stale: context.isStale)
                 .font(Typo.style(.body))
-                .activityBackgroundTint(LockScreenScoreboard.tint(for: context.attributes).mix(.black, 0.4))
+                .activityBackgroundTint(LockScreenScoreboard.backgroundTint(for: context.attributes))
                 .activitySystemActionForegroundColor(.white)
                 .widgetURL(URL(string: "hit://game/\(context.attributes.gameId)"))
         } dynamicIsland: { context in
@@ -251,10 +251,35 @@ struct LockScreenScoreboard: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .foregroundStyle(.white)
-        .background(
-            LinearGradient(colors: [Self.tint(for: attributes).mix(.black, 0.25), Self.tint(for: attributes).mix(.black, 0.55)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-        )
+        .background(Self.background(for: attributes, theme: theme))
+    }
+
+    var theme: LiveTheme = SharedSettings.liveTheme
+
+    /// 잠금화면 시스템 바탕 (카드 가장자리·알림 센터)
+    static func backgroundTint(for attributes: GameActivityAttributes) -> Color {
+        switch SharedSettings.liveTheme {
+        case .navy: Color(hex: 0x0E1A33)
+        case .team: tint(for: attributes).mix(.black, 0.4)
+        case .dark: .black
+        case .clear: .clear
+        }
+    }
+
+    /// 네이비 · 팀 컬러(원정 → 홈 그라데이션) · 다크 · 투명(시스템 반투명 그대로)
+    @ViewBuilder
+    static func background(for attributes: GameActivityAttributes, theme: LiveTheme) -> some View {
+        switch theme {
+        case .navy:
+            LinearGradient(colors: [Color(hex: 0x1C2E55), Color(hex: 0x0B1530)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .team:
+            LinearGradient(colors: [Team.color(for: attributes.awayCode).mix(.black, 0.3), Team.color(for: attributes.homeCode).mix(.black, 0.3)],
+                           startPoint: .leading, endPoint: .trailing)
+        case .dark:
+            Color.black
+        case .clear:
+            Color.clear
+        }
     }
 
     private func teamName(_ name: String, alignment: Alignment) -> some View {

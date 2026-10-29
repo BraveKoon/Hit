@@ -367,10 +367,13 @@ struct LiveTab: View {
             switch detail.game.status {
             case .live:
                 if let s = detail.situation {
-                    GamedayCard(game: detail.game, situation: s, pitches: detail.atBat)
+                    GamedayCard(game: detail.game, situation: s, pitches: detail.atBat, lineups: detail.lineups)
                 }
             default:
                 EmptyView()
+            }
+            if detail.game.status != .canceled, detail.game.date == KST.dayString(Date()) {
+                LiveChatPanel(game: detail.game)
             }
             if detail.plays.isEmpty && detail.game.status == .scheduled {
                 Card { Label("경기가 시작하면 문자중계가 여기에 나와요", systemImage: "text.bubble").foregroundStyle(Palette.muted) }
@@ -521,9 +524,18 @@ struct GamedayCard: View {
     let game: Game
     let situation: Situation
     let pitches: [Pitch]
+    var lineups: Lineups? = nil
 
     private var battingTeam: String { game.half == "top" ? game.away.code : game.home.code }
     private var pitchingTeam: String { game.half == "top" ? game.home.code : game.away.code }
+
+    /// 수비 중인 팀의 야수 (라인업 포지션) + 마운드의 투수
+    private var fielders: [Fielder] {
+        let side = game.half == "top" ? lineups?.home : lineups?.away
+        var out = (side ?? []).compactMap { e in Fielder.position(of: e.pos).map { Fielder(spot: $0, name: e.name, photo: e.photo) } }
+        if let p = situation.pitcher { out.append(Fielder(spot: .pitcher, name: p.name, photo: p.photo)) }
+        return out
+    }
 
     var body: some View {
         Card(padding: 0) {
@@ -540,8 +552,9 @@ struct GamedayCard: View {
                 .padding(.vertical, 12)
 
                 FieldGraphic(bases: situation.bases, runners: situation.runners ?? [],
-                             batter: situation.batter?.name, pitcher: situation.pitcher?.name)
-                    .frame(height: 196)
+                             batter: situation.batter?.name, pitcher: situation.pitcher?.name,
+                             fielders: fielders, fieldTeam: pitchingTeam)
+                    .frame(height: fielders.count > 1 ? 250 : 196)
                     .padding(.horizontal, 12)
 
                 divider
@@ -653,6 +666,9 @@ struct FieldGraphic: View {
     var runners: [String?] = []
     var batter: String? = nil
     var pitcher: String? = nil
+    /// 수비 위치에 사진·이름 (있으면 투수 이름표 대신 마운드에 사진)
+    var fielders: [Fielder] = []
+    var fieldTeam: String? = nil
 
     private func on(_ i: Int) -> Bool { bases.indices.contains(i) && bases[i] }
     private func runner(_ i: Int) -> String? { runners.indices.contains(i) ? runners[i] : nil }
@@ -696,8 +712,21 @@ struct FieldGraphic: View {
                         tag(name, accent: true).position(x: at([Self.first, Self.second, Self.third][i]).x, y: at([Self.first, Self.second, Self.third][i]).y - 20)
                     }
                 }
-                if let pitcher { tag(pitcher, accent: false).position(x: at(Self.mound).x, y: at(Self.mound).y + 16) }
-                if let batter { tag(batter, accent: false).position(x: at(Self.home).x, y: min(h - 10, at(Self.home).y + 16)) }
+                ForEach(fielders, id: \.spot) { f in
+                    let p = at(f.spot.point)
+                    VStack(spacing: 1) {
+                        PlayerAvatar(url: f.photo, name: f.name, team: fieldTeam, size: 24)
+                            .overlay(Circle().strokeBorder(.white.opacity(0.7), lineWidth: 1))
+                        Text(f.name).font(Typo.font(9, .semibold)).foregroundStyle(.white).shadow(color: .black, radius: 2).fixedSize()
+                    }
+                    .position(x: p.x, y: max(20, p.y))
+                }
+                if let pitcher, !fielders.contains(where: { $0.spot == .pitcher }) {
+                    tag(pitcher, accent: false).position(x: at(Self.mound).x, y: at(Self.mound).y + 16)
+                }
+                if let batter {
+                    tag(batter, accent: false).position(x: at(Self.home).x - (fielders.isEmpty ? 0 : 52), y: min(h - 10, at(Self.home).y + (fielders.isEmpty ? 16 : 4)))
+                }
             }
         }
         .accessibilityElement()
@@ -714,6 +743,45 @@ struct FieldGraphic: View {
             .padding(.vertical, 2)
             .background(accent ? Palette.accent : Color.black.opacity(0.55), in: Capsule())
             .fixedSize()
+    }
+}
+
+/// 그라운드 위 수비 위치 (FieldGraphic 비율 좌표)
+struct Fielder: Hashable {
+    enum Spot: Hashable {
+        case pitcher, catcher, first, second, third, short, left, center, right
+
+        var point: CGPoint {
+            switch self {
+            case .pitcher: CGPoint(x: 0.5, y: 0.6)
+            case .catcher: CGPoint(x: 0.6, y: 0.93)
+            case .first: CGPoint(x: 0.85, y: 0.45)
+            case .second: CGPoint(x: 0.67, y: 0.27)
+            case .third: CGPoint(x: 0.15, y: 0.45)
+            case .short: CGPoint(x: 0.33, y: 0.27)
+            case .left: CGPoint(x: 0.2, y: 0.12)
+            case .center: CGPoint(x: 0.5, y: 0.06)
+            case .right: CGPoint(x: 0.8, y: 0.12)
+            }
+        }
+    }
+
+    let spot: Spot
+    let name: String
+    let photo: String?
+
+    /// 네이버 포지션 이름 ("1루수", "유격수", 줄임 "一", "유" …). 지명타자·대타는 nil
+    static func position(of pos: String) -> Spot? {
+        let p = pos.trimmingCharacters(in: .whitespaces)
+        if p.hasPrefix("포") { return .catcher }
+        if p.hasPrefix("1루") || p == "一" { return .first }
+        if p.hasPrefix("2루") || p == "二" { return .second }
+        if p.hasPrefix("3루") || p == "三" { return .third }
+        if p.hasPrefix("유") { return .short }
+        if p.hasPrefix("좌") { return .left }
+        if p.hasPrefix("중") { return .center }
+        if p.hasPrefix("우") { return .right }
+        return nil
     }
 }
 
@@ -1297,6 +1365,7 @@ struct PreviewTab: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             infoChips
+            if game.status != .canceled { PredictionCard(game: game) }
             if let p = preview {
                 StarterMatchup(game: game, starters: p.starters)
                 TeamCompare(game: game, teams: p.teams)
@@ -1626,6 +1695,107 @@ struct SummaryTab: View {
             }
             WinTrendSection(detail: detail)
             if detail.game.status == .final { MvpCard(game: detail.game) }
+        }
+    }
+}
+
+/// 승부예측: 시작 전엔 두 팀 중 하나를 고르고(다시 누르면 바뀐다), 고르면 팬들의 예측 비율이 보인다.
+/// 끝난 경기는 적중 여부. 둘러보기는 비율만 본다.
+@MainActor
+struct PredictionCard: View {
+    let game: Game
+    @State private var prediction: Prediction?
+    @State private var notice: String?
+    private var canPick: Bool { AuthManager.shared.state == .signedIn && prediction?.open == true }
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text("승부예측").font(Typo.style(.headline, .bold))
+                    Spacer()
+                    Text(status).font(Typo.style(.caption, .semibold)).foregroundStyle(statusColor)
+                }
+                HStack(spacing: 10) {
+                    pickButton("away", game.away)
+                    pickButton("home", game.home)
+                }
+                if let p = prediction, p.myPick != nil || !p.open {
+                    shareBar(p)
+                }
+                if let notice {
+                    Text(notice).font(Typo.style(.caption)).foregroundStyle(Palette.red)
+                }
+            }
+        }
+        .task(id: game.id) { prediction = try? await APIClient().prediction(gameId: game.id) }
+    }
+
+    private var status: String {
+        guard let p = prediction else { return "" }
+        if let correct = p.correct { return correct ? "적중!" : "아쉽게 빗나갔어요" }
+        if p.open { return p.myPick == nil ? (AuthManager.shared.state == .signedIn ? "경기 시작 전까지" : "로그인하면 참여") : "다시 누르면 바꿀 수 있어요" }
+        return p.outcome == nil ? "예측 마감" : "결과"
+    }
+
+    private var statusColor: Color {
+        prediction?.correct == true ? Palette.live : prediction?.correct == false ? Palette.red : Palette.muted
+    }
+
+    private func pickButton(_ side: String, _ team: GameSide) -> some View {
+        let picked = prediction?.myPick == side
+        let won = prediction?.outcome == side
+        return Button { pick(side) } label: {
+            HStack(spacing: 8) {
+                TeamBadge(code: team.code, size: 28)
+                Text(Team.find(team.code)?.short ?? team.name).font(Typo.style(.subheadline, .bold))
+                if won { Image(systemName: "crown.fill").font(.system(size: 12)).foregroundStyle(Color(hex: 0xF5C542)) }
+                Spacer(minLength: 0)
+                Image(systemName: picked ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(picked ? Team.color(for: team.code) : Palette.muted.opacity(0.6))
+            }
+            .padding(.horizontal, 12).frame(height: 50)
+            .background(picked ? Team.color(for: team.code).opacity(0.22) : .white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(picked ? Team.color(for: team.code) : .clear, lineWidth: 1.5))
+        }
+        .buttonStyle(.plain)
+        .disabled(!canPick)
+        .accessibilityLabel("\(team.name) 승리 예측")
+        .accessibilityAddTraits(picked ? .isSelected : [])
+    }
+
+    private func shareBar(_ p: Prediction) -> some View {
+        VStack(spacing: 6) {
+            GeometryReader { geo in
+                HStack(spacing: 2) {
+                    Rectangle().fill(Team.color(for: game.away.code)).frame(width: max(4, geo.size.width * p.share("away") - 1))
+                    Rectangle().fill(Team.color(for: game.home.code))
+                }
+                .clipShape(Capsule())
+            }
+            .frame(height: 8)
+            HStack {
+                Text("\(Int((p.share("away") * 100).rounded()))%")
+                Spacer()
+                Text("\(p.total)명 참여").foregroundStyle(Palette.muted)
+                Spacer()
+                Text("\(Int((p.share("home") * 100).rounded()))%")
+            }
+            .font(Typo.style(.caption, .bold)).monospacedDigit()
+        }
+        .animation(.snappy, value: p.total)
+    }
+
+    private func pick(_ side: String) {
+        guard canPick, prediction?.myPick != side else { return }
+        Task {
+            do {
+                let p = try await APIClient().predict(gameId: game.id, pick: side)
+                withAnimation(.snappy) { prediction = p }
+                notice = nil
+            } catch {
+                notice = error.localizedDescription
+            }
         }
     }
 }

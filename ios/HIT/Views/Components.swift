@@ -266,12 +266,13 @@ struct FloatingTabBar: View {
     private let tabs: [(AppTab, String, String)] = [
         (.today, "LogoH", "HOME"),   // HIT! 로고의 H (에셋)
         (.diary, "ticket.fill", "직관"),
+        (.community, "bubble.left.and.text.bubble.right.fill", "커뮤니티"),
         (.records, "chart.bar.fill", "기록"),
         (.my, "person.fill", "MY"),
     ]
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             ForEach(tabs.indices, id: \.self) { i in
                 let tab = tabs[i].0, icon = tabs[i].1, title = tabs[i].2
                 let on = selection == tab
@@ -280,13 +281,13 @@ struct FloatingTabBar: View {
                         if tab == .today {
                             Image(icon).resizable().renderingMode(.template).scaledToFit().frame(height: 17)
                         } else {
-                            Image(systemName: icon).font(.system(size: 19, weight: .bold))
+                            Image(systemName: icon).font(.system(size: tab == .community ? 16 : 19, weight: .bold))
                         }
                         if on { Text(title).font(Typo.font(16, .heavy)).fixedSize() }
                     }
                     .foregroundStyle(on ? Color.black : Palette.text)
-                    .frame(minWidth: 52, minHeight: 52)
-                    .padding(.horizontal, on ? 22 : 0)
+                    .frame(minWidth: 50, minHeight: 50)
+                    .padding(.horizontal, on ? 18 : 0)
                     .background {
                         if on {
                             Capsule().fill(Palette.accent).matchedGeometryEffect(id: "pill", in: pill)
@@ -316,6 +317,7 @@ struct RouteView: View {
         case .game(let id): GameDetailView(gameId: id)
         case .player(let id): PlayerDetailView(playerId: id)
         case .search: PlayerSearchView()
+        case .post(let id): PostDetailView(postId: id)
         }
     }
 }

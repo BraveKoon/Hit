@@ -150,3 +150,143 @@ struct ChatSheet: View {
         Task { try? await APIClient().reportChat(id: m.id) }
     }
 }
+
+/// 중계 탭 안의 응원톡: 위에 팬 분위기(최근 메시지의 응원 팀 비율), 최근 몇 줄, 바로 쓰는 입력칸.
+/// "전체 보기"를 누르면 응원톡 시트를 연다.
+@MainActor
+struct LiveChatPanel: View {
+    let game: Game
+    @State private var messages: [ChatMessage] = []
+    @State private var text = ""
+    @State private var sending = false
+    @State private var notice: String?
+    @State private var showAll = false
+
+    private var canWrite: Bool { AuthManager.shared.state == .signedIn }
+
+    /// 최근 100개 중 두 팀 팬이 쓴 비율 (아무도 없으면 반반)
+    private var mood: (away: Double, home: Double) {
+        let recent = messages.suffix(100)
+        let a = Double(recent.filter { $0.team == game.away.code }.count)
+        let h = Double(recent.filter { $0.team == game.home.code }.count)
+        return a + h == 0 ? (0.5, 0.5) : (a / (a + h), h / (a + h))
+    }
+
+    var body: some View {
+        Card(padding: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Label("응원톡", systemImage: "bubble.left.and.bubble.right.fill").font(Typo.style(.subheadline, .bold))
+                    Spacer()
+                    Button("전체 보기") { showAll = true }
+                        .font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted)
+                }
+                .padding(.horizontal, 16).padding(.top, 14)
+
+                moodBar.padding(.horizontal, 16).padding(.top, 12)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    if messages.isEmpty {
+                        Text("첫 응원을 남겨 보세요").font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+                    }
+                    ForEach(messages.suffix(4)) { m in
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            if let t = m.team { TeamBadge(code: t, size: 16).alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 } }
+                            Text(m.nickname).font(Typo.style(.caption, .semibold)).foregroundStyle(m.mine ? Palette.accent : Palette.muted)
+                            Text(m.text).font(Typo.style(.subheadline)).lineLimit(2)
+                        }
+                    }
+                }
+                .padding(16)
+                .contentShape(Rectangle())
+                .onTapGesture { showAll = true }
+
+                if let notice {
+                    Text(notice).font(Typo.style(.caption)).foregroundStyle(Palette.red).padding(.horizontal, 16).padding(.bottom, 6)
+                }
+                composer
+            }
+        }
+        .task(id: game.id) { await poll() }
+        .sheet(isPresented: $showAll) {
+            ChatSheet(game: game).presentationDetents([.medium, .large])
+        }
+    }
+
+    private var moodBar: some View {
+        let m = mood
+        return VStack(spacing: 6) {
+            HStack {
+                Text("팬 분위기").font(Typo.style(.caption2, .semibold)).foregroundStyle(Palette.muted)
+                Spacer()
+            }
+            GeometryReader { geo in
+                HStack(spacing: 2) {
+                    Rectangle().fill(Team.color(for: game.away.code)).frame(width: max(4, geo.size.width * m.away - 1))
+                    Rectangle().fill(Team.color(for: game.home.code))
+                }
+                .clipShape(Capsule())
+            }
+            .frame(height: 8)
+            .animation(.snappy, value: m.away)
+            HStack {
+                Text("\(game.away.name) \(Int((m.away * 100).rounded()))%")
+                Spacer()
+                Text("\(Int((m.home * 100).rounded()))% \(game.home.name)")
+            }
+            .font(Typo.style(.caption, .bold)).monospacedDigit()
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var composer: some View {
+        HStack(spacing: 8) {
+            if canWrite {
+                TextField("응원 한마디", text: $text)
+                    .submitLabel(.send)
+                    .onSubmit(send)
+                    .padding(.horizontal, 14).frame(height: 40)
+                    .background(.white.opacity(0.08), in: Capsule())
+                Button(action: send) {
+                    Image(systemName: "arrow.up").font(.system(size: 15, weight: .bold)).foregroundStyle(.black)
+                        .frame(width: 40, height: 40)
+                        .background(Palette.accent.opacity(text.trimmingCharacters(in: .whitespaces).isEmpty ? 0.35 : 1), in: Circle())
+                }
+                .disabled(sending || text.trimmingCharacters(in: .whitespaces).isEmpty)
+                .accessibilityLabel("보내기")
+            } else {
+                Text("로그인하면 응원톡에 참여할 수 있어요").font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+                    .frame(maxWidth: .infinity).padding(.vertical, 10)
+            }
+        }
+        .padding(.horizontal, 12).padding(.bottom, 12)
+    }
+
+    private func poll() async {
+        while !Task.isCancelled {
+            if let r = try? await APIClient().chat(gameId: game.id, after: messages.last?.id ?? 0), !r.messages.isEmpty {
+                let known = Set(messages.map(\.id))
+                messages.append(contentsOf: r.messages.filter { !known.contains($0.id) })
+                if messages.count > 200 { messages.removeFirst(messages.count - 200) }
+            }
+            try? await Task.sleep(for: .seconds(5))
+        }
+    }
+
+    private func send() {
+        let body = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !body.isEmpty, !sending else { return }
+        sending = true
+        Task {
+            defer { sending = false }
+            do {
+                let m = try await APIClient().sendChat(gameId: game.id, text: body)
+                if !messages.contains(where: { $0.id == m.id }) { messages.append(m) }
+                text = ""
+                notice = nil
+            } catch {
+                notice = error.localizedDescription
+            }
+        }
+    }
+}

@@ -11,6 +11,8 @@ struct MyView: View {
     @State private var renaming = false
     @State private var newName = ""
     @State private var confirmDelete = false
+    @State private var showTheme = false
+    @State private var record: PredictionRecord?
     private var auth: AuthManager { AuthManager.shared }
 
     var body: some View {
@@ -38,6 +40,11 @@ struct MyView: View {
                     }
                     .buttonStyle(.plain)
 
+                    if auth.state == .signedIn {
+                        SectionHeader(title: "승부예측")
+                        PredictionRecordCard(record: record)
+                    }
+
                     SectionHeader(title: "관심 선수", detail: model.favorites.isEmpty ? nil : "\(model.favorites.count)명")
                     ForEach(model.favorites, id: \.key) { FavoriteRow(favorite: $0) }
                     Button { path.append(.search) } label: {
@@ -52,6 +59,8 @@ struct MyView: View {
                     SectionHeader(title: "설정")
                     VStack(spacing: 0) {
                         row("bell.badge.fill", "알림 설정") { showSettings = true }
+                        Divider().overlay(Palette.surfaceHigh)
+                        row("lock.iphone", "잠금화면 테마") { showTheme = true }
                         Divider().overlay(Palette.surfaceHigh)
                         if auth.state == .signedIn {
                             row("rectangle.portrait.and.arrow.right", "로그아웃") { Task { await auth.signOut() } }
@@ -77,6 +86,14 @@ struct MyView: View {
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
             .sheet(isPresented: $showTeams) { teamSheet }
             .sheet(isPresented: $showSettings) { NavigationStack { NotificationSettingsView() } }
+            .sheet(isPresented: $showTheme) { LiveThemeSheet().presentationDetents([.large]) }
+            .task(id: auth.state) {
+                if auth.state == .signedIn {
+                    record = try? await APIClient().myPredictions()
+                } else {
+                    record = nil
+                }
+            }
             .alert("닉네임 바꾸기", isPresented: $renaming) {
                 TextField("닉네임", text: $newName)
                 Button("저장") { Task { await auth.rename(newName) } }
@@ -242,5 +259,119 @@ struct NotificationSettingsView: View {
             }
         }
         .tint(Palette.live)
+    }
+}
+
+/// 승부예측 적중률: 큰 숫자 + 맞힘/예측 + 연속 적중
+struct PredictionRecordCard: View {
+    let record: PredictionRecord?
+
+    var body: some View {
+        HStack(spacing: 0) {
+            stat(record?.rate.map { "\(Int(($0 * 100).rounded()))%" } ?? "-", "적중률", accent: true)
+            stat(record.map { "\($0.correct)/\($0.decided)" } ?? "-", "맞힘")
+            stat(record.map { "\($0.streak)" } ?? "-", "연속 적중")
+        }
+        .padding(.vertical, 16)
+        .glassCard(20)
+        .overlay(alignment: .bottom) {
+            if record?.total == 0 {
+                Text("경기 프리뷰에서 이길 팀을 골라 보세요").font(Typo.style(.caption2)).foregroundStyle(Palette.muted).padding(.bottom, 4)
+            }
+        }
+    }
+
+    private func stat(_ value: String, _ label: String, accent: Bool = false) -> some View {
+        VStack(spacing: 4) {
+            Text(value).font(Typo.score(24)).foregroundStyle(accent ? Palette.accent : Palette.text)
+            Text(label).font(Typo.style(.caption)).foregroundStyle(Palette.muted)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+/// 잠금화면 테마 고르기: 네 가지 카드를 실제 모양으로 미리 보여 준다.
+struct LiveThemeSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var theme = SharedSettings.liveTheme
+    private let away = "HT", home = "SS"
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 14) {
+                    Text("잠금화면에 띄운 경기 카드의 바탕을 골라요. 다음 점수 업데이트부터 바뀝니다.")
+                        .font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    ForEach(LiveTheme.allCases) { t in
+                        Button {
+                            theme = t
+                            SharedSettings.liveTheme = t
+                        } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text(t.title).font(Typo.style(.subheadline, .bold))
+                                    Text(t.detail).font(Typo.style(.caption)).foregroundStyle(Palette.muted)
+                                    Spacer()
+                                    Image(systemName: theme == t ? "checkmark.circle.fill" : "circle")
+                                        .foregroundStyle(theme == t ? Palette.accent : Palette.muted)
+                                }
+                                sample(t)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(16)
+            }
+            .background(AppBackground())
+            .navigationTitle("잠금화면 테마")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("완료") { dismiss() } } }
+        }
+        .environment(\.colorScheme, .dark)
+    }
+
+    /// 잠금화면 카드 미리보기 (배경화면 위에 올린 모습)
+    private func sample(_ t: LiveTheme) -> some View {
+        HStack {
+            TeamBadge(code: away, size: 30)
+            Text("KIA").font(Typo.font(15, .heavy))
+            Spacer()
+            Text("3").font(Typo.score(26))
+            VStack(spacing: 2) {
+                Text("7회말").font(Typo.font(11, .bold))
+                Text("1아웃").font(Typo.font(10)).foregroundStyle(.white.opacity(0.7))
+            }
+            .frame(width: 54)
+            Text("5").font(Typo.score(26))
+            Spacer()
+            Text("삼성").font(Typo.font(15, .heavy))
+            TeamBadge(code: home, size: 30)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 16).padding(.vertical, 14)
+        .background { background(t) }
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(theme == t ? Palette.accent : .clear, lineWidth: 2))
+        .padding(10)
+        .background(
+            LinearGradient(colors: [Color(hex: 0x3D5A80), Color(hex: 0x98C1D9)], startPoint: .top, endPoint: .bottom),
+            in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func background(_ t: LiveTheme) -> some View {
+        switch t {
+        case .navy:
+            LinearGradient(colors: [Color(hex: 0x1C2E55), Color(hex: 0x0B1530)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .team:
+            LinearGradient(colors: [Team.color(for: away).opacity(0.75), Team.color(for: home).opacity(0.75)], startPoint: .leading, endPoint: .trailing)
+                .background(Color.black)
+        case .dark:
+            Color.black
+        case .clear:
+            Rectangle().fill(.ultraThinMaterial)
+        }
     }
 }

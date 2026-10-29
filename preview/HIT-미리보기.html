@@ -117,12 +117,12 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .sb-r{display:flex;gap:5px;align-items:center}
 #view{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;position:relative}
 #view::-webkit-scrollbar{width:0}
-.ftab{position:absolute;left:50%;transform:translateX(-50%);bottom:26px;z-index:35;display:flex;gap:9px;padding:8px;border-radius:999px;
+.ftab{position:absolute;left:50%;transform:translateX(-50%);bottom:26px;z-index:35;display:flex;gap:7px;padding:8px;border-radius:999px;
   background:rgba(118,118,128,.34);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.12);box-shadow:0 14px 30px rgba(0,0,0,.55)}
 .ftab button{height:50px;min-width:50px;border-radius:999px;border:0;background:rgba(255,255,255,.16);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;padding:0;transition:padding .25s,background .25s}
 .hmark{display:inline-block;width:23px;height:17px;background:currentColor;-webkit-mask:var(--logoH) center/contain no-repeat;mask:var(--logoH) center/contain no-repeat}
 .ftab button span{display:none;font-size:15px;font-weight:900;letter-spacing:.01em;white-space:nowrap}
-.ftab button[aria-selected="true"]{background:var(--am);color:#000;padding:0 24px}
+.ftab button[aria-selected="true"]{background:var(--am);color:#000;padding:0 18px}
 .ftab button[aria-selected="true"] span{display:inline}
 .homebar{flex:none;height:22px;display:grid;place-items:center}
 .homebar i{width:122px;height:4.5px;border-radius:9px;background:rgba(255,255,255,.35)}
@@ -258,13 +258,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .actrow{display:flex;gap:10px;margin:12px 0 4px}.actrow .lapill,.actrow .chatbtn{flex:1;margin:0;font-size:13.5px}
 .vbtn{display:flex;align-items:center;justify-content:center;gap:6px}
 .chatbtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;height:44px;border-radius:99px;border:0;margin:12px 0 0;background:var(--sf);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.14);color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
-.chat .cerr{margin:0 0 8px;font-size:12px;color:#ff6b61}
+.chat .cerr,.post .cerr,.cpanel .cerr,.wsheet .cerr{margin:0 0 8px;font-size:12px;color:#ff6b61}
 .sheet.chat{display:flex;flex-direction:column;padding-bottom:16px}
 .chat .ch{display:flex;align-items:center;gap:10px;padding:4px 0 12px;border-bottom:1px solid rgba(255,255,255,.08)}.chat .ch b{font-size:16px}.chat .ch span{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
 .chat .cl2{min-height:220px;display:flex;flex-direction:column;gap:8px;padding:14px 0}
 .chat .me{display:flex;justify-content:flex-end}.chat .me span{max-width:75%;background:var(--am);color:#000;padding:8px 12px;border-radius:16px;font-size:14px}
-.chat .cin{display:flex;gap:10px}.chat .cin input{flex:1;min-width:0;height:42px;border-radius:21px;border:0;background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:15px;padding:0 14px;outline:none}
-.chat .cin button{width:42px;height:42px;border-radius:50%;border:0;background:var(--am);color:#000;font-size:18px;font-weight:900;cursor:pointer}
+.chat .cin,.post .cin,.cpanel .cin{display:flex;gap:10px}.chat .cin input,.post .cin input,.cpanel .cin input{flex:1;min-width:0;height:42px;border-radius:21px;border:0;background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:15px;padding:0 14px;outline:none}
+.chat .cin button,.post .cin button,.cpanel .cin button{width:42px;height:42px;border-radius:50%;border:0;background:var(--am);color:#000;font-size:18px;font-weight:900;cursor:pointer}
 .gd{padding:0;overflow:hidden}
 .gd .top{display:flex;align-items:center;gap:8px;padding:12px 16px}.gd .top b{font-size:14.5px}.gd .top span{color:var(--mu);font-size:14px}
 .gd .cl{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--mu)}
@@ -613,6 +613,61 @@ ol.steps{margin:0;padding-left:1.3em;font-size:13.5px;color:var(--ink-2);line-he
 .srcs{margin:0;padding:0;list-style:none;font-size:12.5px;display:flex;flex-direction:column;gap:6px}
 .srcs a{color:var(--link);text-decoration:underline;text-underline-offset:2px}.srcs span{color:var(--muted)}
 .foot{margin-top:46px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+
+/* 커뮤니티 */
+.plist2{display:flex;flex-direction:column}
+.prow2{display:flex;gap:12px;align-items:flex-start;width:100%;padding:14px 0;border:0;border-bottom:1px solid rgba(255,255,255,.07);background:none;color:#fff;text-align:left;font:inherit;cursor:pointer}
+.prow2 .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.prow2 .tx>b{font-size:15.5px;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.prow2 .pv{font-size:13px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow2 .meta{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mu);white-space:nowrap}
+.prow2 .meta i{flex:1}.prow2 .meta svg{width:11px;height:11px;margin-right:2px;vertical-align:-1px}.prow2 .meta .nk{max-width:84px;overflow:hidden;text-overflow:ellipsis}
+.prow2 .meta .lk{color:var(--am)}
+.bchip{flex:none;display:inline-block;font-size:11px;font-weight:800;color:#fff;padding:3px 7px;border-radius:6px;background:color-mix(in srgb,var(--tc) 90%,#000)}
+.pthumb{flex:none;width:var(--s);height:var(--s);border-radius:12px;background:#2c2c2e center/cover no-repeat;display:grid;place-items:center}
+.pthumb.ph{background:linear-gradient(135deg,color-mix(in srgb,var(--tc) 80%,#fff 0%),color-mix(in srgb,var(--tc) 45%,#000))}
+.pimg .pthumb{width:100%;height:auto;aspect-ratio:4/3;border-radius:16px}
+.wfab{position:sticky;bottom:96px;margin:14px 0 0 auto;display:flex;align-items:center;gap:6px;height:50px;padding:0 18px;border:0;border-radius:99px;background:var(--am);color:#000;font:inherit;font-size:15px;font-weight:800;box-shadow:0 8px 20px rgba(0,0,0,.45);cursor:pointer}
+.post h2{font-size:22px;font-weight:800;margin:12px 0 10px;line-height:1.3}
+.post .by{display:flex;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.post .by b{font-size:14px}.post .by small{font-size:12px;color:var(--mu)}
+.post .pdel{margin-left:auto;border:0;background:none;color:#ff6b61;font:inherit;font-size:13px;cursor:pointer}
+.post .bd{font-size:15.5px;line-height:1.65;white-space:pre-wrap;margin:16px 0}
+.post .acts{display:flex;align-items:center;gap:12px;margin-top:16px}.post .acts span{display:flex;align-items:center;gap:5px;color:var(--mu);font-size:14px}
+.lkbtn{height:38px;padding:0 16px;border-radius:99px;border:1.5px solid var(--sf2);background:none;color:#fff;font:inherit;font-size:14.5px;font-weight:700;cursor:pointer}
+.lkbtn.on{border-color:var(--am);color:var(--am)}
+.cmt{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px}.cmt b{font-size:12.5px}.cmt p{margin:2px 0 0;font-size:14.5px}
+.post .cin,.cpanel .cin{margin-top:14px}
+.wsheet .wl{display:flex;align-items:center;justify-content:space-between;font-size:15px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.08)}
+.wsheet select{background:none;border:0;color:var(--am);font:inherit;font-size:15px;font-weight:700}
+.wphoto{display:flex;align-items:center;gap:12px;font-size:15px;font-weight:700;color:var(--am);padding:4px 2px 10px;cursor:pointer}
+/* 승부예측 */
+.pred .hd,.cpanel .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.pred .hd b{font-size:17px;font-weight:800}.pred .hd small{font-size:12px;font-weight:700;color:var(--mu)}
+.pred .hd small.ok{color:#36d583}.pred .hd small.no{color:#ff6b61}
+.pbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pbtn{display:flex;align-items:center;gap:8px;height:50px;padding:0 12px;border-radius:14px;border:1.5px solid transparent;background:rgba(255,255,255,.05);color:#fff;font:inherit;cursor:pointer}
+.pbtn b{flex:1;text-align:left;font-size:14.5px}.pbtn i{width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(142,142,147,.6);font-style:normal;font-size:12px;display:grid;place-items:center}
+.pbtn.on{background:color-mix(in srgb,var(--tc) 22%,transparent);border-color:var(--tc)}.pbtn.on i{background:var(--tc);border-color:var(--tc)}
+.pbtn:disabled{cursor:default}.pbtn em{font-style:normal;font-size:12px}
+.pred .bar,.cpanel .bar{display:flex;gap:2px;height:8px;border-radius:99px;overflow:hidden;margin-top:14px}.pred .bar i:last-child,.cpanel .bar i:last-child{flex:1}
+.pred .pct,.cpanel .pct{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}.pred .pct small{color:var(--mu);font-weight:500}
+.prec{display:flex;flex-wrap:wrap;background:var(--sf);border-radius:20px;padding:16px 0}.prec span{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.prec b{font-family:var(--round);font-size:24px}.prec b.a{color:var(--am)}.prec small{font-size:12px;color:var(--mu)}.prec p{flex-basis:100%;text-align:center;margin:10px 0 0;font-size:11.5px;color:var(--mu)}
+/* 중계 탭 응원톡 */
+.cpanel .hd b{display:flex;align-items:center;gap:6px;font-size:15px}.cpanel .hd button{border:0;background:none;color:var(--mu);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.cpanel .mood small{font-size:11px;font-weight:700;color:var(--mu)}.cpanel .mood .bar{margin-top:6px}
+.cpanel .msgs{margin-top:12px;display:flex;flex-direction:column;gap:7px}.cpanel .msgs p{margin:0;font-size:14px;display:flex;align-items:center;gap:6px}.cpanel .msgs b{font-size:12px;color:var(--am)}
+/* 잠금화면 테마 */
+.thm{display:block;width:100%;border:0;background:none;color:#fff;font:inherit;padding:0;margin-bottom:14px;cursor:pointer;text-align:left}
+.thm .tl{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}.thm .tl b{font-size:15px}.thm .tl small{font-size:12px;color:var(--mu)}
+.thm .tl i{margin-left:auto;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--mu);font-style:normal;font-size:12px;display:grid;place-items:center;color:#000}
+.thm.on .tl i{background:var(--am);border-color:var(--am)}
+.thm .wall{display:block;padding:10px;border-radius:26px;background:linear-gradient(#3d5a80,#98c1d9)}
+.thm .mini{display:flex;align-items:center;gap:7px;padding:13px 14px;border-radius:20px;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12)}
+.thm.on .mini{outline:2px solid var(--am)}
+.thm .mini>b{font-size:14px;font-weight:900}.thm .mini em{font-style:normal;font-family:var(--round);font-size:24px;font-weight:700;margin-left:auto}.thm .mini em+span+em{margin:0 auto 0 0}
+.thm .mini span{display:flex;flex-direction:column;align-items:center;width:54px}.thm .mini span b{font-size:11px}.thm .mini span small{font-size:10px;opacity:.7}
 </style>
 
 <div class="wrap">
@@ -657,6 +712,7 @@ ol.steps{margin:0;padding-left:1.3em;font-size:13.5px;color:var(--ink-2);line-he
           <nav class="ftab" id="tabbar" hidden>
             <button data-act="tab" data-v="home" aria-label="HOME"><i class="hmark" aria-hidden="true"></i><span>HOME</span></button>
             <button data-act="tab" data-v="diary" aria-label="직관"><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5V9a3 3 0 0 0 0 6v2.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5V15a3 3 0 0 0 0-6z"/></svg><span>직관</span></button>
+            <button data-act="tab" data-v="comm" aria-label="커뮤니티"><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3h9A2.5 2.5 0 0 1 17 5.5v5a2.5 2.5 0 0 1-2.5 2.5H9l-3.6 2.8c-.4.3-1 0-1-.5V13A2.5 2.5 0 0 1 3 10.5z"/><path d="M19 8.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2v2c0 .4-.5.7-.8.4L15.3 17.5H11a2 2 0 0 1-2-2v-.5h5.5A4.5 4.5 0 0 0 19 10.5z"/></svg><span>커뮤니티</span></button>
             <button data-act="tab" data-v="rec" aria-label="기록"><svg width="21" height="21" viewBox="0 0 22 22" fill="currentColor" aria-hidden="true"><rect x="3" y="10" width="4" height="9" rx="1.2"/><rect x="9" y="4" width="4" height="15" rx="1.2"/><rect x="15" y="7" width="4" height="12" rx="1.2"/></svg><span>기록</span></button>
             <button data-act="tab" data-v="my" aria-label="MY"><svg width="21" height="21" viewBox="0 0 22 22" fill="currentColor" aria-hidden="true"><circle cx="11" cy="7" r="4"/><path d="M3 19.5c1.3-4 4.4-6 8-6s6.7 2 8 6c.2.6-.2 1-.8 1H3.8c-.6 0-1-.4-.8-1z"/></svg><span>MY</span></button>
           </nav>
@@ -849,7 +905,7 @@ var S = {screen:'auth', back:'auth', tab:'home', sub:null, hist:[], anim:'screen
   day:TODAY, seg:'po3', dtab:'live', pitches:false, la:false,
   on:{pregame:true,starters:true,lineup:true,start:true,score:true,homerun:true,lead:true,extra:true,end:true,cancel:true,liveActivity:true,players:true,hit:false,walk:false},
   diary:[{id:'po2',mode:'stadium',seat:'1루 블루존',memo:'디아즈 투런 직관!',verified:true},{id:'po1',mode:'home',seat:'집',memo:''}], cal:'2026-10', bk:'stadium', dgame:null, dmode:'stadium',
-  mvp:{}, mvpRe:null, chat:{}, notifs:[], replay:'idle', po2:null, cur:0, timer:null, overlay:null};
+  mvp:{}, mvpRe:null, chat:{}, pred:{}, lt:'navy', board:'', notifs:[], replay:'idle', po2:null, cur:0, timer:null, overlay:null};
 
 /* ── 도우미 ── */
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -879,6 +935,8 @@ function gameById(id){ return id==='po1'?PO1:id==='po3'?PO3:curPO2(); }
 function involves(g,c){ return g.a===c||g.h===c; }
 function score(g,side){ return total(g.ls?g.ls[side]:[]); }
 var ICON = {
+  pen:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10.5 2.5l3 3L6 13H3v-3z"/></svg>',
+  board:'<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3h9A2.5 2.5 0 0 1 17 5.5v5a2.5 2.5 0 0 1-2.5 2.5H9l-3.6 2.8c-.4.3-1 0-1-.5V13A2.5 2.5 0 0 1 3 10.5z"/><path d="M19 8.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2v2c0 .4-.5.7-.8.4L15.3 17.5H11a2 2 0 0 1-2-2v-.5h5.5A4.5 4.5 0 0 0 19 10.5z"/></svg>',
   ticket:'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5V9a3 3 0 0 0 0 6v2.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5V15a3 3 0 0 0 0-6z"/></svg>',
   apple:'<svg width="17" height="20" viewBox="0 0 17 20" fill="currentColor" aria-hidden="true"><path d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9C3.6 4.8 2 5.8 1.1 7.4c-1.8 3.2-.5 7.9 1.3 10.5.9 1.3 1.9 2.7 3.3 2.6 1.3-.1 1.8-.8 3.4-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.2-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.9-1.1-3-4.3zM11.5 2.9c.7-.9 1.2-2 1.1-3.2-1 0-2.3.7-3 1.6-.7.8-1.2 2-1.1 3.1 1.1.1 2.3-.6 3-1.5z"/></svg>',
   kakao:'<svg width="19" height="18" viewBox="0 0 19 18" fill="currentColor" aria-hidden="true"><path d="M9.5 1C4.5 1 .5 4.1.5 8c0 2.5 1.7 4.7 4.2 6l-1 3.6c-.1.3.3.6.6.4l4.3-2.8c.3 0 .6.1.9.1 5 0 9-3.1 9-7S14.5 1 9.5 1z"/></svg>',
@@ -1098,6 +1156,7 @@ function previewTab(g){
   var pin='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 15s5-4.5 5-8.5A5 5 0 0 0 3 6.5C3 10.5 8 15 8 15z"/><circle cx="8" cy="6.5" r="1.8"/></svg>';
   var tv='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1.5" y="3" width="13" height="9" rx="2"/><path d="M5 14.5h6"/></svg>';
   var h='<div class="ichips"><span>'+cal+g.date.slice(5).replace('-','.')+' ('+wd+') '+g.time+'</span><span>'+pin+esc(g.park)+'</span>'+(BROADCAST[g.id]?'<span>'+tv+BROADCAST[g.id]+'</span>':'')+'</div>';
+  h+=predCard(g);
   // 선발 맞대결
   var a=SP_STATS[g.sp.a], b=SP_STATS[g.sp.h];
   function face(name,team,col){ return '<div class="fc"><div class="ph" style="background:'+rgba(col.length===7?col:'#888888',.25)+'"><b>'+esc((name||'?').charAt(0))+'</b><span class="eb">'+emb(team,30)+'</span></div><strong>'+esc(name||'미정')+'</strong><small>'+esc(T[team].s)+'</small></div>'; }
@@ -1133,7 +1192,9 @@ function summaryTab(g){
   if (g.status==='final') h+=mvpCard(g);
   return h;
 }
-function fieldSVG(b,pitcher,batter){
+// 수비 위치: 앱은 라인업의 선수 사진·이름, 미리보기는 라인업 기록이 없어 포지션만
+var FIELD_POS=[['포수',196,182],['1루',262,96],['2루',205,74],['유격',115,74],['3루',58,96],['좌익',72,40],['중견',160,22],['우익',248,40]];
+function fieldSVG(b,pitcher,batter,ft){
   function base(x,y,on){ return '<rect x="'+(x-8)+'" y="'+(y-8)+'" width="16" height="16" rx="2" transform="rotate(45 '+x+' '+y+')" fill="'+(on?'#ff8a4c':'#fff')+'"/>'; }
   function tag(x,y,t){ if (!t) return ''; var w=t.length*11+16; return '<g><rect x="'+(x-w/2)+'" y="'+(y-10)+'" width="'+w+'" height="20" rx="10" fill="rgba(0,0,0,.55)"/><text x="'+x+'" y="'+(y+4)+'" text-anchor="middle" font-size="11.5" font-weight="600" fill="#fff" font-family="Pretendard,sans-serif">'+esc(t)+'</text></g>'; }
   return '<svg class="fld" viewBox="0 0 320 196" role="img" aria-label="주자 상황"><defs><linearGradient id="gr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#23774a"/><stop offset="1" stop-color="#15502f"/></linearGradient></defs>'+
@@ -1141,7 +1202,8 @@ function fieldSVG(b,pitcher,batter){
     '<path d="M160 172 L237 114 L160 59 L83 114 Z" fill="#b4512f" fill-opacity=".8" stroke="#fff" stroke-opacity=".65" stroke-width="1.5"/>'+
     '<ellipse cx="160" cy="118" rx="8" ry="5" fill="#c8714c"/>'+
     base(237,114,b[0])+base(160,59,b[1])+base(83,114,b[2])+'<circle cx="160" cy="172" r="5" fill="#fff"/>'+
-    tag(160,136,pitcher)+tag(160,186,batter)+'</svg>';
+    (ft?FIELD_POS.map(function(f){ return '<g><circle cx="'+f[1]+'" cy="'+f[2]+'" r="12" fill="'+tint(ft)+'" stroke="#fff" stroke-opacity=".75"/><text x="'+f[1]+'" y="'+(f[2]+3.5)+'" text-anchor="middle" font-size="9" font-weight="800" fill="#fff" font-family="Pretendard,sans-serif">'+f[0]+'</text></g>'; }).join(''):'')+
+    tag(160,136,pitcher)+tag(ft?118:160,186,batter)+'</svg>';
 }
 function liveTab(g){
   var h='';
@@ -1156,9 +1218,10 @@ function liveTab(g){
     }
     h+='<div class="card gd"><div class="top"><i class="live-dot"></i><b>'+innText(g)+'</b><span>'+g.outs+'아웃</span>'+
       '<div class="cl">B'+dots(0,3,'b')+'S'+dots(0,2,'s')+'O'+dots(g.outs,2,'o')+'</div></div>'+
-      fieldSVG(g.bases,g.pit&&g.pit[1],g.bat&&g.bat[1])+
+      fieldSVG(g.bases,g.pit&&g.pit[1],g.bat&&g.bat[1],pitTeam)+
       '<div class="mu">'+who('투수',g.pit,pitTeam,false)+'<em>VS</em>'+who('타자',g.bat,batTeam,true)+'</div></div>';
   }
+  if (g.status==='live'||g.date===TODAY) h+=chatPanel(g);
   if (g.plays.length){
     // 이닝 알약: 안 고르면 지금 이닝을 따라간다
     var n=g.plays.reduce(function(m,p){ return Math.max(m,p.i||0); },g.inn||1);
@@ -1369,10 +1432,13 @@ function vMy(){
   h+='<div class="prof" style="'+glow([S.my])+'">'+ava(name(),S.my,64)+'<div><b>'+esc(name())+'</b>'+(S.user?' <span style="color:var(--mu);font-size:13px">✎</span>':'')+
     '<small>'+(S.user?esc(S.user.provider)+'로 로그인':'로그인하지 않음')+'</small></div></div>';
   h+='<div class="sh"><h3>응원 팀</h3></div><button class="myteam" data-act="sheet">'+emb(S.my,48)+'<span><b>'+esc(T[S.my].n)+'</b><small>홈구장 '+esc(T[S.my].h)+'</small></span><em>변경</em></button>';
+  if (S.user){ var pr=predRecord();
+    h+='<div class="sh"><h3>승부예측</h3></div><div class="prec"><span><b class="a">'+(pr.rate==null?'-':Math.round(pr.rate*100)+'%')+'</b><small>적중률</small></span><span><b>'+pr.ok+'/'+pr.dec+'</b><small>맞힘</small></span><span><b>'+pr.streak+'</b><small>연속 적중</small></span>'+
+      (pr.total?'':'<p>경기 프리뷰에서 이길 팀을 골라 보세요</p>')+'</div>'; }
   h+='<div class="sh"><h3>관심 선수</h3>'+(S.fav.length?'<span>'+S.fav.length+'명</span>':'')+'</div>';
   if (S.fav.length) h+='<div class="plist" style="margin-top:0">'+S.fav.map(function(id){ return prow(rosterById(id)); }).join('')+'</div>';
   h+='<button class="addbtn" data-act="search">+ 선수 찾아서 추가</button>';
-  h+='<div class="sh"><h3>설정</h3></div><div class="setrows"><button data-act="noti"><span>알림 설정</span>›</button>'+(S.user?
+  h+='<div class="sh"><h3>설정</h3></div><div class="setrows"><button data-act="noti"><span>알림 설정</span>›</button><button data-act="theme"><span>잠금화면 테마</span><small style="color:var(--mu)">'+THEMES.filter(function(t){ return t[0]===(S.lt||'navy'); })[0][1]+'</small>›</button>'+(S.user?
       '<button data-act="logout"><span>로그아웃</span>›</button><button class="red" data-act="delete"><span>회원 탈퇴</span>›</button>':
       '<button class="amb" data-act="logout"><span>로그인 · 회원가입</span>›</button>')+'</div>';
   return h+'<p class="gfoot" style="margin-top:12px">경기 기록·구단 엠블럼·선수 사진은 네이버 스포츠의 KBO 데이터를 가져와 보여줍니다.</p></div>';
@@ -1388,7 +1454,7 @@ function vLock(){
   if (S.replay!=='idle'){
     var g=S.po2, live=g.status==='live', as=score(g,'a'), hs=score(g,'h'), last=headline(g);
     var tc=T[(S.my===g.a||S.my===g.h)?S.my:g.h].c;
-    h+='<div class="la" data-act="openlive" style="--tc:'+tc+'"><div class="r1"><b>'+T[g.a].s+'</b><span class="sc" data-score="la-a">'+as+'</span>'+
+    h+='<div class="la" data-act="openlive" style="--tc:'+tc+';'+laStyle(S.lt,g.a,g.h)+'"><div class="r1"><b>'+T[g.a].s+'</b><span class="sc" data-score="la-a">'+as+'</span>'+
       laBases(live?g.bases:[0,0,0])+'<span class="sc" data-score="la-h">'+hs+'</span><b>'+T[g.h].s+'</b></div>'+
       '<div class="r2">'+laPlayer(g,'a',live)+'<div class="mid"><span class="inn">'+(live?innText(g):g.status==='final'?'경기 종료':'경기 전')+'</span>'+
       (live?'<span class="cnt2">'+laDots('B',g.balls||0,3,'b')+laDots('S',g.strikes||0,2,'s')+laDots('OUT',g.outs||0,2,'o')+'</span>':'')+'</div>'+laPlayer(g,'h',live)+'</div>'+
@@ -1426,6 +1492,124 @@ function mini(b){
   return '<svg width="34" height="28" viewBox="0 0 34 28" aria-hidden="true">'+base(27,15,b[0])+base(17,6,b[1])+base(7,15,b[2])+'</svg>';
 }
 
+/* ── 커뮤니티 (앱 CommunityView 와 같은 배치) ──
+   카페처럼 팀 게시판. 미리보기는 서버가 없어 예시 글 몇 개 + 이 페이지에서 쓴 글만 보인다 (새로고침하면 사라짐). */
+var POSTS_SEED = [
+  {id:3,team:'SS',player:'디아즈',title:'2차전 디아즈 투런 직관했습니다 소리 미쳤어요',body:'3회말 우중간으로 넘어가는데 라팍 전체가 울렸어요. 3차전도 가즈아',img:'SS',nick:'라팍지박령',at:'12분 전',likes:41,cmts:[['사자군단','부럽습니다 ㅠㅠ','SS'],['야구는9회말','소리 들어도 소름']]},
+  {id:2,team:'HT',player:null,title:'3차전 선발 매치업 어떻게 보시나요',body:'둘 다 평균자책 4점대라 타격전 예상합니다',img:null,nick:'광주토박이',at:'38분 전',likes:12,cmts:[['호랑이굴','초반에 점수 내야 함','HT']]},
+  {id:1,team:'SS',player:'구자욱',title:'구자욱 요즘 타격감 어떤가요',body:'',img:null,nick:'블루윙',at:'1시간 전',likes:7,cmts:[]}
+];
+function posts(){ return (S.posts||(S.posts=POSTS_SEED.map(function(p){ var x={}; for (var k in p) x[k]=p[k]; x.cmts=p.cmts.slice(); return x; }))); }
+function postById(id){ return posts().filter(function(p){ return p.id===+id; })[0]; }
+function thumb(p,size){
+  if (!p.img) return '';
+  if (p.img.indexOf('data:')===0) return '<span class="pthumb" style="--s:'+size+'px;background-image:url('+p.img+')"></span>';
+  // 예시 글 사진 자리: 구단 색 바탕 + 엠블럼 (미리보기에는 실제 사진이 없다)
+  return '<span class="pthumb ph" style="--s:'+size+'px;--tc:'+T[p.img].c+'">'+emb(p.img,size*0.5)+'</span>';
+}
+function bchip(team,player){ return '<span class="bchip" style="--tc:'+T[team].c+'">'+esc(T[team].s)+(player?' · '+esc(player):'')+'</span>'; }
+function vCommunity(){
+  var board=S.board||'', mine=S.my;
+  var boards=[['','전체']].concat(mine?[[mine,T[mine].s]]:[]).concat(PICK.filter(function(k){ return k!==mine; }).map(function(k){ return [k,T[k].s]; }));
+  var h='<div class="pad">'+appHeader()+'<div class="chips" role="tablist">'+boards.map(function(b){
+    return '<button class="pchip" data-act="board" data-v="'+b[0]+'" aria-pressed="'+(board===b[0])+'">'+esc(b[1])+'</button>'; }).join('')+'</div>';
+  var list=posts().filter(function(p){ return !board||p.team===board; });
+  if (!list.length) h+='<p class="mnone" style="text-align:center;padding:60px 0">아직 글이 없어요. 첫 글을 남겨 보세요</p>';
+  h+='<div class="plist2">'+list.map(function(p){
+    return '<button class="prow2" data-act="post" data-v="'+p.id+'"><span class="tx"><b>'+esc(p.title)+'</b>'+(p.body?'<small class="pv">'+esc(p.body.replace(/\s+/g,' ').slice(0,80))+'</small>':'')+
+      '<span class="meta">'+bchip(p.team,p.player)+'<span class="nk">'+esc(p.nick)+'</span>·<span>'+esc(p.at)+'</span><i></i>'+
+      '<span>'+ICON.chat+p.cmts.length+'</span><span class="'+(p.liked?'lk':'')+'">'+(p.liked?'♥':'♡')+' '+p.likes+'</span></span></span>'+thumb(p,72)+'</button>';
+  }).join('')+'</div>';
+  h+='<p class="gfoot" style="margin-top:14px">미리보기의 글은 예시예요. 앱에서는 서버에 저장되고, 욕설·비하·광고는 자동으로 막히며 신고가 3번 쌓이면 가려져요.</p>';
+  h+=S.user?'<button class="wfab" data-act="write">'+ICON.pen+'글쓰기</button>':'';
+  return h+'</div>';
+}
+function vPost(){
+  var p=postById(S.pid2);
+  if (!p) return nav('커뮤니티')+'<div class="pad"><p class="mnone" style="text-align:center;padding:60px 0">볼 수 없는 글이에요</p></div>';
+  var h=nav(T[p.team].s)+'<div class="pad post">'+bchip(p.team,p.player)+'<h2>'+esc(p.title)+'</h2>'+
+    '<div class="by">'+(p.mine?ava(p.nick,S.my,22):emb(p.team,22))+'<b>'+esc(p.nick)+'</b><small>'+esc(p.at)+'</small>'+(p.mine?'<button class="pdel" data-act="pdel">삭제</button>':'')+'</div>'+
+    (p.body?'<p class="bd">'+esc(p.body)+'</p>':'')+(p.img?'<div class="pimg">'+thumb(p,320)+'</div>':'')+
+    '<div class="acts"><button class="lkbtn'+(p.liked?' on':'')+'" data-act="like"'+(S.user?'':' disabled')+'>'+(p.liked?'♥':'♡')+' '+p.likes+'</button><span>'+ICON.chat+p.cmts.length+'</span></div>'+
+    '<div class="sh"><h3>댓글</h3><span>'+p.cmts.length+'</span></div>'+
+    (p.cmts.length?p.cmts.map(function(c){ return '<div class="cmt">'+(c[2]?emb(c[2],26):ava(c[0],S.my,26))+'<div><b>'+esc(c[0])+'</b><p>'+esc(c[1])+'</p></div></div>'; }).join(''):'<p class="mnone">첫 댓글을 남겨 보세요</p>')+
+    (S.postErr?'<p class="cerr">'+esc(S.postErr)+'</p>':'')+
+    (S.user?'<div class="cin"><input id="cmt-in" maxlength="300" placeholder="댓글 (300자)" autocomplete="off"><button data-act="cmt" aria-label="댓글 달기">↑</button></div>'
+      :'<p class="mnone" style="text-align:center;padding:12px 0">로그인하면 댓글을 달 수 있어요</p>');
+  return h+'</div>';
+}
+function vWrite(){
+  var w=S.wr||(S.wr={team:S.board||S.my||'SS',img:null});
+  return '<div class="overlay" data-act="close"><div class="sheet wsheet" data-stop="1"><div class="grab"></div><h4>글쓰기</h4>'+
+    '<label class="wl">게시판<select id="w-team">'+PICK.map(function(k){ return '<option value="'+k+'"'+(w.team===k?' selected':'')+'>'+esc(T[k].s)+'</option>'; }).join('')+'</select></label>'+
+    '<div class="dfields"><input id="w-title" maxlength="60" placeholder="제목" value="'+esc(w.title||'')+'"><input id="w-player" maxlength="20" placeholder="선수 태그 (선택)" value="'+esc(w.player||'')+'"><textarea id="w-body" rows="5" maxlength="2000" placeholder="내용 (2000자)">'+esc(w.body||'')+'</textarea></div>'+
+    '<label class="wphoto">'+(w.img?'<span class="pthumb" style="--s:64px;background-image:url('+w.img+')"></span>사진 바꾸기':'＋ 사진 추가')+'<input type="file" id="w-photo" accept="image/jpeg,image/png" hidden></label>'+
+    (S.postErr?'<p class="cerr">'+esc(S.postErr)+'</p>':'')+
+    '<p class="vnote">욕설·비하·광고는 자동으로 막히고, 신고가 3번 쌓이면 글이 가려져요. 사진은 긴 변 1080px로 줄여 올려요.</p>'+
+    '<button class="btn amber" data-act="wsubmit">올리기</button></div></div>';
+}
+function keepWrite(){ if (!S.wr) return; ['team','title','player','body'].forEach(function(k){ var el=document.getElementById('w-'+k); if (el) S.wr[k]=el.value; }); }
+// 사진은 앱처럼 긴 변 1080px · JPEG 0.7 로 줄인다
+function shrinkPhoto(file,done){
+  var r=new FileReader();
+  r.onload=function(){ var im=new Image(); im.onload=function(){
+    var sc=Math.min(1,1080/Math.max(im.width,im.height)), c=document.createElement('canvas');
+    c.width=Math.round(im.width*sc); c.height=Math.round(im.height*sc); c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    done(c.toDataURL('image/jpeg',0.7)); }; im.src=r.result; };
+  r.readAsDataURL(file);
+}
+
+/* 승부예측 (앱 PredictionCard 와 같은 배치). 미리보기는 다른 사람과 표를 나눌 수 없어 내 표만 센다 */
+function predOutcome(g){ if (g.status!=='final') return null; var a=score(g,'a'), b=score(g,'h'); return a>b?'a':b>a?'h':null; }
+function predCard(g){
+  var my=S.pred[g.id]||null, open=g.status==='scheduled', out=predOutcome(g), ac=tint(g.a), hc=tint(g.h);
+  var status=out&&my?(out===my?'적중!':'아쉽게 빗나갔어요'):open?(my?'다시 누르면 바꿀 수 있어요':S.user?'경기 시작 전까지':'로그인하면 참여'):out?'결과':'예측 마감';
+  function btn(side,code,col){
+    var on=my===side;
+    return '<button class="pbtn'+(on?' on':'')+'" data-act="predict" data-v="'+side+'" style="--tc:'+col+'"'+(open&&S.user?'':' disabled')+'>'+emb(code,28)+'<b>'+esc(T[code].s)+'</b>'+(out===side?'<em>👑</em>':'')+'<i>'+(on?'✓':'')+'</i></button>';
+  }
+  var h='<div class="card pred"><div class="hd"><b>승부예측</b><small class="'+(out&&my?(out===my?'ok':'no'):'')+'">'+status+'</small></div><div class="pbtns">'+btn('a',g.a,ac)+btn('h',g.h,hc)+'</div>';
+  if (my||!open){
+    var n=my?1:0, sa=my==='a'?1:my==='h'?0:.5;
+    h+='<div class="bar"><i style="width:'+(sa*100)+'%;background:'+ac+'"></i><i style="background:'+hc+'"></i></div>'+
+      '<div class="pct"><span>'+Math.round(sa*100)+'%</span><small>'+n+'명 참여 · 미리보기는 내 표만</small><span>'+Math.round((1-sa)*100)+'%</span></div>';
+  }
+  return h+'</div>';
+}
+function predRecord(){
+  var games=[PO1,curPO2(),PO3], dec=0, ok=0, streak=0, run=true, total=0;
+  games.slice().reverse().forEach(function(g){ var my=S.pred[g.id]; if (!my) return; total++; var o=predOutcome(g); if (!o) return; dec++; if (o===my){ ok++; if (run) streak++; } else run=false; });
+  return {total:total,dec:dec,ok:ok,streak:streak,rate:dec?ok/dec:null};
+}
+
+/* 중계 탭 안 응원톡: 팬 분위기 + 최근 메시지 + 입력칸 (앱 LiveChatPanel) */
+function chatPanel(g){
+  var list=S.chat[g.id]||[], mine=S.my===g.a||S.my===g.h?S.my:null;
+  var a=mine===g.a?list.length:0, b=mine===g.h?list.length:0, sa=a+b?a/(a+b):.5;
+  return '<div class="card cpanel"><div class="hd"><b>'+ICON.chat+'응원톡</b><button data-act="chat">전체 보기</button></div>'+
+    '<div class="mood"><small>팬 분위기</small><div class="bar"><i style="width:'+(sa*100)+'%;background:'+tint(g.a)+'"></i><i style="background:'+tint(g.h)+'"></i></div>'+
+    '<div class="pct"><span>'+esc(T[g.a].s)+' '+Math.round(sa*100)+'%</span><span>'+Math.round((1-sa)*100)+'% '+esc(T[g.h].s)+'</span></div></div>'+
+    '<div class="msgs">'+(list.length?list.slice(-4).map(function(m){ return '<p>'+(S.my?emb(S.my,16):'')+'<b>'+esc(name())+'</b>'+esc(m)+'</p>'; }).join(''):'<p class="mnone">첫 응원을 남겨 보세요 · 미리보기는 내 메시지만 보여요</p>')+'</div>'+
+    (S.chatErr?'<p class="cerr">'+esc(S.chatErr)+'</p>':'')+
+    (S.user?'<div class="cin"><input id="chat-in2" maxlength="200" placeholder="응원 한마디" autocomplete="off"><button data-act="chatsend2" aria-label="보내기">↑</button></div>':'<p class="mnone" style="text-align:center">로그인하면 응원톡에 참여할 수 있어요</p>')+'</div>';
+}
+
+/* 잠금화면 테마 (앱 LiveThemeSheet) */
+var THEMES=[['navy','네이비','기본'],['team','팀 컬러','두 팀 색으로'],['dark','다크','검정'],['clear','투명','iOS 반투명']];
+function laStyle(theme,a,h){
+  return theme==='team'?'background:linear-gradient(90deg,color-mix(in srgb,'+T[a].c+' 70%,#000),color-mix(in srgb,'+T[h].c+' 70%,#000))'
+    :theme==='dark'?'background:#000':theme==='clear'?'background:rgba(40,40,46,.38);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6)'
+    :'background:linear-gradient(135deg,#1c2e55,#0b1530)';
+}
+function vTheme(){
+  return '<div class="overlay" data-act="close"><div class="sheet" data-stop="1"><div class="grab"></div><h4>잠금화면 테마</h4>'+
+    '<p class="vnote" style="margin-top:0">잠금화면에 띄운 경기 카드의 바탕을 골라요.</p>'+THEMES.map(function(t){
+      var on=(S.lt||'navy')===t[0];
+      return '<button class="thm'+(on?' on':'')+'" data-act="settheme" data-v="'+t[0]+'"><span class="tl"><b>'+t[1]+'</b><small>'+t[2]+'</small><i>'+(on?'✓':'')+'</i></span>'+
+        '<span class="wall"><span class="mini" style="'+laStyle(t[0],'HT','SS')+'">'+emb('HT',26)+'<b>KIA</b><em>3</em><span><b>7회말</b><small>1아웃</small></span><em>5</em><b>삼성</b>'+emb('SS',26)+'</span></span></button>';
+    }).join('')+'<button class="btn amber" style="margin-top:12px" data-act="close" data-done="1">완료</button></div></div>';
+}
+
 /* ── 덮개 ── */
 // 응원톡 자동 검열 (서버 moderation.js 와 같은 규칙을 줄여 옮김)
 var CHAT_ALLOW=['시발점','시발역','십자가','새끼손가락','새끼발가락','개나리'];
@@ -1450,6 +1634,8 @@ function vChat(){
 }
 function vOverlay(){
   if (S.overlay==='chat') return vChat();
+  if (S.overlay==='write') return vWrite();
+  if (S.overlay==='theme') return vTheme();
   if (S.overlay==='diary') return vDiarySheet();
   if (S.overlay==='sheet') return '<div class="overlay" data-act="close"><div class="sheet" data-stop="1"><div class="grab"></div><h4>응원 팀</h4><div class="tgrid">'+
     PICK.map(function(k){ return '<button class="tcard" data-act="setteam" data-v="'+k+'" aria-pressed="'+(S.my===k)+'" style="--tc:'+T[k].c+'">'+emb(k,40)+'<span><b>'+esc(T[k].n)+'</b><small>'+esc(T[k].h)+'</small></span></button>'; }).join('')+'</div></div></div>';
@@ -1499,7 +1685,7 @@ function render(){
   var view=document.getElementById('view'), screen=document.getElementById('screen');
   var inApp=S.screen==='app';
   var html = S.screen==='auth'?vAuth(): S.screen==='onboard'?vOnboard(): S.screen==='lock'?vLock():
-    S.sub==='game'?vGame(): S.sub==='search'?vSearch(): S.sub==='player'?vPlayer(): S.tab==='rec'?vRecords(): S.tab==='diary'?vDiary(): S.tab==='my'?vMy(): vHome();
+    S.sub==='game'?vGame(): S.sub==='post'?vPost(): S.sub==='search'?vSearch(): S.sub==='player'?vPlayer(): S.tab==='rec'?vRecords(): S.tab==='diary'?vDiary(): S.tab==='comm'?vCommunity(): S.tab==='my'?vMy(): vHome();
   view.innerHTML=html;
   document.getElementById('overlay').innerHTML=vOverlay();
   document.getElementById('tabbar').hidden=!inApp;
@@ -1671,6 +1857,26 @@ document.getElementById('screen').addEventListener('click',function(e){
     case 'dtab': S.dtab=v; render(); break;
     case 'pvs': S.pvs=v; render(); break;
     case 'chat': S.overlay='chat'; render(); break;
+    case 'board': S.board=v; S.anim='fade'; render(); break;
+    case 'post': S.pid2=+v; S.postErr=null; navTo('post'); break;
+    case 'like': var lp=postById(S.pid2); lp.liked=!lp.liked; lp.likes+=lp.liked?1:-1; render(); break;
+    case 'pdel': S.posts=posts().filter(function(x){ return x.id!==S.pid2; }); S.sub=S.hist.length?S.hist.pop():null; S.anim='pop'; render(); break;
+    case 'cmt': var cin=document.getElementById('cmt-in'), cvv=(cin.value||'').replace(/\s+/g,' ').trim();
+      if (cvv){ var cw=screenChat(cvv); S.postErr=cw; if (!cw) postById(S.pid2).cmts.push([name(),cvv.slice(0,300)]); render(); var cn=document.getElementById('cmt-in'); if (cn&&cw) cn.value=cvv; } break;
+    case 'write': S.wr=null; S.postErr=null; S.overlay='write'; render(); break;
+    case 'wsubmit': keepWrite(); var w=S.wr, wt=(w.title||'').replace(/\s+/g,' ').trim(), wb=(w.body||'').trim(), wp=(w.player||'').trim();
+      S.postErr=wt.length<2?'제목을 2자 이상 써 주세요':(screenChat(wt)||(wb&&screenChat(wb))||(wp&&screenChat(wp))||null);
+      if (!S.postErr){ var nid=posts().reduce(function(m,x){ return Math.max(m,x.id); },0)+1;
+        S.posts.unshift({id:nid,team:w.team,player:wp||null,title:wt,body:wb,img:w.img,nick:name(),at:'방금',likes:0,cmts:[],mine:true});
+        S.overlay=null; S.board=S.board&&S.board!==w.team?w.team:S.board; }
+      render(); break;
+    case 'predict': var pg=gameById(S.seg); if (pg.status==='scheduled'&&S.user){ S.pred[pg.id]=v; render(); } break;
+    case 'theme': S.overlay='theme'; render(); break;
+    case 'settheme': S.lt=v; render(); break;
+    case 'chatsend2': var c2=document.getElementById('chat-in2'), v2=(c2.value||'').replace(/\s+/g,' ').trim();
+      if (v2){ var why2=screenChat(v2), gid2=gameById(S.seg).id; S.chatErr=why2;
+        if (!why2) (S.chat[gid2]=S.chat[gid2]||[]).push(v2.slice(0,200));
+        render(); var n2=document.getElementById('chat-in2'); if (n2){ if (why2) n2.value=v2; n2.focus(); } } break;
     case 'chatsend': var ci=document.getElementById('chat-in'), cv=(ci.value||'').replace(/\s+/g,' ').trim();
       if (cv){ var why=screenChat(cv), gid=gameById(S.seg).id; S.chatErr=why;
         if (!why) (S.chat[gid]=S.chat[gid]||[]).push(cv.slice(0,200));
@@ -1694,7 +1900,12 @@ document.getElementById('screen').addEventListener('change',function(e){
 function navTo(sub){ if (S.sub) S.hist.push(S.sub); S.sub=sub; S.anim='push'; render(); document.getElementById('view').scrollTop=0;
   if (sub==='search'){ var q=document.getElementById('q'); if (q) q.focus(); } }
 document.getElementById('screen').addEventListener('keydown',function(e){
+  if ((e.target.id==='chat-in2'||e.target.id==='cmt-in') && e.key==='Enter' && !e.isComposing){ e.preventDefault(); var b2=document.querySelector(e.target.id==='cmt-in'?'[data-act="cmt"]':'[data-act="chatsend2"]'); if (b2) b2.click(); }
   if (e.target.id==='chat-in' && e.key==='Enter' && !e.isComposing){ e.preventDefault(); var b=document.querySelector('[data-act="chatsend"]'); if (b) b.click(); }
+});
+document.getElementById('screen').addEventListener('change',function(e){
+  if (e.target.id!=='w-photo' || !e.target.files[0]) return;
+  keepWrite(); shrinkPhoto(e.target.files[0],function(url){ S.wr.img=url; render(); });
 });
 document.getElementById('screen').addEventListener('input',function(e){
   if (e.target.id!=='q') return;
