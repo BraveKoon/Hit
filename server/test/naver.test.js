@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNaverProvider, parseInning, plateHeight, UpstreamError } from '../src/naver.js';
+import { createNaverProvider, parseInning, plateHeight, UpstreamError, winPointsOf } from '../src/naver.js';
 import { fakeFetch, fixture } from './helpers.js';
 
 test('일정: KBO 경기만 남기고 정규화한다', async () => {
@@ -53,6 +53,7 @@ test('진행 중 상세: 점수·상황·이닝별 점수·문자중계·라인�
   assert.equal(d.situation.pitcher.name, '올러');
   assert.match(d.situation.pitcher.line, /58구/);
   assert.equal(d.situation.pitcher.pitches, 58);
+  assert.ok(Date.now() - Date.parse(d.fetchedAt) < 5000, '받은 시각');
   assert.equal(d.situation.batter.avg, '.270');
   assert.equal(d.lineScore.away.length, 9);
   assert.deepEqual(d.lineScore.home.slice(0, 4), ['0', '0', '4', '']);
@@ -120,4 +121,51 @@ test('이닝별 문자중계: 그 이닝 줄만, 40줄 제한 없이', async () 
   assert.ok(fetch.calls.some((c) => /inning=3/.test(c.search)), '네이버에 이닝을 넘긴다');
   const none = await createNaverProvider({ fetch }).relay('20261027HTSS02026', 9);
   assert.deepEqual(none.plays, []);
+});
+
+test('승리 확률 흐름: 이닝마다 타석별 홈팀 확률을 모으고, 끝난 경기는 연장까지 본다', async () => {
+  const relay = (inn, rows) => ({ code: 200, success: true, result: { textRelayData: { textRelays: rows.map(([no, h, half = '1']) => ({ no, inn, homeOrAway: half, metricOption: h === null ? undefined : { homeTeamWinRate: h, awayTeamWinRate: 100 - h } })) } } });
+  const finalGame = { code: 200, success: true, result: { game: { ...fixture('naver-game-final.json').result.game, gameId: 'G1' } } };
+  const routes = { '/schedule/games/G1': finalGame };
+  for (let n = 1; n <= 9; n++) routes[`/schedule/games/G1/relay?inning=${n}`] = relay(n, [[n * 10, 50 + n, '0'], [n * 10 + 1, null]]);
+  routes['/schedule/games/G1/relay?inning=10'] = relay(10, [[101, 90]]);
+  routes['/schedule/games/G1/relay?inning=11'] = relay(11, []);
+  const fetch = fakeFetch(routes);
+  const t = await createNaverProvider({ fetch }).winTrend('G1');
+  assert.equal(t.points.length, 10, '확률 없는 타석은 빼고 10회까지');
+  assert.deepEqual(t.points[0], { inning: 1, half: 'top', home: 51 });
+  assert.deepEqual(t.points.at(-1), { inning: 10, half: 'bottom', home: 90 });
+  assert.ok(!fetch.calls.some((c) => c.search === '?inning=12'), '빈 이닝에서 멈춘다');
+});
+
+test('승리 확률: 다른 이닝 줄과 중복은 빼고, 경기 전이면 빈 목록', async () => {
+  const pts = winPointsOf({ textRelays: [
+    { no: 2, inn: 3, homeOrAway: '1', metricOption: { homeTeamWinRate: 60, awayTeamWinRate: 40 } },
+    { no: 2, inn: 3, homeOrAway: '1', metricOption: { homeTeamWinRate: 61, awayTeamWinRate: 39 } },
+    { no: 1, inn: 3, homeOrAway: '0', metricOption: { homeTeamWinRate: 55, awayTeamWinRate: 45 } },
+    { no: 9, inn: 2, homeOrAway: '0', metricOption: { homeTeamWinRate: 10, awayTeamWinRate: 90 } },
+  ] }, 3);
+  assert.deepEqual(pts.map((p) => p.home), [55, 60]);
+  const fetch = fakeFetch({ '/schedule/games/20261029SSHT02026': fixture('naver-game-before.json') });
+  assert.deepEqual(await createNaverProvider({ fetch }).winTrend('20261029SSHT02026'), { gameId: '20261029SSHT02026', points: [] });
+});
+
+test('진행 중 상황: 베이스의 주자 이름과 대기 타석 두 명', async () => {
+  const relay = structuredClone(fixture('naver-relay-live.json'));
+  const r = relay.result.textRelayData;
+  r.currentGameState.base2 = 'B_KJW';      // 2루에 구자욱
+  r.currentGameState.base3 = 'P_UNKNOWN';  // 명단에 없는 코드는 이름 없이
+  r.currentGameState.batter = 'B_DIAZ';    // 4번 타자 → 대기 5번 강민호(교체된 대타), 6번 없음
+  const fetch = fakeFetch({
+    '/schedule/games/20261027HTSS02026': fixture('naver-game-live.json'),
+    '/schedule/games/20261027HTSS02026/relay': relay,
+  });
+  const d = await createNaverProvider({ fetch }).detail('20261027HTSS02026');
+  assert.deepEqual(d.situation.runners, [null, '구자욱', null]);
+  assert.deepEqual(d.situation.next.map((p) => [p.order, p.name]), [[5, '대타선수']], '같은 타순은 나중에 들어온 선수');
+  const base = await createNaverProvider({ fetch: fakeFetch({
+    '/schedule/games/20261027HTSS02026': fixture('naver-game-live.json'),
+    '/schedule/games/20261027HTSS02026/relay': fixture('naver-relay-live.json'),
+  }) }).detail('20261027HTSS02026');
+  assert.deepEqual(base.situation.runners, [null, null, null]);
 });

@@ -1,6 +1,6 @@
 // 서버가 실제로 내보내는 JSON 샘플을 만든다 (tools/check-contract.py 가 Swift 모델과 대조).
 import { readFileSync } from 'node:fs';
-import { normalizeDetail, normalizeGame, normalizeStanding } from '../server/src/naver.js';
+import { normalizeDetail, normalizeGame, normalizeStanding, winPointsOf } from '../server/src/naver.js';
 import { createReplayProvider } from '../server/src/replay.js';
 import { activityState, snapshotOf } from '../server/src/events.js';
 import { activityStartPayload } from '../server/src/apns.js';
@@ -9,9 +9,18 @@ import { createRoster as createPhotoIndex, withPhotos } from '../server/src/rost
 import { openStore } from '../server/src/store.js';
 import { publicUser } from '../server/src/http.js';
 import { diaryEntries, diaryStats } from '../server/src/diary.js';
+import { ballot } from '../server/src/mvp.js';
+import { gamePreview } from '../server/src/preview.js';
+import { postseason } from '../server/src/postseason.js';
+import { chatMessage } from '../server/src/chat.js';
+import { postJson, commentJson } from '../server/src/community.js';
+import { predictionJson, myRecord } from '../server/src/predict.js';
+import { gameWeather, stadiumOf } from '../server/src/weather.js';
+import { normalizeNews, NEWS_TAGS } from '../server/src/news.js';
+import { keyPlayer } from '../server/src/preview.js';
 
 const fx = (n) => JSON.parse(readFileSync(new URL(`../server/test/fixtures/${n}`, import.meta.url))).result;
-const live = normalizeDetail(fx('naver-game-live.json').game, fx('naver-relay-live.json').textRelayData);
+const live = { ...normalizeDetail(fx('naver-game-live.json').game, fx('naver-relay-live.json').textRelayData), fetchedAt: new Date().toISOString() };
 const before = normalizeDetail(fx('naver-game-before.json').game, null);
 const final = normalizeDetail(fx('naver-game-final.json').game, null);
 const replay = createReplayProvider({ holdUntilStart: false });
@@ -43,6 +52,41 @@ store.putDiary(configured.id, { gameId: 'GONE-GAME-1', date: '2026-10-01', mode:
 const entries = await diaryEntries({ schedule: async () => [...sched, (await replay.schedule())[0]] }, store.diaryOf(configured.id), 'SS');
 const finalEntry = { ...entries[0], result: 'win', game: { ...sched[0], status: 'final', winner: 'home' } };
 const stats = diaryStats([finalEntry, entries[1]], 'SS');
+// MVP: 끝난 경기 + 라인업 (실제 라인업은 진행 중 픽스처에서 빌려 온다)
+const finalWithLineups = { ...final, lineups: live.lineups, pitchers: { ...final.pitchers, win: final.pitchers.win ?? '후라도' } };
+const mvpEmpty = ballot(finalWithLineups, store, null);
+store.voteMvp(final.game.id, configured.id, mvpEmpty.candidates[0]);
+const mvpVoted = ballot(finalWithLineups, store, configured.id, () => 'https://img/x.png');
+const standingsRows = fx('naver-standings.json').seasonTeamStats.map(normalizeStanding);
+const previewProvider = { detail: async () => before, standings: async () => standingsRows, range: async () => [...sched, { ...sched[0], id: 'OLD', status: 'final', winner: 'away', away: { ...sched[0].away, score: 3 }, home: { ...sched[0].home, score: 1 } }] };
+const preview = await gamePreview({ provider: previewProvider, roster: photos, id: before.game.id });
+const previewBare = await gamePreview({ provider: { detail: async () => before, standings: async () => [], range: async () => [] }, roster: null, id: before.game.id });
+// 포스트시즌: 다섯 팀 정규시즌(팀당 4경기) + WC·준PO 끝, PO 진행 중
+const PS = ['KT', 'SS', 'HT', 'LG', 'OB'];
+let psn = 0;
+const psg = (date, a, h, as, hs, status = 'final') => ({ ...sched[0], id: `PS${++psn}`, date, status, winner: null, away: { ...sched[0].away, code: a, score: as }, home: { ...sched[0].home, code: h, score: hs } });
+const psGames = [];
+PS.forEach((a, i) => PS.slice(i + 1).forEach((b, j) => psGames.push(psg(`2026-09-${String(10 + i * 4 + j).padStart(2, '0')}`, a, b, 1, 0))));
+psGames.push(psg('2026-10-06', 'OB', 'LG', 1, 4), psg('2026-10-09', 'LG', 'HT', 1, 5), psg('2026-10-10', 'LG', 'HT', 3, 6), psg('2026-10-12', 'HT', 'LG', 13, 1),
+  psg('2026-10-26', 'HT', 'SS', 5, 1), psg('2026-10-29', 'SS', 'HT', null, null, 'scheduled'));
+const psProvider = { standings: async () => PS.map((code, i) => ({ ...standingsRows[0], code, name: code, rank: i + 1, games: 4 })), range: async () => psGames };
+const bracket = await postseason({ provider: psProvider, season: '2026', today: '2026-10-29' });
+const bracketOff = await postseason({ provider: { standings: async () => [], range: async () => [] }, season: '2026', today: '2026-10-29' });
+const chatRows = [store.addChat('G1', configured, '삼성 가자!'), store.addChat('G1', fresh, '디아즈!')];
+const postRow = store.addPost(configured, { team: 'SS', player: '디아즈', title: '디아즈 50홈런', body: '대박', image: 'a'.repeat(24) + '.jpg' });
+const postBare = store.addPost(fresh, { team: 'LG', title: '사진 없는 글' });
+const commentRow = store.addComment(postRow.id, fresh, '인정');
+const predOpen = predictionJson(before.game, { away: 0, home: 0 }, null, 0);
+const predDone = predictionJson({ ...final.game, winner: 'home' }, { away: 3, home: 5 }, 'home', Date.now());
+const meteoDay = before.game.startsAt.slice(0, 10);
+const meteo = { hourly: { time: Array.from({ length: 24 }, (_, h) => `${meteoDay}T${String(h).padStart(2, '0')}:00`),
+  temperature_2m: Array(24).fill(14.2), precipitation_probability: Array(24).fill(60), precipitation: Array(24).fill(0.4), weather_code: Array(24).fill(61), wind_speed_10m: Array(24).fill(11) } };
+const weatherOut = gameWeather(meteo, before.game, stadiumOf(before.game.stadium) ?? stadiumOf('광주'));
+const domeOut = gameWeather({ hourly: { ...meteo.hourly, temperature_2m: Array(24).fill(null), precipitation_probability: Array(24).fill(null), weather_code: Array(24).fill(null), wind_speed_10m: Array(24).fill(null) } }, before.game, stadiumOf('고척'));
+const newsItems = normalizeNews({ items: [{ title: '<b>삼성 라이온즈</b> FA 계약', originallink: 'https://www.yna.co.kr/1', link: 'x', description: '야구', pubDate: 'Thu, 29 Oct 2026 10:00:00 +0900' },
+  { title: '삼성 라이온즈 훈련', originallink: '', link: 'https://n.news.naver.com/2', description: '', pubDate: 'bad' }] }, 'SS');
+const keyRoster = { find: (t, n) => photos.find(t, n), teamPlayers: (t, type) => photos.leaders(type === 'hitter' ? 'hitter' : 'pitcher', 50).filter((p) => p.team === t || true) };
+const previewKeyed = { ...preview, keyPlayers: { away: keyPlayer(keyRoster, 'SS', null), home: null } };
 const start = activityStartPayload(live.game, state, { title: 't', body: 'b' });
 
 console.log(JSON.stringify({
@@ -61,4 +105,18 @@ console.log(JSON.stringify({
   DiaryEntry: [finalEntry, entries[1]],
   CalendarResponse: [{ month: '2026-10', team: 'SS', games: sched }, { month: '2026-10', team: null, games: [] }],
   Player: [photos.get('1'), photos.get('2'), photos.get('4')],
+  ChatResponse: [{ messages: chatRows.map((r) => chatMessage(r, configured.id)) }, { messages: [] }],
+  PostseasonResponse: [bracket, bracketOff],
+  GamePreview: [preview, previewBare, previewKeyed],
+  MvpResponse: [mvpEmpty, mvpVoted, ballot(before, store, null)],
+  PostsResponse: [{ posts: [postJson(postRow, configured.id), postJson(postBare, null)], next: 12 }, { posts: [], next: null }],
+  CommunityPost: [postJson(postRow, configured.id, { full: true }), { ...postJson(postRow, fresh.id, { full: true }), replies: [commentJson(commentRow, fresh.id)] }],
+  LikeResponse: [{ likes: 1, liked: true }],
+  Prediction: [predOpen, predDone],
+  PredictionRecord: [await myRecord({ schedule: async () => [] }, [], Date.now()), { total: 3, decided: 2, correct: 1, rate: 0.5, streak: 0 }],
+  GameWeather: [weatherOut, domeOut],
+  NewsResponse: [{ team: 'SS', tags: NEWS_TAGS, items: newsItems }, { team: 'SS', tags: NEWS_TAGS, items: [] }],
+  BlocksResponse: [{ blocks: [{ id: 3, nickname: '팬', at: new Date().toISOString() }] }, { blocks: [] }],
+  BlockResult: [{ blocked: true, nickname: '팬' }],
+  WinTrendResponse: [{ gameId: live.game.id, points: winPointsOf(fx('naver-relay-live.json').textRelayData, 3) }, await replay.winTrend(rgame.id)],
 }));

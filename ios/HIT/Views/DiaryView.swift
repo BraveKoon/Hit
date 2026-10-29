@@ -1,6 +1,7 @@
+import PhotosUI
 import SwiftUI
 
-/// 직관 탭: 내 직관 승률 → 이달 달력(내 팀 승패) → 구장·상대·요일별 → 티켓처럼 쌓이는 기록
+/// 직관 탭: 내 승률 한 줄 → 이달 달력(눌러서 기록) → 티켓처럼 쌓이는 기록
 @MainActor
 struct DiaryView: View {
     @Environment(AppModel.self) private var model
@@ -12,31 +13,27 @@ struct DiaryView: View {
         NavigationStack(path: $model.diaryPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    AppHeader { model.diaryPath.append(.search) }
+                    AppHeader(title: "직관") { model.diaryPath.append(.search) }
                     if !diary.canRecord {
                         GuestDiaryCard()
                     } else {
                         WinRateHero(stats: diary.stats, team: model.myTeam)
                             .appearIn(0)
-                        if let stats = diary.stats, stats.games > 0 {
-                            BreakdownCard(stats: stats).appearIn(1)
-                        }
                     }
-                    SectionHeader(title: "경기 달력", detail: "날짜를 눌러 기록")
                     MonthCalendar(team: model.myTeam, entries: diary.entries) { model.diaryPath.append(.game($0)) }
-                        .appearIn(2)
+                        .appearIn(1)
                     if diary.canRecord {
-                        SectionHeader(title: "내 티켓", detail: diary.entries.isEmpty ? nil : "\(diary.entries.count)장")
                         if diary.entries.isEmpty {
-                            Card {
-                                Label("달력에서 본 경기를 누르거나, 경기 화면의 '직관 기록'으로 첫 티켓을 남겨 보세요",
-                                      systemImage: "ticket")
-                                    .foregroundStyle(Palette.muted)
-                            }
+                            Text("본 경기 날짜를 누르면 티켓으로 남아요")
+                                .font(Typo.style(.footnote))
+                                .foregroundStyle(Palette.muted)
+                                .frame(maxWidth: .infinity)
+                        } else {
+                            SectionHeader(title: "내 티켓", detail: "\(diary.entries.count)장")
                         }
                         ForEach(Array(diary.entries.enumerated()), id: \.element.id) { i, entry in
                             TicketCard(entry: entry, team: model.myTeam)
-                                .appearIn(3 + i)
+                                .appearIn(2 + i)
                                 .onTapGesture { model.diaryPath.append(.game(entry.gameId)) }
                                 .contextMenu {
                                     Button(role: .destructive) { Task { await diary.delete(gameId: entry.gameId) } } label: {
@@ -64,126 +61,56 @@ struct DiaryView: View {
 
 // MARK: - 승률
 
-/// 큰 승률 링 + 승패, 연승 배지, 직관·집관 따로
+/// 내 팀 승률 한 줄: 큰 숫자, 승패, 연승 배지, 그 아래 직관·집관 승패
 struct WinRateHero: View {
     let stats: DiaryStats?
     let team: String?
 
-    private var pct: Double { stats?.pct ?? 0 }
-
     var body: some View {
         let color = Team.color(for: team)
-        VStack(spacing: 16) {
-            HStack(spacing: 18) {
-                ZStack {
-                    Circle().stroke(.white.opacity(0.12), lineWidth: 12)
-                    Circle()
-                        .trim(from: 0, to: stats?.pct == nil ? 0 : pct)
-                        .stroke(AngularGradient(colors: [Palette.amber, color, Palette.amber], center: .center),
-                                style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .animation(.spring(response: 0.9, dampingFraction: 0.8), value: pct)
-                    VStack(spacing: 0) {
-                        Text(stats?.pct == nil ? "-" : "\(Int((pct * 100).rounded()))")
-                            .font(.system(size: 36, weight: .heavy, design: .rounded))
-                            .contentTransition(.numericText(value: pct))
-                        Text("승률 %").font(.caption2.weight(.semibold)).foregroundStyle(Palette.muted)
-                    }
-                }
-                .frame(width: 112, height: 112)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("나의 승요력").font(.subheadline.weight(.semibold)).foregroundStyle(Palette.muted)
-                    if let stats, stats.games > 0 {
+        let played = (stats?.games ?? 0) > 0
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(played ? stats?.pct.map { "\(Int(($0 * 100).rounded()))%" } ?? "-" : "-")
+                    .font(Typo.font(40, .heavy))
+                    .contentTransition(.numericText())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("나의 승요력").font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted)
+                    if let stats, played {
                         Text("\(stats.wins)승 \(stats.losses)패" + (stats.draws > 0 ? " \(stats.draws)무" : ""))
-                            .font(.title2.weight(.heavy))
-                        if let streak = stats.streak {
-                            Text(streak)
-                                .font(.caption.weight(.heavy))
-                                .padding(.horizontal, 10).padding(.vertical, 4)
-                                .foregroundStyle(streak.hasSuffix("연승") ? Color.black : Palette.text)
-                                .background(streak.hasSuffix("연승") ? Palette.amber : Palette.red.opacity(0.6), in: Capsule())
-                        }
+                            .font(Typo.style(.headline))
                     } else {
-                        Text("아직 기록이 없어요").font(.title3.weight(.bold))
-                        Text("본 경기를 남기면 내 팀 승률이 쌓여요")
-                            .font(.footnote).foregroundStyle(Palette.muted)
+                        Text("아직 기록이 없어요").font(Typo.style(.headline))
                     }
                 }
                 Spacer(minLength: 0)
-            }
-            if let stats, stats.games > 0 {
-                HStack(spacing: 10) {
-                    ForEach(stats.modes) { m in
-                        let mode = WatchMode(rawValue: m.key) ?? .stadium
-                        HStack(spacing: 10) {
-                            Image(systemName: mode.symbol)
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundStyle(mode == .stadium ? Palette.amber : Palette.text)
-                                .frame(width: 34, height: 34)
-                                .glassCircle()
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text("\(m.label) " + (m.pct.map { "\(Int(($0 * 100).rounded()))%" } ?? "-"))
-                                    .font(.subheadline.weight(.bold))
-                                Text(m.games > 0 ? m.record : "기록 없음").font(.caption).foregroundStyle(Palette.muted)
-                            }
-                            Spacer(minLength: 0)
-                        }
-                        .padding(10)
-                        .glassCard(16)
-                    }
+                if let streak = stats?.streak {
+                    Text(streak)
+                        .font(Typo.style(.caption, .heavy))
+                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .foregroundStyle(streak.hasSuffix("연승") ? Color.black : Palette.text)
+                        .background(streak.hasSuffix("연승") ? Palette.accent : Palette.red.opacity(0.6), in: Capsule())
                 }
+            }
+            if let n = stats?.unverified, n > 0 {
+                Label("티켓 인증 안 한 직관 \(n)경기는 승률에서 빠져 있어요", systemImage: "seal")
+                    .font(Typo.style(.caption))
+                    .foregroundStyle(Palette.text.opacity(0.7))
+            }
+            if let stats, played {
+                // 직관 3승 1패 · 집관 1승 0패
+                Text(stats.modes.filter { $0.games > 0 }.map { "\($0.label) \($0.record)" }.joined(separator: " · "))
+                    .font(Typo.style(.footnote))
+                    .foregroundStyle(Palette.text.opacity(0.75))
             }
         }
         .padding(18)
         .background {
-            LinearGradient(colors: [color.opacity(0.55), color.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            LinearGradient(colors: [color.opacity(0.5), color.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
-        .glassCard(26)
-    }
-}
-
-/// 구장별 · 상대 팀별 · 요일별 승률 막대
-struct BreakdownCard: View {
-    let stats: DiaryStats
-    enum Kind: Hashable { case stadium, opponent, weekday }
-    @State private var kind: Kind = .stadium
-
-    private var rows: [DiaryBucket] {
-        switch kind {
-        case .stadium: stats.stadiums
-        case .opponent: stats.opponents
-        case .weekday: stats.weekdays
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PillChips(items: [(Kind.stadium, "구장별"), (.opponent, "상대별"), (.weekday, "요일별")], selection: $kind)
-            VStack(spacing: 10) {
-                ForEach(rows) { b in
-                    HStack(spacing: 10) {
-                        if kind == .opponent { TeamBadge(code: b.key, size: 24) }
-                        Text(b.label).font(.subheadline.weight(.semibold)).frame(width: kind == .opponent ? 44 : 64, alignment: .leading)
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(.white.opacity(0.1))
-                                Capsule().fill(LinearGradient(colors: [Palette.amber.opacity(0.7), Palette.amber], startPoint: .leading, endPoint: .trailing))
-                                    .frame(width: max(6, geo.size.width * (b.pct ?? 0)))
-                            }
-                        }
-                        .frame(height: 8)
-                        Text(b.pct.map { "\(Int(($0 * 100).rounded()))%" } ?? "-")
-                            .font(.subheadline.weight(.bold)).monospacedDigit().frame(width: 44, alignment: .trailing)
-                        Text(b.record).font(.caption).foregroundStyle(Palette.muted).frame(width: 58, alignment: .trailing)
-                    }
-                }
-            }
-            .animation(.snappy, value: kind)
-        }
-        .padding(16)
         .glassCard(22)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -215,18 +142,18 @@ struct MonthCalendar: View {
             HStack {
                 Button { shift(-1) } label: { Image(systemName: "chevron.left") }
                 Spacer()
-                Text(KST.monthTitle(month)).font(.headline)
+                Text(KST.monthTitle(month)).font(Typo.style(.headline))
                 Spacer()
                 Button { shift(1) } label: { Image(systemName: "chevron.right") }
             }
-            .font(.system(size: 15, weight: .bold))
+            .font(Typo.font(15, .bold))
             .foregroundStyle(Palette.text)
-            .buttonStyle(.plain)
+            .buttonStyle(.press)
 
             let cols = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
             LazyVGrid(columns: cols, spacing: 6) {
                 ForEach(Array(["일", "월", "화", "수", "목", "금", "토"].enumerated()), id: \.offset) { i, w in
-                    Text(w).font(.caption2.weight(.bold))
+                    Text(w).font(Typo.style(.caption2, .bold))
                         .foregroundStyle(i == 0 ? Palette.red.opacity(0.8) : Palette.muted)
                 }
                 ForEach(Array(days.enumerated()), id: \.offset) { _, day in
@@ -234,14 +161,8 @@ struct MonthCalendar: View {
                 }
             }
             if failed {
-                Text("일정을 불러오지 못했어요").font(.caption).foregroundStyle(Palette.muted)
+                Text("일정을 불러오지 못했어요").font(Typo.style(.caption)).foregroundStyle(Palette.muted)
             }
-            HStack(spacing: 14) {
-                legend(Palette.amber, "승"); legend(.white.opacity(0.35), "패"); legend(.white, "무")
-                Label("기록", systemImage: "ticket.fill").font(.caption2).foregroundStyle(Palette.amber)
-            }
-            .font(.caption2)
-            .foregroundStyle(Palette.muted)
         }
         .padding(14)
         .glassCard(22)
@@ -263,15 +184,15 @@ struct MonthCalendar: View {
         } label: {
             VStack(spacing: 3) {
                 Text(String(Int(day.suffix(2)) ?? 0))
-                    .font(.system(size: 12, weight: isToday ? .heavy : .medium))
-                    .foregroundStyle(isToday ? Palette.amber : Palette.text.opacity(game == nil ? 0.35 : 0.9))
+                    .font(Typo.font(12, isToday ? .heavy : .medium))
+                    .foregroundStyle(isToday ? Palette.accent : Palette.text.opacity(game == nil ? 0.35 : 0.9))
                 ZStack {
                     if let result {
                         Text(result.title)
-                            .font(.system(size: 12, weight: .heavy))
+                            .font(Typo.font(12, .heavy))
                             .frame(width: 26, height: 22)
                             .foregroundStyle(result == .win ? Color.black : Palette.text)
-                            .background(result == .win ? Palette.amber : result == .lose ? Color.white.opacity(0.18) : Color.white.opacity(0.45),
+                            .background(result == .win ? Palette.accent : result == .lose ? Color.white.opacity(0.18) : Color.white.opacity(0.45),
                                         in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                     } else if let game, game.status != .canceled {
                         TeamBadge(code: game.opponent(of: team).code, size: 20)
@@ -280,27 +201,27 @@ struct MonthCalendar: View {
                                 if game.status == .live { Circle().fill(Palette.red).frame(width: 6, height: 6) }
                             }
                     } else if game?.status == .canceled {
-                        Text("취소").font(.system(size: 9, weight: .semibold)).foregroundStyle(Palette.muted)
+                        Text("취소").font(Typo.font(9, .semibold)).foregroundStyle(Palette.muted)
                     }
                 }
                 .frame(height: 22)
                 .overlay(alignment: .bottomTrailing) {
                     if entry != nil {
                         Image(systemName: "ticket.fill").font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(Palette.amber).offset(x: 6, y: 4)
+                            .foregroundStyle(Palette.accent).offset(x: 6, y: 4)
                     }
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 50)
             .background {
                 if entry != nil {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Palette.amber.opacity(0.6), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Palette.accent.opacity(0.6), lineWidth: 1)
                 } else if isToday {
                     RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.white.opacity(0.06))
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.press)
         .disabled(game == nil)
         .accessibilityLabel(accessibility(day, game, result, entry))
     }
@@ -311,10 +232,6 @@ struct MonthCalendar: View {
         if let result { s += ", \(result.title)" }
         if let entry { s += ", \(entry.mode.title) 기록함" }
         return s
-    }
-
-    private func legend(_ c: Color, _ t: String) -> some View {
-        HStack(spacing: 4) { RoundedRectangle(cornerRadius: 3).fill(c).frame(width: 10, height: 10); Text(t) }
     }
 
     private func shift(_ n: Int) {
@@ -363,15 +280,15 @@ struct TicketCard: View {
         VStack(spacing: 0) {
             HStack(spacing: 14) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(KST.ticketDate(entry.date)).font(.system(size: 26, weight: .heavy, design: .rounded))
+                    Text(KST.ticketDate(entry.date)).font(Typo.font(26, .heavy))
                     Text(KST.weekdayOf(entry.date) + (game?.stadium.map { " · \($0)" } ?? ""))
-                        .font(.caption.weight(.semibold)).foregroundStyle(Palette.text.opacity(0.75))
+                        .font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.text.opacity(0.75))
                 }
                 Spacer(minLength: 0)
                 if let game {
                     HStack(spacing: 8) {
                         TeamBadge(code: game.away.code, size: 34)
-                        Text(score(game)).font(.system(size: 20, weight: .heavy, design: .rounded)).monospacedDigit()
+                        Text(score(game)).font(Typo.font(20, .heavy)).monospacedDigit()
                         TeamBadge(code: game.home.code, size: 34)
                     }
                 }
@@ -388,14 +305,19 @@ struct TicketCard: View {
 
             HStack(spacing: 8) {
                 Label(entry.mode.title, systemImage: entry.mode.symbol)
-                    .font(.caption.weight(.heavy))
-                    .foregroundStyle(entry.mode == .stadium ? Palette.amber : Palette.text)
-                if let seat = entry.seat { Text(seat).font(.caption.weight(.semibold)) }
+                    .font(Typo.style(.caption, .heavy))
+                    .foregroundStyle(entry.mode == .stadium ? Palette.accent : Palette.text)
+                if entry.mode == .stadium {
+                    // 인증한 직관만 승률에 들어간다
+                    Label(entry.isVerified ? "인증" : "미인증", systemImage: entry.isVerified ? "checkmark.seal.fill" : "seal")
+                        .font(Typo.style(.caption2, .bold))
+                        .foregroundStyle(entry.isVerified ? Palette.accent : Palette.muted)
+                }
+                if let seat = entry.seat { Text(seat).font(Typo.style(.caption, .semibold)) }
                 if let memo = entry.memo {
-                    Text(memo).font(.caption).foregroundStyle(Palette.text.opacity(0.75)).lineLimit(1)
+                    Text(memo).font(Typo.style(.caption)).foregroundStyle(Palette.text.opacity(0.75)).lineLimit(1)
                 }
                 Spacer(minLength: 0)
-                LogoMark(height: 9, color: .white.opacity(0.5))
             }
             .padding(.horizontal, 20)
             .frame(height: 44)
@@ -419,10 +341,10 @@ struct TicketCard: View {
     private var stamp: some View {
         let r = entry.result
         Text(r?.title ?? "–")
-            .font(.system(size: 17, weight: .black))
-            .foregroundStyle(r == .win ? Palette.amber : Palette.text.opacity(0.7))
+            .font(Typo.font(17, .black))
+            .foregroundStyle(r == .win ? Palette.accent : Palette.text.opacity(0.7))
             .frame(width: 42, height: 42)
-            .overlay(Circle().strokeBorder(r == .win ? Palette.amber : .white.opacity(0.35), lineWidth: 2))
+            .overlay(Circle().strokeBorder(r == .win ? Palette.accent : .white.opacity(0.35), lineWidth: 2))
             .rotationEffect(.degrees(-12))
     }
 }
@@ -436,6 +358,7 @@ private struct Line: Shape {
 // MARK: - 기록하기
 
 /// 경기 하나를 직관/집관으로 남기는 시트 (달력·경기 화면에서 연다)
+@MainActor
 struct DiaryEditor: View {
     let game: Game
     var onOpenGame: (() -> Void)? = nil
@@ -446,6 +369,9 @@ struct DiaryEditor: View {
     @State private var seat = ""
     @State private var memo = ""
     @State private var saving = false
+    @State private var ticketItem: PhotosPickerItem?
+    @State private var verifying = false
+    @State private var verifyMessage: String?
 
     var body: some View {
         let existing = diary.entry(for: game.id)
@@ -455,9 +381,9 @@ struct DiaryEditor: View {
                     TeamBadge(code: game.away.code, size: 46)
                     VStack(spacing: 2) {
                         Text(game.away.score.map { "\($0) : \(game.home.score ?? 0)" } ?? "vs")
-                            .font(.system(size: 26, weight: .heavy, design: .rounded))
+                            .font(Typo.font(26, .heavy))
                         Text((game.date.map { KST.ticketDate($0) } ?? "") + (game.stadium.map { " · \($0)" } ?? ""))
-                            .font(.caption).foregroundStyle(Palette.muted)
+                            .font(Typo.style(.caption)).foregroundStyle(Palette.muted)
                     }
                     TeamBadge(code: game.home.code, size: 46)
                 }
@@ -466,33 +392,21 @@ struct DiaryEditor: View {
                 if let onOpenGame {
                     Button { dismiss(); onOpenGame() } label: {
                         Label(game.status == .final ? "경기 결과 보기" : "중계 보기", systemImage: "chevron.right")
-                            .font(.subheadline.weight(.semibold))
+                            .font(Typo.style(.subheadline, .semibold))
                             .padding(.horizontal, 16).frame(height: 36).glassCapsule()
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.press)
                 }
 
                 if !diary.canRecord {
                     GuestDiaryCard()
                 } else {
-                    HStack(spacing: 10) {
+                    Picker("어떻게 봤나요", selection: $mode.animation(.snappy)) {
                         ForEach(WatchMode.allCases) { m in
-                            let on = m == mode
-                            Button { withAnimation(.snappy) { mode = m } } label: {
-                                VStack(spacing: 6) {
-                                    Image(systemName: m.symbol).font(.system(size: 22, weight: .bold))
-                                        .symbolEffect(.bounce, value: on)
-                                    Text(m == .stadium ? "직관 · 경기장에서" : "집관 · 중계로").font(.footnote.weight(.bold))
-                                }
-                                .frame(maxWidth: .infinity, minHeight: 84)
-                                .foregroundStyle(on ? Color.black : Palette.text)
-                                .background { if on { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Palette.amber) } }
-                                .glassCard(18)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityAddTraits(on ? .isSelected : [])
+                            Label(m == .stadium ? "직관 · 경기장" : "집관 · 중계", systemImage: m.symbol).tag(m)
                         }
                     }
+                    .pickerStyle(.segmented)
                     VStack(spacing: 0) {
                         TextField(mode == .stadium ? "좌석 (예: 1루 응원석 12열)" : "어디서 봤나요 (예: 집, 친구네)", text: $seat)
                             .padding(14)
@@ -502,6 +416,8 @@ struct DiaryEditor: View {
                             .padding(14)
                     }
                     .glassCard(16)
+
+                    if mode == .stadium { ticketVerify(existing) }
 
                     Button {
                         saving = true
@@ -519,7 +435,7 @@ struct DiaryEditor: View {
                         Button("이 기록 지우기", role: .destructive) {
                             Task { await diary.delete(gameId: game.id); dismiss() }
                         }
-                        .font(.subheadline)
+                        .font(Typo.style(.subheadline))
                     }
                 }
             }
@@ -530,6 +446,66 @@ struct DiaryEditor: View {
         .onAppear {
             if let e = existing { mode = e.mode; seat = e.seat ?? ""; memo = e.memo ?? "" }
         }
+        .onChange(of: ticketItem) { _, item in
+            guard let item else { return }
+            Task { await verify(item) }
+        }
+    }
+
+    /// 직관 티켓 인증: 티켓 사진(종이 티켓, 예매 앱 캡처)을 고르면 휴대폰 안에서 읽어 이 경기 티켓인지 본다
+    @ViewBuilder
+    private func ticketVerify(_ existing: DiaryEntry?) -> some View {
+        if existing?.isVerified == true {
+            Label("티켓 인증 완료 · 직관 승률에 들어가요", systemImage: "checkmark.seal.fill")
+                .font(Typo.style(.subheadline, .semibold))
+                .foregroundStyle(Palette.accent)
+                .frame(maxWidth: .infinity)
+                .padding(14)
+                .background(Palette.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                PhotosPicker(selection: $ticketItem, matching: .images) {
+                    HStack(spacing: 8) {
+                        if verifying { ProgressView() } else { Image(systemName: "ticket.fill") }
+                        Text(verifying ? "티켓 읽는 중" : "티켓 사진으로 인증하기")
+                    }
+                    .font(Typo.style(.subheadline, .semibold))
+                    .foregroundStyle(Palette.accent)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Palette.accent.opacity(0.6), lineWidth: 1.5))
+                }
+                .disabled(verifying || saving)
+                Text(verifyMessage ?? "종이 티켓 사진이나 예매 앱의 모바일 티켓 캡처를 골라 주세요. 날짜·구장·예매번호가 보이면 돼요. 사진은 휴대폰 안에서만 읽고, 인증한 직관만 승률에 들어가요.")
+                    .font(Typo.style(.caption))
+                    .foregroundStyle(verifyMessage == nil ? Palette.muted : Palette.red)
+            }
+        }
+    }
+
+    private func verify(_ item: PhotosPickerItem) async {
+        verifying = true
+        verifyMessage = nil
+        defer { verifying = false; ticketItem = nil }
+        guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
+            verifyMessage = "사진을 열지 못했어요"
+            return
+        }
+        do {
+            switch TicketScanner.check(try await TicketScanner.scan(image), game: game) {
+            case .mismatch(let why):
+                verifyMessage = why
+            case .ok(let ticket):
+                if await diary.verify(game: game, ticket: ticket, seat: seat, memo: memo) {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                } else {
+                    verifyMessage = diary.error
+                    diary.error = nil
+                }
+            }
+        } catch {
+            verifyMessage = "티켓을 읽지 못했어요. 밝은 곳에서 다시 찍어 주세요"
+        }
     }
 }
 
@@ -537,10 +513,10 @@ struct DiaryEditor: View {
 struct GuestDiaryCard: View {
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: "ticket.fill").font(.system(size: 30)).foregroundStyle(Palette.amber)
-            Text("로그인하면 직관 기록과 승률이 쌓여요").font(.headline)
+            Image(systemName: "ticket.fill").font(.system(size: 30)).foregroundStyle(Palette.accent)
+            Text("로그인하면 직관 기록과 승률이 쌓여요").font(Typo.style(.headline))
             Text("어느 기기에서든 내 티켓을 다시 볼 수 있게 계정에 저장해요")
-                .font(.footnote).foregroundStyle(Palette.muted).multilineTextAlignment(.center)
+                .font(Typo.style(.footnote)).foregroundStyle(Palette.muted).multilineTextAlignment(.center)
             Button("로그인 · 회원가입") { Task { await AuthManager.shared.signOut() } }
                 .buttonStyle(PrimaryButtonStyle())
         }

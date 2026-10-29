@@ -7,7 +7,8 @@ struct GameLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: GameActivityAttributes.self) { context in
             LockScreenScoreboard(attributes: context.attributes, state: context.state, stale: context.isStale)
-                .activityBackgroundTint(LockScreenScoreboard.tint(for: context.attributes).mix(.black, 0.4))
+                .font(Typo.style(.body))
+                .activityBackgroundTint(LockScreenScoreboard.backgroundTint(for: context.attributes))
                 .activitySystemActionForegroundColor(.white)
                 .widgetURL(URL(string: "hit://game/\(context.attributes.gameId)"))
         } dynamicIsland: { context in
@@ -41,8 +42,8 @@ struct GameLiveActivity: Widget {
             } minimal: {
                 // 다른 앱과 아일랜드를 나눠 쓸 때는 점수만
                 Text("\(s.awayScore):\(s.homeScore)")
-                    .font(.system(size: 12, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Palette.amber)
+                    .font(Typo.font(12, .heavy))
+                    .foregroundStyle(Palette.accent)
                     .minimumScaleFactor(0.6)
                     .contentTransition(.numericText())
             }
@@ -54,7 +55,7 @@ struct GameLiveActivity: Widget {
 
 // MARK: - 다이나믹 아일랜드 조각
 
-/// 점수 숫자. 이기고 있는 쪽만 앰버, 바뀔 때 숫자가 굴러간다.
+/// 점수 숫자. 이기고 있는 쪽만 강조색, 바뀔 때 숫자가 굴러간다.
 private struct IslandScore: View {
     let score: Int
     let ahead: Bool
@@ -63,9 +64,9 @@ private struct IslandScore: View {
 
     var body: some View {
         Text("\(score)")
-            .font(.system(size: size, weight: .heavy, design: .rounded))
+            .font(Typo.font(size, .heavy))
             .monospacedDigit()
-            .foregroundStyle(ahead ? Palette.amber : (final ? Palette.muted : Palette.text))
+            .foregroundStyle(ahead ? Palette.accent : (final ? Palette.muted : Palette.text))
             .contentTransition(.numericText(value: Double(score)))
     }
 }
@@ -86,7 +87,7 @@ private struct IslandTeam: View {
                 TeamBadge(code: code, size: 40)
                     .background(Circle().fill(Team.color(for: code).opacity(0.35)).blur(radius: 10))
                 Text(name)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Typo.font(11, .semibold))
                     .foregroundStyle(Palette.text.opacity(0.85))
                     .lineLimit(1)
             }
@@ -112,7 +113,7 @@ private struct IslandStatus: View {
                     Circle().fill(Palette.red).frame(width: 6, height: 6)
                 }
                 Text(stale ? "지연" : state.inningText)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(Typo.font(12, .bold))
                     .foregroundStyle(state.isFinal || stale ? Palette.muted : Palette.text)
             }
             .padding(.horizontal, 10)
@@ -132,7 +133,7 @@ private struct IslandStatus: View {
     }
 }
 
-/// B 초록 4칸 중 3, S 앰버 2, O 빨강 2.
+/// B 초록 4칸 중 3, S 강조색 2, O 빨강 2.
 struct CountDots: View {
     let balls: Int
     let strikes: Int
@@ -141,7 +142,7 @@ struct CountDots: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             row("B", balls, 3, Palette.live)
-            row("S", strikes, 2, Palette.amber)
+            row("S", strikes, 2, Palette.accent)
             row("O", outs, 2, Palette.red)
         }
         .accessibilityElement(children: .ignore)
@@ -151,7 +152,7 @@ struct CountDots: View {
     private func row(_ label: String, _ n: Int, _ max: Int, _ color: Color) -> some View {
         HStack(spacing: 3) {
             Text(label)
-                .font(.system(size: 8, weight: .bold, design: .rounded))
+                .font(Typo.font(8, .bold))
                 .foregroundStyle(Palette.muted)
                 .frame(width: 8)
             ForEach(0..<max, id: \.self) { i in
@@ -173,13 +174,13 @@ private struct IslandPlayBar: View {
             HStack(spacing: 8) {
                 Image(systemName: state.isFinal ? "flag.checkered" : "baseball.fill")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Palette.amber)
+                    .foregroundStyle(Palette.accent)
                 Text(state.headline.isEmpty ? attributes.stadium : state.headline)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(Typo.font(13, .medium))
                     .foregroundStyle(Palette.text.opacity(0.9))
                     .lineLimit(1)
                 Spacer(minLength: 4)
-                LogoMark(height: 10, color: Palette.amber)
+                LogoMark(height: 10, color: Palette.accent)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 9)
@@ -225,7 +226,7 @@ struct LockScreenScoreboard: View {
                 player(away: true)
                 VStack(spacing: 6) {
                     Text(stale ? "업데이트 지연" : state.inningText)
-                        .font(.system(size: 11, weight: .bold))
+                        .font(Typo.font(11, .bold))
                         .padding(.horizontal, 9)
                         .padding(.vertical, 3)
                         .background(Capsule().fill(.white.opacity(0.18)))
@@ -238,7 +239,7 @@ struct LockScreenScoreboard: View {
             }
 
             Text(state.headline.isEmpty ? attributes.stadium : state.headline)
-                .font(.system(size: 11.5, weight: .medium))
+                .font(Typo.font(11.5, .medium))
                 .foregroundStyle(.white.opacity(0.85))
                 .lineLimit(1)
                 .padding(.horizontal, 12)
@@ -250,15 +251,40 @@ struct LockScreenScoreboard: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .foregroundStyle(.white)
-        .background(
-            LinearGradient(colors: [Self.tint(for: attributes).mix(.black, 0.25), Self.tint(for: attributes).mix(.black, 0.55)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-        )
+        .background(Self.background(for: attributes, theme: theme))
+    }
+
+    var theme: LiveTheme = SharedSettings.liveTheme
+
+    /// 잠금화면 시스템 바탕 (카드 가장자리·알림 센터)
+    static func backgroundTint(for attributes: GameActivityAttributes) -> Color {
+        switch SharedSettings.liveTheme {
+        case .navy: Color(hex: 0x0E1A33)
+        case .team: tint(for: attributes).mix(.black, 0.4)
+        case .dark: .black
+        case .clear: .clear
+        }
+    }
+
+    /// 네이비 · 팀 컬러(원정 → 홈 그라데이션) · 다크 · 투명(시스템 반투명 그대로)
+    @ViewBuilder
+    static func background(for attributes: GameActivityAttributes, theme: LiveTheme) -> some View {
+        switch theme {
+        case .navy:
+            LinearGradient(colors: [Color(hex: 0x1C2E55), Color(hex: 0x0B1530)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .team:
+            LinearGradient(colors: [Team.color(for: attributes.awayCode).mix(.black, 0.3), Team.color(for: attributes.homeCode).mix(.black, 0.3)],
+                           startPoint: .leading, endPoint: .trailing)
+        case .dark:
+            Color.black
+        case .clear:
+            Color.clear
+        }
     }
 
     private func teamName(_ name: String, alignment: Alignment) -> some View {
         Text(name)
-            .font(.system(size: 17, weight: .heavy))
+            .font(Typo.font(17, .heavy))
             .lineLimit(1)
             .minimumScaleFactor(0.7)
             .frame(maxWidth: .infinity, alignment: alignment)
@@ -266,7 +292,7 @@ struct LockScreenScoreboard: View {
 
     private func score(_ value: Int) -> some View {
         Text("\(value)")
-            .font(.system(size: 28, weight: .heavy, design: .rounded))
+            .font(Typo.font(28, .heavy))
             .monospacedDigit()
             .contentTransition(.numericText(value: Double(value)))
     }
@@ -280,10 +306,10 @@ struct LockScreenScoreboard: View {
         VStack(alignment: away ? .leading : .trailing, spacing: 2) {
             if state.isLive, let name {
                 Text(name)
-                    .font(.system(size: 12.5, weight: .semibold))
+                    .font(Typo.font(12.5, .semibold))
                     .lineLimit(1)
                 Text(sub ?? " ")
-                    .font(.system(size: 10.5, weight: .medium))
+                    .font(Typo.font(10.5, .medium))
                     .monospacedDigit()
                     .foregroundStyle(.white.opacity(0.6))
             }
@@ -343,7 +369,7 @@ struct CountRow: View {
     private func group(_ label: String, _ n: Int, _ max: Int, _ color: Color) -> some View {
         HStack(spacing: 3) {
             Text(label)
-                .font(.system(size: 9.5, weight: .heavy, design: .rounded))
+                .font(Typo.font(9.5, .heavy))
             ForEach(0..<max, id: \.self) { i in
                 Circle()
                     .fill(i < n ? color : .white.opacity(0.25))

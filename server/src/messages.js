@@ -4,6 +4,7 @@ import { kstClock } from './time.js';
 export const DEFAULT_PREFS = {
   pregame: true, // 경기 시작 10분 전
   starters: true, // 선발 투수 발표
+  lineup: true, // 경기 전 선발 라인업 발표
   start: true,
   score: true,
   homerun: true,
@@ -15,6 +16,7 @@ export const DEFAULT_PREFS = {
   players: true, // 관심 선수 타석 결과·등판·강판
   hit: false, // 내 팀 안타 (많이 와서 기본은 끔)
   walk: false, // 내 팀 볼넷·사구
+  comments: true, // 커뮤니티: 내 글에 댓글
 };
 
 export function wants(prefs, event) {
@@ -43,19 +45,31 @@ function viewerSide(g, teams) {
   return a && !h ? 'away' : h && !a ? 'home' : null;
 }
 
+// 경기 전 알림에 붙이는 비 소식 (돔·맑음이면 없음)
+export function rainNote(w) {
+  if (!w || w.dome || !['high', 'medium'].includes(w.risk)) return null;
+  return `${w.risk === 'high' ? '☔ 비 예보' : '🌦 비 가능성'} ${w.pop ?? '-'}%`;
+}
+
 export function render(event, game, viewerTeams = [], { now = Date.now() } = {}) {
   const g = game;
   const mine = viewerSide(g, viewerTeams);
   const clock = kstClock(g.startsAt);
-  const base = { threadId: g.id, gameId: g.id, type: event.type, level: 'active' };
+  // inning: 알림을 누르면 앱이 그 경기의 그 이닝 문자중계를 연다
+  const base = { threadId: g.id, gameId: g.id, type: event.type, level: 'active', inning: event.inning ?? g.inning ?? null };
 
   switch (event.type) {
     case 'pregame': {
       const mins = Math.max(1, Math.round((Date.parse(g.startsAt) - now) / 60000));
-      return { ...base, title: `${matchup(g)} · ${mins}분 뒤 시작`, body: join(`${clock} ${g.stadium ?? ''}`.trim(), starters(g), g.broadcast) };
+      return { ...base, title: `${matchup(g)} · ${mins}분 뒤 시작`, body: join(`${clock} ${g.stadium ?? ''}`.trim(), starters(g), g.broadcast, rainNote(event.weather)) };
     }
     case 'starters':
       return { ...base, level: 'passive', title: `선발 발표 · ${matchup(g)}`, body: join(`${g.away.starter} 대 ${g.home.starter}`, `${clock} ${g.stadium ?? ''}`.trim()) };
+    case 'lineup': {
+      const order = (side) => (event.lineups?.[side] ?? []).map((p) => `${p.order} ${p.name}`).join(' ');
+      if (mine) return { ...base, level: 'passive', title: `${g[mine].name} 선발 라인업 · ${matchup(g)}`, body: order(mine) || `${clock} ${g.stadium ?? ''}`.trim() };
+      return { ...base, level: 'passive', title: `라인업 발표 · ${matchup(g)}`, body: `${clock} ${g.stadium ?? ''}`.trim() };
+    }
     case 'start':
       return { ...base, title: `경기 시작 · ${matchup(g)}`, body: join(g.stadium, starters(g)) || '플레이볼!' };
     case 'score': {

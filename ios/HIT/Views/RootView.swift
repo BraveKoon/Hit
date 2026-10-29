@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 로그인 → (처음이면) 팀 고르기·알림 → 홈 · 직관 · 기록 · MY (떠 있는 탭바)
+/// 로그인 → (처음이면) 팀 고르기·알림 → 홈 · 직관 · 커뮤니티 · 기록 · MY (떠 있는 탭바)
 @MainActor
 struct RootView: View {
     @Environment(AppModel.self) private var model
@@ -22,6 +22,9 @@ struct RootView: View {
                         DiaryView()
                             .toolbar(.hidden, for: .tabBar)
                             .tag(AppTab.diary)
+                        CommunityView()
+                            .toolbar(.hidden, for: .tabBar)
+                            .tag(AppTab.community)
                         RecordsView()
                             .toolbar(.hidden, for: .tabBar)
                             .tag(AppTab.records)

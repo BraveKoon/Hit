@@ -71,6 +71,26 @@ struct APIClient {
         try await send("GET", "v1/games/\(id)/relay", query: [URLQueryItem(name: "inning", value: String(inning))])
     }
 
+    func winTrend(id: String) async throws -> WinTrendResponse {
+        try await send("GET", "v1/games/\(id)/winrate")
+    }
+
+    func postseason(season: String) async throws -> PostseasonResponse {
+        try await send("GET", "v1/postseason", query: [URLQueryItem(name: "season", value: season)])
+    }
+
+    func preview(id: String) async throws -> GamePreview {
+        try await send("GET", "v1/games/\(id)/preview")
+    }
+
+    func mvp(id: String) async throws -> MvpResponse {
+        try await send("GET", "v1/games/\(id)/mvp")
+    }
+
+    func voteMvp(id: String, team: String, name: String) async throws -> MvpResponse {
+        try await send("PUT", "v1/games/\(id)/mvp", body: MvpVote(team: team, name: name))
+    }
+
     func calendar(month: String, team: String?) async throws -> CalendarResponse {
         var q = [URLQueryItem(name: "month", value: month)]
         if let team { q.append(URLQueryItem(name: "team", value: team)) }
@@ -86,6 +106,124 @@ struct APIClient {
     func saveDiary(gameId: String, date: String, mode: WatchMode, seat: String?, memo: String?) async throws -> DiaryEntry {
         struct Body: Encodable { let date: String; let mode: WatchMode; let seat: String?; let memo: String? }
         return try await send("PUT", "v1/me/diary/\(gameId)", body: Body(date: date, mode: mode, seat: seat, memo: memo))
+    }
+
+    /// 티켓 사진에서 읽은 예매번호·바코드로 직관 인증 (서버는 번호의 지문만 저장)
+    func verifyTicket(gameId: String, ticket: String) async throws -> DiaryEntry {
+        struct Body: Encodable { let ticket: String }
+        return try await send("POST", "v1/me/diary/\(gameId)/verify", body: Body(ticket: ticket))
+    }
+
+    // MARK: 응원톡
+
+    func chat(gameId: String, after: Int = 0) async throws -> ChatResponse {
+        try await send("GET", "v1/games/\(gameId)/chat", query: after > 0 ? [URLQueryItem(name: "after", value: String(after))] : [])
+    }
+
+    func sendChat(gameId: String, text: String) async throws -> ChatMessage {
+        struct Body: Encodable { let text: String }
+        return try await send("POST", "v1/games/\(gameId)/chat", body: Body(text: text))
+    }
+
+    func reportChat(id: Int) async throws {
+        struct Reported: Decodable { let reported: Bool }
+        let _: Reported = try await send("POST", "v1/chat/\(id)/report")
+    }
+
+    // MARK: 커뮤니티
+
+    /// hot: 최근 3일 인기 글, query: 제목·내용·선수 태그 검색
+    func posts(team: String?, before: Int? = nil, hot: Bool = false, query: String? = nil) async throws -> PostsResponse {
+        var q: [URLQueryItem] = []
+        if let team { q.append(URLQueryItem(name: "team", value: team)) }
+        if let before { q.append(URLQueryItem(name: "before", value: String(before))) }
+        if hot { q.append(URLQueryItem(name: "sort", value: "hot")) }
+        if let query, !query.isEmpty { q.append(URLQueryItem(name: "q", value: query)) }
+        return try await send("GET", "v1/posts", query: q)
+    }
+
+    enum BlockTarget { case post(Int), comment(Int), chat(Int) }
+
+    /// 그 글·댓글·응원톡을 쓴 사람 차단
+    func block(_ target: BlockTarget) async throws -> BlockResult {
+        struct Body: Encodable { var post: Int?; var comment: Int?; var chat: Int? }
+        let body: Body = switch target {
+        case .post(let id): Body(post: id)
+        case .comment(let id): Body(comment: id)
+        case .chat(let id): Body(chat: id)
+        }
+        return try await send("POST", "v1/blocks", body: body)
+    }
+
+    func blocks() async throws -> BlocksResponse {
+        try await send("GET", "v1/me/blocks")
+    }
+
+    func unblock(userId: Int) async throws {
+        struct Deleted: Decodable { let deleted: Bool }
+        let _: Deleted = try await send("DELETE", "v1/me/blocks/\(userId)")
+    }
+
+    // MARK: 날씨 · 소식
+
+    func weather(gameId: String) async throws -> GameWeather {
+        try await send("GET", "v1/games/\(gameId)/weather")
+    }
+
+    func news(team: String, tag: String? = nil) async throws -> NewsResponse {
+        var q = [URLQueryItem(name: "team", value: team)]
+        if let tag { q.append(URLQueryItem(name: "tag", value: tag)) }
+        return try await send("GET", "v1/news", query: q)
+    }
+
+    func post(id: Int) async throws -> CommunityPost {
+        try await send("GET", "v1/posts/\(id)")
+    }
+
+    /// image 는 JPEG 데이터 (앱이 1080px·2MB 아래로 줄여서)
+    func writePost(team: String, title: String, body: String, player: String?, image: Data?) async throws -> CommunityPost {
+        struct Body: Encodable { let team: String; let title: String; let body: String; let player: String?; let image: String? }
+        return try await send("POST", "v1/posts", body: Body(team: team, title: title, body: body, player: player, image: image?.base64EncodedString()))
+    }
+
+    func deletePost(id: Int) async throws {
+        struct Deleted: Decodable { let deleted: Bool }
+        let _: Deleted = try await send("DELETE", "v1/posts/\(id)")
+    }
+
+    func likePost(id: Int, on: Bool) async throws -> LikeResponse {
+        struct Body: Encodable { let on: Bool }
+        return try await send("POST", "v1/posts/\(id)/like", body: Body(on: on))
+    }
+
+    func reportPost(id: Int) async throws {
+        struct Reported: Decodable { let reported: Bool }
+        let _: Reported = try await send("POST", "v1/posts/\(id)/report")
+    }
+
+    func comment(postId: Int, text: String) async throws -> PostComment {
+        struct Body: Encodable { let text: String }
+        return try await send("POST", "v1/posts/\(postId)/comments", body: Body(text: text))
+    }
+
+    func reportComment(id: Int) async throws {
+        struct Reported: Decodable { let reported: Bool }
+        let _: Reported = try await send("POST", "v1/comments/\(id)/report")
+    }
+
+    // MARK: 승부예측
+
+    func prediction(gameId: String) async throws -> Prediction {
+        try await send("GET", "v1/games/\(gameId)/prediction")
+    }
+
+    func predict(gameId: String, pick: String) async throws -> Prediction {
+        struct Body: Encodable { let pick: String }
+        return try await send("PUT", "v1/games/\(gameId)/prediction", body: Body(pick: pick))
+    }
+
+    func myPredictions() async throws -> PredictionRecord {
+        try await send("GET", "v1/me/predictions")
     }
 
     func deleteDiary(gameId: String) async throws {

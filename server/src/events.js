@@ -21,6 +21,8 @@ export function snapshotOf(detail) {
     bases: s?.bases ?? NO_BASES,
     pitcher: s?.pitcher ? { name: s.pitcher.name, pitches: s.pitcher.pitches ?? null } : null,
     batter: s?.batter ? { name: s.batter.name, avg: s.batter.avg ?? null } : null,
+    // 양 팀 타순이 모두 나왔는가 (경기 전 라인업 발표 알림)
+    lineupsOut: !!(detail.lineups?.away?.length && detail.lineups?.home?.length),
     awayStarter: g.away.starter ?? null,
     homeStarter: g.home.starter ?? null,
     lastSeq: plays.reduce((m, p) => Math.max(m, p.seq ?? 0), 0),
@@ -56,6 +58,10 @@ export function detect(prev, next) {
 
   if (!(prev.awayStarter && prev.homeStarter) && next.awayStarter && next.homeStarter && next.status === 'scheduled') {
     events.push({ type: 'starters', key: key('starters') });
+  }
+  // 네이버는 라인업을 경기 시작 무렵에야 주는 날이 많다. 시작 전에 나온 경우만 알린다.
+  if (!prev.lineupsOut && next.lineupsOut && next.status === 'scheduled') {
+    events.push({ type: 'lineup', key: key('lineup') });
   }
   if (prev.status === 'scheduled' && next.status === 'live') {
     events.push({ type: 'start', key: key('start') });

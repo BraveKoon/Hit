@@ -72,6 +72,8 @@ struct Situation: Codable, Hashable {
     let bases: [Bool]
     let batter: PlayerLine?
     let pitcher: PlayerLine?
+    var runners: [String?]? = nil      // 1·2·3루 주자 이름 (모르면 nil)
+    var next: [LineupEntry]? = nil     // 대기 타석 두 명
 }
 
 struct Play: Codable, Hashable, Identifiable {
@@ -142,6 +144,358 @@ struct GameDetail: Codable, Hashable {
     let lineups: Lineups?
     let pitchers: Pitchers?
     let winRate: WinRate?
+    let fetchedAt: String?   // 서버가 네이버에서 받은 시각. 오래됐으면 "데이터 지연"
+}
+
+extension GameDetail {
+    var fetchedDate: Date? { fetchedAt.flatMap { ISO8601DateFormatter.fractional.date(from: $0) ?? ISO8601DateFormatter().date(from: $0) } }
+}
+
+extension ISO8601DateFormatter {
+    static let fractional: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+}
+
+/// 타석별 홈팀 승리 확률 (%)
+struct WinPoint: Codable, Hashable {
+    let inning: Int
+    let half: String?
+    let home: Double
+}
+
+struct WinTrendResponse: Codable, Hashable {
+    let gameId: String
+    let points: [WinPoint]
+}
+
+// MARK: - 응원톡
+
+struct ChatMessage: Codable, Hashable, Identifiable {
+    let id: Int
+    let team: String?
+    let nickname: String
+    let text: String
+    let at: String
+    let mine: Bool
+}
+
+struct ChatResponse: Codable {
+    let messages: [ChatMessage]
+}
+
+// MARK: - 커뮤니티 (팀 게시판)
+
+struct CommunityPost: Codable, Hashable, Identifiable {
+    let id: Int
+    let team: String
+    let player: String?
+    let title: String
+    let preview: String?          // 목록에서만
+    let body: String?             // 상세에서만
+    let image: String?            // "/v1/uploads/…" (서버 기준 경로)
+    let nickname: String
+    let authorTeam: String?
+    var likes: Int
+    var comments: Int
+    let at: String
+    let mine: Bool
+    var liked: Bool
+    var replies: [PostComment]?   // 상세에서만
+
+    var imageURL: URL? { image.map { SharedSettings.apiBaseURL.appendingPathComponent(String($0.dropFirst())) } }
+}
+
+struct PostComment: Codable, Hashable, Identifiable {
+    let id: Int
+    let nickname: String
+    let team: String?
+    let text: String
+    let at: String
+    let mine: Bool
+}
+
+struct PostsResponse: Codable {
+    let posts: [CommunityPost]
+    let next: Int?
+}
+
+struct LikeResponse: Codable {
+    let likes: Int
+    let liked: Bool
+}
+
+// MARK: - 구장 날씨
+
+struct GameWeather: Codable, Hashable {
+    let gameId: String
+    let stadium: String
+    let dome: Bool
+    let temp: Int?
+    let pop: Int?           // 강수 확률 %
+    let sky: String         // clear · partly · cloudy · fog · rain · snow · storm
+    let label: String       // "맑음"
+    let wind: Double?       // m/s
+    let risk: String        // high · medium · low · dome (우천 취소 가능성)
+    let hours: [WeatherHour]
+    let source: String
+
+    static func symbol(_ sky: String) -> String {
+        switch sky {
+        case "clear": "sun.max.fill"
+        case "partly": "cloud.sun.fill"
+        case "fog": "cloud.fog.fill"
+        case "rain": "cloud.rain.fill"
+        case "snow": "cloud.snow.fill"
+        case "storm": "cloud.bolt.rain.fill"
+        default: "cloud.fill"
+        }
+    }
+}
+
+struct WeatherHour: Codable, Hashable {
+    let time: String        // "18:00"
+    let temp: Int?
+    let pop: Int?
+    let sky: String
+    let label: String
+}
+
+// MARK: - 내 팀 소식
+
+struct NewsResponse: Codable {
+    let team: String
+    let tags: [NewsTag]
+    let items: [NewsItem]
+}
+
+struct NewsTag: Codable, Hashable {
+    let key: String
+    let label: String
+}
+
+struct NewsItem: Codable, Hashable, Identifiable {
+    let id: String
+    let title: String
+    let summary: String
+    let url: String
+    let source: String?
+    let at: String?
+    let tags: [String]
+}
+
+// MARK: - 차단
+
+struct BlockedUser: Codable, Hashable, Identifiable {
+    let id: Int
+    let nickname: String
+    let at: String
+}
+
+struct BlocksResponse: Codable {
+    let blocks: [BlockedUser]
+}
+
+struct BlockResult: Codable {
+    let blocked: Bool
+    let nickname: String
+}
+
+// MARK: - 승부예측
+
+struct Prediction: Codable, Hashable {
+    let gameId: String
+    let open: Bool
+    let away: Int
+    let home: Int
+    let total: Int
+    let myPick: String?      // "away" | "home"
+    let outcome: String?     // 끝난 경기의 승리 팀 쪽
+    let correct: Bool?
+
+    func share(_ side: String) -> Double {
+        guard total > 0 else { return 0.5 }
+        return Double(side == "away" ? away : home) / Double(total)
+    }
+}
+
+struct PredictionRecord: Codable, Hashable {
+    let total: Int
+    let decided: Int
+    let correct: Int
+    let rate: Double?
+    let streak: Int
+}
+
+// MARK: - 포스트시즌 대진표
+
+struct PostseasonResponse: Codable, Hashable {
+    let season: String
+    let active: Bool
+    let champion: String?
+    let teams: [PostseasonTeam]      // 5위부터 1위 순서 (그림 왼쪽부터)
+    let rounds: [PostseasonRound]    // WC · 준PO · PO · KS
+}
+
+struct PostseasonTeam: Codable, Hashable, Identifiable {
+    let code: String
+    let name: String
+    let seed: Int
+    let alive: Bool
+    var id: String { code }
+}
+
+/// low = 아래 시드(도전자), high = 위 시드. 점수도 이 순서
+struct PostseasonRound: Codable, Hashable, Identifiable {
+    let key: String
+    let name: String
+    let label: String
+    let format: String
+    let low: String?
+    let high: String
+    let games: [SeriesGame]
+    let wins: SeriesWins
+    let winner: String?
+    var id: String { key }
+}
+
+struct SeriesGame: Codable, Hashable, Identifiable {
+    let id: String
+    let no: Int
+    let date: String?
+    let status: GameStatus
+    let low: Int?
+    let high: Int?
+}
+
+struct SeriesWins: Codable, Hashable {
+    let low: Int
+    let high: Int
+}
+
+extension PostseasonResponse {
+    /// 지금 치르는 라운드: 도전자가 정해졌고 승자가 아직 없는 첫 라운드
+    var current: PostseasonRound? { rounds.first { $0.low != nil && $0.winner == nil } }
+
+    /// 경기 카드 머리말: ("플레이오프 3차전", "1승 1패 동률" 또는 "삼성 2승 1패 우세")
+    func series(for game: Game) -> (title: String, status: String)? {
+        for r in rounds {
+            guard let g = r.games.first(where: { $0.id == game.id }), let low = r.low else { continue }
+            let status: String
+            if r.wins.low == r.wins.high {
+                status = "\(r.wins.low)승 \(r.wins.high)패 동률"
+            } else {
+                let lead = r.wins.low > r.wins.high ? low : r.high
+                let (w, l) = r.wins.low > r.wins.high ? (r.wins.low, r.wins.high) : (r.wins.high, r.wins.low)
+                status = "\(Team.find(lead)?.short ?? lead) \(w)승 \(l)패" + (r.winner == nil ? " 우세" : " 통과")
+            }
+            return ("\(r.label) \(g.no)차전", status)
+        }
+        return nil
+    }
+}
+
+// MARK: - 경기 프리뷰
+
+struct GamePreview: Codable, Hashable {
+    let gameId: String
+    let info: PreviewInfo
+    let starters: PreviewStarters
+    let teams: PreviewTeams
+    let headToHead: HeadToHead
+    var keyPlayers: KeyPlayers? = nil
+}
+
+/// 오늘의 키플레이어 (팀마다 타자 한 명)
+struct KeyPlayers: Codable, Hashable {
+    let away: KeyPlayer?
+    let home: KeyPlayer?
+}
+
+struct KeyPlayer: Codable, Hashable {
+    let id: String
+    let team: String
+    let name: String
+    let photo: String?
+    let reason: String      // "오늘 라인업 OPS 1위" · "팀 타자 WAR 1위"
+    let line: String        // ".312 · 25홈런 · OPS .950"
+    let war: Double?
+    let avg: Double?
+    let hr: Int?
+    let ops: Double?
+}
+
+struct PreviewInfo: Codable, Hashable {
+    let date: String?
+    let startsAt: String?
+    let stadium: String?
+    let broadcast: String?
+}
+
+struct PreviewStarter: Codable, Hashable {
+    let team: String
+    let name: String?
+    let photo: String?
+    let stats: PlayerStats?
+}
+
+struct PreviewStarters: Codable, Hashable {
+    let away: PreviewStarter
+    let home: PreviewStarter
+}
+
+struct PreviewTeams: Codable, Hashable {
+    let away: Standing?
+    let home: Standing?
+}
+
+/// 올 시즌 맞대결 (원정 팀 기준 승·패)
+struct HeadToHead: Codable, Hashable {
+    let wins: Int
+    let losses: Int
+    let draws: Int
+    let recent: [HeadToHeadGame]
+}
+
+struct HeadToHeadGame: Codable, Hashable, Identifiable {
+    let id: String
+    let date: String?
+    let away: String
+    let home: String
+    let awayScore: Int
+    let homeScore: Int
+}
+
+// MARK: - 오늘의 MVP
+
+struct MvpCandidate: Codable, Hashable, Identifiable {
+    let name: String
+    let team: String
+    let role: String
+    let photo: String?
+    var id: String { "\(team):\(name)" }
+}
+
+struct MvpVote: Codable, Hashable {
+    let team: String
+    let name: String
+}
+
+struct MvpTally: Codable, Hashable {
+    let team: String
+    let name: String
+    let votes: Int
+}
+
+struct MvpResponse: Codable, Hashable {
+    let gameId: String
+    let open: Bool
+    let candidates: [MvpCandidate]
+    let tally: [MvpTally]
+    let total: Int
+    let myVote: MvpVote?
 }
 
 struct Standing: Codable, Hashable, Identifiable {
@@ -188,6 +542,7 @@ struct AuthResponse: Codable {
 struct NotificationPrefs: Codable, Hashable {
     var pregame = true
     var starters = true
+    var lineup = true    // 경기 전 선발 라인업 발표
     var start = true
     var score = true
     var homerun = true
@@ -199,6 +554,7 @@ struct NotificationPrefs: Codable, Hashable {
     var players = true   // 관심 선수 타석 결과·등판·강판
     var hit = false      // 내 팀 안타
     var walk = false     // 내 팀 볼넷·사구
+    var comments = true  // 커뮤니티: 내 글에 댓글
 }
 
 extension NotificationPrefs {
@@ -207,11 +563,12 @@ extension NotificationPrefs {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let d = NotificationPrefs()
         func v(_ k: CodingKeys, _ fallback: Bool) throws -> Bool { try c.decodeIfPresent(Bool.self, forKey: k) ?? fallback }
-        self.init(pregame: try v(.pregame, d.pregame), starters: try v(.starters, d.starters), start: try v(.start, d.start),
+        self.init(pregame: try v(.pregame, d.pregame), starters: try v(.starters, d.starters), lineup: try v(.lineup, d.lineup),
+                  start: try v(.start, d.start),
                   score: try v(.score, d.score), homerun: try v(.homerun, d.homerun), lead: try v(.lead, d.lead),
                   extra: try v(.extra, d.extra), end: try v(.end, d.end), cancel: try v(.cancel, d.cancel),
                   liveActivity: try v(.liveActivity, d.liveActivity), players: try v(.players, d.players),
-                  hit: try v(.hit, d.hit), walk: try v(.walk, d.walk))
+                  hit: try v(.hit, d.hit), walk: try v(.walk, d.walk), comments: try v(.comments, d.comments))
     }
 }
 
@@ -227,6 +584,7 @@ struct FavoritePlayer: Codable, Hashable {
 }
 
 struct PlayerStats: Codable, Hashable {
+    var games: Int? = nil
     let war: Double?
     // 타자
     let avg: Double?
@@ -300,7 +658,9 @@ struct DiaryEntry: Codable, Hashable, Identifiable {
     let memo: String?
     let result: GameResult?
     let game: Game?
+    var verified: Bool? = nil   // 직관 티켓 인증 (인증한 직관만 승률에 센다)
     var id: String { gameId }
+    var isVerified: Bool { verified == true }
 }
 
 /// 승·패·무와 승률 (승률은 무승부 빼고, 기록이 없으면 nil)
@@ -326,6 +686,7 @@ struct DiaryStats: Codable, Hashable {
     let pct: Double?
     let games: Int
     let streak: String?
+    var unverified: Int? = nil       // 티켓 인증 안 해서 승률에서 빠진 직관 수
     let modes: [DiaryBucket]
     let stadiums: [DiaryBucket]
     let opponents: [DiaryBucket]
@@ -386,6 +747,7 @@ enum KST {
     static let clock = formatter("HH:mm")
     static let display = formatter("M월 d일 (E)", korean: true)
     static let short = formatter("MM.dd (E)", korean: true)
+    static let fullDate = formatter("yyyy.MM.dd (E)", korean: true)
 
     static let iso: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
