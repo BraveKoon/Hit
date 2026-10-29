@@ -7,6 +7,7 @@ struct GameLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: GameActivityAttributes.self) { context in
             LockScreenScoreboard(attributes: context.attributes, state: context.state, stale: context.isStale)
+                .font(Typo.style(.body))
                 .activityBackgroundTint(LockScreenScoreboard.tint(for: context.attributes).mix(.black, 0.4))
                 .activitySystemActionForegroundColor(.white)
                 .widgetURL(URL(string: "hit://game/\(context.attributes.gameId)"))
@@ -41,7 +42,7 @@ struct GameLiveActivity: Widget {
             } minimal: {
                 // 다른 앱과 아일랜드를 나눠 쓸 때는 점수만
                 Text("\(s.awayScore):\(s.homeScore)")
-                    .font(.system(size: 12, weight: .heavy, design: .rounded))
+                    .font(Typo.font(12, .heavy))
                     .foregroundStyle(Palette.accent)
                     .minimumScaleFactor(0.6)
                     .contentTransition(.numericText())
@@ -63,7 +64,7 @@ private struct IslandScore: View {
 
     var body: some View {
         Text("\(score)")
-            .font(.system(size: size, weight: .heavy, design: .rounded))
+            .font(Typo.font(size, .heavy))
             .monospacedDigit()
             .foregroundStyle(ahead ? Palette.accent : (final ? Palette.muted : Palette.text))
             .contentTransition(.numericText(value: Double(score)))
@@ -86,7 +87,7 @@ private struct IslandTeam: View {
                 TeamBadge(code: code, size: 40)
                     .background(Circle().fill(Team.color(for: code).opacity(0.35)).blur(radius: 10))
                 Text(name)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Typo.font(11, .semibold))
                     .foregroundStyle(Palette.text.opacity(0.85))
                     .lineLimit(1)
             }
@@ -112,7 +113,7 @@ private struct IslandStatus: View {
                     Circle().fill(Palette.red).frame(width: 6, height: 6)
                 }
                 Text(stale ? "지연" : state.inningText)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(Typo.font(12, .bold))
                     .foregroundStyle(state.isFinal || stale ? Palette.muted : Palette.text)
             }
             .padding(.horizontal, 10)
@@ -151,7 +152,7 @@ struct CountDots: View {
     private func row(_ label: String, _ n: Int, _ max: Int, _ color: Color) -> some View {
         HStack(spacing: 3) {
             Text(label)
-                .font(.system(size: 8, weight: .bold, design: .rounded))
+                .font(Typo.font(8, .bold))
                 .foregroundStyle(Palette.muted)
                 .frame(width: 8)
             ForEach(0..<max, id: \.self) { i in
@@ -175,7 +176,7 @@ private struct IslandPlayBar: View {
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Palette.accent)
                 Text(state.headline.isEmpty ? attributes.stadium : state.headline)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(Typo.font(13, .medium))
                     .foregroundStyle(Palette.text.opacity(0.9))
                     .lineLimit(1)
                 Spacer(minLength: 4)
@@ -225,7 +226,7 @@ struct LockScreenScoreboard: View {
                 player(away: true)
                 VStack(spacing: 6) {
                     Text(stale ? "업데이트 지연" : state.inningText)
-                        .font(.system(size: 11, weight: .bold))
+                        .font(Typo.font(11, .bold))
                         .padding(.horizontal, 9)
                         .padding(.vertical, 3)
                         .background(Capsule().fill(.white.opacity(0.18)))
@@ -238,7 +239,7 @@ struct LockScreenScoreboard: View {
             }
 
             Text(state.headline.isEmpty ? attributes.stadium : state.headline)
-                .font(.system(size: 11.5, weight: .medium))
+                .font(Typo.font(11.5, .medium))
                 .foregroundStyle(.white.opacity(0.85))
                 .lineLimit(1)
                 .padding(.horizontal, 12)
@@ -258,7 +259,7 @@ struct LockScreenScoreboard: View {
 
     private func teamName(_ name: String, alignment: Alignment) -> some View {
         Text(name)
-            .font(.system(size: 17, weight: .heavy))
+            .font(Typo.font(17, .heavy))
             .lineLimit(1)
             .minimumScaleFactor(0.7)
             .frame(maxWidth: .infinity, alignment: alignment)
@@ -266,7 +267,7 @@ struct LockScreenScoreboard: View {
 
     private func score(_ value: Int) -> some View {
         Text("\(value)")
-            .font(.system(size: 28, weight: .heavy, design: .rounded))
+            .font(Typo.font(28, .heavy))
             .monospacedDigit()
             .contentTransition(.numericText(value: Double(value)))
     }
@@ -280,10 +281,10 @@ struct LockScreenScoreboard: View {
         VStack(alignment: away ? .leading : .trailing, spacing: 2) {
             if state.isLive, let name {
                 Text(name)
-                    .font(.system(size: 12.5, weight: .semibold))
+                    .font(Typo.font(12.5, .semibold))
                     .lineLimit(1)
                 Text(sub ?? " ")
-                    .font(.system(size: 10.5, weight: .medium))
+                    .font(Typo.font(10.5, .medium))
                     .monospacedDigit()
                     .foregroundStyle(.white.opacity(0.6))
             }
@@ -343,7 +344,7 @@ struct CountRow: View {
     private func group(_ label: String, _ n: Int, _ max: Int, _ color: Color) -> some View {
         HStack(spacing: 3) {
             Text(label)
-                .font(.system(size: 9.5, weight: .heavy, design: .rounded))
+                .font(Typo.font(9.5, .heavy))
             ForEach(0..<max, id: \.self) { i in
                 Circle()
                     .fill(i < n ? color : .white.opacity(0.25))

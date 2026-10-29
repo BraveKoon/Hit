@@ -56,6 +56,7 @@ targets:
             CFBundleURLSchemes: [hit]
         HITAPIBaseURL: $(HIT_API_BASE_URL)
         HITAppGroup: $(APP_GROUP_ID)
+        UIAppFonts: &fonts [Pretendard-Regular.otf, Pretendard-Medium.otf, Pretendard-SemiBold.otf, Pretendard-Bold.otf, Pretendard-ExtraBold.otf]
     entitlements:
       path: HIT/HIT.entitlements
       properties:
@@ -89,6 +90,7 @@ targets:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
         HITAPIBaseURL: $(HIT_API_BASE_URL)
         HITAppGroup: $(APP_GROUP_ID)
+        UIAppFonts: *fonts
     entitlements:
       path: HITWidgets/HITWidgets.entitlements
       properties:

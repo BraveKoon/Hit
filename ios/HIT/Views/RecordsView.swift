@@ -69,7 +69,7 @@ struct StandingsTable: View {
                 Text("팀").frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 46)
                 ForEach(cols.indices, id: \.self) { i in Text(cols[i].0).frame(width: cols[i].1) }
             }
-            .font(.system(size: 14, weight: .medium))
+            .font(Typo.font(14, .medium))
             .foregroundStyle(Palette.text.opacity(0.85))
             .padding(.vertical, 14)
             Rectangle().fill(Palette.surfaceHigh).frame(height: 2)
@@ -88,9 +88,9 @@ struct StandingsTable: View {
         let gb = t.gamesBehind.map { String(format: "%.1f", $0) } ?? "-"
         return HStack(spacing: 0) {
             HStack(spacing: 10) {
-                Text("\(t.rank)").font(.system(size: 16, weight: .medium)).frame(width: 22)
+                Text("\(t.rank)").font(Typo.font(16, .medium)).frame(width: 22)
                 TeamBadge(code: t.code, size: 38)
-                Text(Team.find(t.code)?.short ?? t.name).font(.system(size: 17, weight: mine ? .heavy : .semibold)).lineLimit(1)
+                Text(Team.find(t.code)?.short ?? t.name).font(Typo.font(17, mine ? .heavy : .semibold)).lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 12)
@@ -101,7 +101,7 @@ struct StandingsTable: View {
                 Text(t.pct.map { String(format: "%.3f", $0) } ?? "-").frame(width: 58)
                 Text(gb).frame(width: 52)
             }
-            .font(.system(size: 17, weight: .regular))
+            .font(Typo.font(17, .regular))
         }
         .foregroundStyle(Palette.text)
         .frame(height: 64)
@@ -131,7 +131,7 @@ struct LeadersTable: View {
                     Text("선수").frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 46)
                     ForEach(heads, id: \.self) { Text($0).frame(width: 46) }
                 }
-                .font(.system(size: 13, weight: .medium))
+                .font(Typo.font(13, .medium))
                 .foregroundStyle(Palette.text.opacity(0.85))
                 .padding(.vertical, 12)
                 Rectangle().fill(Palette.surfaceHigh).frame(height: 2)
@@ -154,13 +154,13 @@ struct LeadersTable: View {
             : [StatFormat.rate(s.avg), StatFormat.int(s.hr), StatFormat.int(s.rbi), StatFormat.rate(s.ops), StatFormat.fixed(s.war)]
         return HStack(spacing: 0) {
             HStack(spacing: 10) {
-                Text("\(rank)").font(.system(size: 15, weight: .medium)).frame(width: 22)
+                Text("\(rank)").font(Typo.font(15, .medium)).frame(width: 22)
                 PlayerAvatar(url: p.photo, name: p.name, team: p.team, size: 38)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(p.name).font(.system(size: 15, weight: .bold)).lineLimit(1)
+                    Text(p.name).font(Typo.font(15, .bold)).lineLimit(1)
                     HStack(spacing: 4) {
                         TeamBadge(code: p.team, size: 14)
-                        Text(Team.find(p.team)?.short ?? p.team).font(.caption2).foregroundStyle(Palette.muted)
+                        Text(Team.find(p.team)?.short ?? p.team).font(Typo.style(.caption2)).foregroundStyle(Palette.muted)
                     }
                 }
             }
@@ -168,7 +168,7 @@ struct LeadersTable: View {
             .padding(.leading, 12)
             ForEach(values.indices, id: \.self) { i in
                 Text(values[i])
-                    .font(.system(size: 14, weight: i == values.count - 1 ? .heavy : .regular))
+                    .font(Typo.font(14, i == values.count - 1 ? .heavy : .regular))
                     .foregroundStyle(i == values.count - 1 ? Palette.accent : Palette.text)
                     .minimumScaleFactor(0.7)
                     .frame(width: 46)

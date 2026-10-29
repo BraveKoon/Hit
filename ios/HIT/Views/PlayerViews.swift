@@ -36,7 +36,7 @@ struct PlayerSearchView: View {
                         }
                     } else {
                         Text("응원하는 선수를 찾아 ★ 를 누르면 타석 결과와 등판·강판을 알려드려요.")
-                            .font(.subheadline)
+                            .font(Typo.style(.subheadline))
                             .foregroundStyle(Palette.muted)
                             .padding(.top, 8)
                     }
@@ -83,11 +83,11 @@ struct PlayerRow: View {
                 HStack(spacing: 12) {
                     PlayerAvatar(url: player.photo, name: player.name, team: player.team, size: 46)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(player.name).font(.system(size: 16, weight: .bold))
+                        Text(player.name).font(Typo.font(16, .bold))
                         HStack(spacing: 5) {
                             TeamBadge(code: player.team, size: 16)
                             Text("\(Team.find(player.team)?.short ?? player.team) · \(player.roleLabel)")
-                                .font(.caption)
+                                .font(Typo.style(.caption))
                                 .foregroundStyle(Palette.muted)
                         }
                     }
@@ -108,10 +108,10 @@ struct FavoriteRow: View {
         HStack(spacing: 12) {
             PlayerAvatar(url: favorite.photo, name: favorite.name, team: favorite.team, size: 44)
             VStack(alignment: .leading, spacing: 3) {
-                Text(favorite.name).font(.system(size: 16, weight: .bold))
+                Text(favorite.name).font(Typo.font(16, .bold))
                 HStack(spacing: 5) {
                     TeamBadge(code: favorite.team, size: 16)
-                    Text(Team.find(favorite.team)?.name ?? favorite.team).font(.caption).foregroundStyle(Palette.muted)
+                    Text(Team.find(favorite.team)?.name ?? favorite.team).font(Typo.style(.caption)).foregroundStyle(Palette.muted)
                 }
             }
             Spacer()
@@ -161,7 +161,7 @@ struct PlayerDetailView: View {
                     statsGrid(p)
                         .appearIn(2)
                     Text("\(String(KST.dayString(Date()).prefix(4))) 정규시즌 기록 · 네이버 스포츠")
-                        .font(.caption)
+                        .font(Typo.style(.caption))
                         .foregroundStyle(Palette.muted)
                 }
                 .padding(16)
@@ -186,14 +186,14 @@ struct PlayerDetailView: View {
         let on = model.isFavorite(team: p.team, name: p.name)
         return VStack(spacing: 12) {
             PlayerAvatar(url: p.photo, name: p.name, team: p.team, size: 112)
-            Text(p.name).font(.system(size: 28, weight: .heavy))
+            Text(p.name).font(Typo.font(28, .heavy))
             HStack(spacing: 6) {
                 TeamBadge(code: p.team, size: 22)
-                Text("\(team?.name ?? p.team) · \(p.roleLabel)").font(.subheadline).foregroundStyle(Palette.text.opacity(0.8))
+                Text("\(team?.name ?? p.team) · \(p.roleLabel)").font(Typo.style(.subheadline)).foregroundStyle(Palette.text.opacity(0.8))
             }
             Button { withAnimation(.snappy) { model.toggleFavorite(p.favorite) } } label: {
                 Label(on ? "관심 선수" : "관심 선수로 추가", systemImage: on ? "star.fill" : "star")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(Typo.font(15, .bold))
                     .padding(.horizontal, 20)
                     .frame(height: 44)
                     .foregroundStyle(on ? Color.black : Palette.text)
@@ -219,9 +219,9 @@ struct PlayerDetailView: View {
         return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
             ForEach(items.indices, id: \.self) { i in
                 VStack(spacing: 6) {
-                    Text(items[i].0).font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
+                    Text(items[i].0).font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted)
                     Text(items[i].1)
-                        .font(.system(size: 22, weight: .heavy, design: .rounded))
+                        .font(Typo.font(22, .heavy))
                         .foregroundStyle(i == 0 ? Palette.accent : Palette.text)
                         .monospacedDigit()
                 }

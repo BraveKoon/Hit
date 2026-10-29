@@ -21,9 +21,9 @@ struct SectionHeader: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(title).font(.title3.weight(.bold))
+            Text(title).font(Typo.style(.title3, .bold))
             Spacer()
-            if let detail { Text(detail).font(.footnote).foregroundStyle(Palette.muted) }
+            if let detail { Text(detail).font(Typo.style(.footnote)).foregroundStyle(Palette.muted) }
         }
         .padding(.top, 10)
     }
@@ -51,7 +51,7 @@ struct StatusPill: View {
             if game.status == .live { Circle().fill(Palette.red).frame(width: 7, height: 7) }
             Text(game.status == .live ? "Live \(game.inningText)" : game.statusLabel)
         }
-        .font(.caption.weight(.bold))
+        .font(Typo.style(.caption, .bold))
         .padding(.horizontal, 9)
         .padding(.vertical, 4)
         .foregroundStyle(foreground)
@@ -87,7 +87,7 @@ struct PlayerAvatar: View {
                 colors: [(Team.find(team)?.color ?? Palette.surfaceHigh), Palette.surfaceHigh],
                 startPoint: .topLeading, endPoint: .bottomTrailing))
             Text(String(name.prefix(1)))
-                .font(.system(size: size * 0.4, weight: .bold))
+                .font(Typo.font(size * 0.4, .bold))
                 .foregroundStyle(.white.opacity(0.9))
             if let url, let u = URL(string: url) {
                 AsyncImage(url: u, transaction: Transaction(animation: .easeOut(duration: 0.2))) { phase in
@@ -136,7 +136,7 @@ struct PrimaryButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.headline)
+            .font(Typo.style(.headline))
             .frame(maxWidth: .infinity)
             .frame(height: 54)
             .foregroundStyle(text)
@@ -169,7 +169,7 @@ struct TeamPicker: View {
                 Button { onPick(team.code) } label: {
                     HStack(spacing: 10) {
                         TeamBadge(code: team.code, size: 36)
-                        Text(team.name).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.8)
+                        Text(team.name).font(Typo.style(.subheadline, .semibold)).lineLimit(1).minimumScaleFactor(0.8)
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, 12)
@@ -243,7 +243,7 @@ struct PillChips<Item: Hashable>: View {
                     let on = item == selection
                     Button { withAnimation(.snappy) { selection = item } } label: {
                         Text(title)
-                            .font(.system(size: 16, weight: on ? .bold : .medium))
+                            .font(Typo.font(16, on ? .bold : .medium))
                             .padding(.horizontal, 18)
                             .frame(height: 42)
                             .foregroundStyle(on ? Color.black : Palette.muted)
@@ -278,7 +278,7 @@ struct FloatingTabBar: View {
                 Button { withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { selection = tab } } label: {
                     HStack(spacing: 8) {
                         Image(systemName: icon).font(.system(size: 19, weight: .bold))
-                        if on { Text(title).font(.system(size: 16, weight: .heavy)).fixedSize() }
+                        if on { Text(title).font(Typo.font(16, .heavy)).fixedSize() }
                     }
                     .foregroundStyle(on ? Color.black : Palette.text)
                     .frame(minWidth: 52, minHeight: 52)
@@ -366,10 +366,10 @@ struct HomeRunBurst: View {
                 }
                 VStack(spacing: 6) {
                     Text("HOME RUN!")
-                        .font(.system(size: 46, weight: .black, design: .rounded))
+                        .font(Typo.font(46, .black))
                         .foregroundStyle(Palette.accent)
                         .shadow(color: Palette.accent.opacity(0.6), radius: 18)
-                    Text(name).font(.title3.weight(.heavy)).foregroundStyle(.white)
+                    Text(name).font(Typo.style(.title3, .heavy)).foregroundStyle(.white)
                 }
                 .scaleEffect(t < 0.22 ? 0.4 + t / 0.22 * 0.8 : max(1, 1.2 - (t - 0.22) * 0.9))
                 .opacity(t > 1.6 ? max(0, 1 - (t - 1.6) / 0.4) : 1)
@@ -440,7 +440,7 @@ struct StaleBanner: View {
 
     var body: some View {
         Label(text, systemImage: systemImage)
-            .font(.footnote.weight(.semibold))
+            .font(Typo.style(.footnote, .semibold))
             .foregroundStyle(Palette.accent)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 14)

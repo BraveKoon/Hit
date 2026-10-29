@@ -86,7 +86,7 @@ struct GameDetailView: View {
                     Button { showDiary = true } label: {
                         Label(recorded ? "직관 기록됨" : "직관 기록", systemImage: recorded ? "ticket.fill" : "ticket")
                             .labelStyle(.titleAndIcon)
-                            .font(.footnote.weight(.bold))
+                            .font(Typo.style(.footnote, .bold))
                             .foregroundStyle(Palette.accent)
                     }
                     .symbolEffect(.bounce, value: recorded)
@@ -176,14 +176,14 @@ struct GameDetailView: View {
                 } label: {
                     Label(activityOn ? "잠금화면에서 내리기" : "잠금화면에 실시간 점수 띄우기",
                           systemImage: activityOn ? "lock.open.fill" : "lock.iphone")
-                        .font(.subheadline.weight(.semibold))
+                        .font(Typo.style(.subheadline, .semibold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
                         .foregroundStyle(activityOn ? Palette.text : Palette.accent)
                         .background(activityOn ? Palette.surfaceHigh : Palette.accent.opacity(0.14), in: Capsule())
                 }
                 if let activityError {
-                    Text(activityError).font(.caption).foregroundStyle(Palette.red)
+                    Text(activityError).font(Typo.style(.caption)).foregroundStyle(Palette.red)
                 }
             }
         }
@@ -201,17 +201,18 @@ struct ScoreHero: View {
                 StatusPill(game: game)
                 Spacer()
                 Text([game.startDate.map { KST.display.string(from: $0) }, game.stadium].compactMap { $0 }.joined(separator: " · "))
-                    .font(.caption)
+                    .font(Typo.style(.caption))
                     .foregroundStyle(Palette.text.opacity(0.7))
             }
             HStack {
                 team(game.away, won: game.winner == "away")
                 Spacer()
                 if game.hasScore {
-                    Text("\(game.away.score ?? 0)  :  \(game.home.score ?? 0)")
-                        .font(.system(size: 44, weight: .heavy, design: .rounded))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        scoreText(game.away.score, dim: game.winner == "home")
+                        Text(":").font(Typo.font(28, .medium)).foregroundStyle(Palette.muted).offset(y: -5)
+                        scoreText(game.home.score, dim: game.winner == "away")
+                    }
                         // 점수가 바뀌면 한 번 튀고 강조색 빛이 번진다
                         .keyframeAnimator(initialValue: 0.0, trigger: (game.away.score ?? 0) + (game.home.score ?? 0)) { view, k in
                             view
@@ -225,8 +226,8 @@ struct ScoreHero: View {
                         }
                 } else {
                     VStack(spacing: 2) {
-                        Text(game.clockText).font(.system(size: 34, weight: .heavy, design: .rounded))
-                        Text(game.broadcast ?? "경기 시작").font(.caption2).foregroundStyle(Palette.muted)
+                        Text(game.clockText).font(Typo.font(34, .heavy))
+                        Text(game.broadcast ?? "경기 시작").font(Typo.style(.caption2)).foregroundStyle(Palette.muted)
                     }
                 }
                 Spacer()
@@ -245,12 +246,20 @@ struct ScoreHero: View {
         .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(.white.opacity(0.08), lineWidth: 1))
     }
 
+    /// 끝난 경기는 진 팀 점수를 흐리게 (이긴 팀은 그대로)
+    private func scoreText(_ value: Int?, dim: Bool) -> some View {
+        Text("\(value ?? 0)")
+            .font(Typo.score(48))
+            .foregroundStyle(Palette.text.opacity(dim ? 0.35 : 1))
+            .contentTransition(.numericText(value: Double(value ?? 0)))
+    }
+
     private func team(_ s: GameSide, won: Bool) -> some View {
         VStack(spacing: 7) {
             TeamBadge(code: s.code, size: 56)
-            Text(s.name).font(.subheadline.weight(.bold))
+            Text(s.name).font(Typo.style(.subheadline, .bold))
             Text(won ? "승리" : " ")
-                .font(.caption2.weight(.heavy))
+                .font(Typo.style(.caption2, .heavy))
                 .foregroundStyle(Palette.accent)
         }
         .frame(width: 86)
@@ -267,7 +276,7 @@ struct DetailTabs: View {
                 Button { withAnimation(.snappy) { selection = t } } label: {
                     VStack(spacing: 8) {
                         Text(t.rawValue)
-                            .font(.subheadline.weight(selection == t ? .bold : .medium))
+                            .font(Typo.style(.subheadline, selection == t ? .bold : .medium))
                             .foregroundStyle(selection == t ? Palette.text : Palette.muted)
                         ZStack {
                             Capsule().fill(.clear).frame(height: 3)
@@ -354,7 +363,7 @@ struct RelaySection: View {
                 SectionHeader(title: "문자중계")
                 Toggle("투구 보기", isOn: $showPitches)
                     .toggleStyle(.button)
-                    .font(.caption.weight(.semibold))
+                    .font(Typo.style(.caption, .semibold))
                     .tint(Palette.accent)
                     .padding(.top, 10)
             }
@@ -424,7 +433,7 @@ struct InningChips: View {
                                     Circle().fill(Palette.red).frame(width: 6, height: 6)
                                 }
                                 Text("\(n)회")
-                                    .font(.system(size: 14, weight: on ? .bold : .medium))
+                                    .font(Typo.font(14, on ? .bold : .medium))
                                     .monospacedDigit()
                             }
                             .padding(.horizontal, 14)
@@ -471,7 +480,7 @@ struct FieldCard: View {
 
     private func count(_ label: String, _ n: Int, of max: Int, color: Color) -> some View {
         HStack(spacing: 7) {
-            Text(label).font(.system(.callout, design: .rounded).weight(.heavy)).foregroundStyle(Palette.muted).frame(width: 16)
+            Text(label).font(Typo.style(.callout, .heavy)).foregroundStyle(Palette.muted).frame(width: 16)
             ForEach(0..<max, id: \.self) { i in
                 Circle().fill(i < n ? color : Color.white.opacity(0.1)).frame(width: 14, height: 14)
                     .shadow(color: i < n ? color.opacity(0.6) : .clear, radius: 4)
@@ -528,7 +537,7 @@ struct MatchupCard: View {
         Card {
             HStack(alignment: .top, spacing: 12) {
                 person("투수", situation.pitcher, team: pitchingTeam)
-                Text("VS").font(.caption.weight(.heavy)).foregroundStyle(Palette.muted).padding(.top, 24)
+                Text("VS").font(Typo.style(.caption, .heavy)).foregroundStyle(Palette.muted).padding(.top, 24)
                 person("타자", situation.batter, team: battingTeam)
             }
         }
@@ -537,10 +546,10 @@ struct MatchupCard: View {
     private func person(_ role: String, _ p: PlayerLine?, team: String) -> some View {
         VStack(spacing: 6) {
             PlayerAvatar(url: p?.photo, name: p?.name ?? role, team: team, size: 58)
-            Text(role).font(.caption2.weight(.bold)).foregroundStyle(Palette.muted)
-            Text(p?.name ?? "-").font(.subheadline.weight(.bold))
+            Text(role).font(Typo.style(.caption2, .bold)).foregroundStyle(Palette.muted)
+            Text(p?.name ?? "-").font(Typo.style(.subheadline, .bold))
             if let line = p?.line {
-                Text(line).font(.caption2).foregroundStyle(Palette.muted).multilineTextAlignment(.center).lineLimit(2)
+                Text(line).font(Typo.style(.caption2)).foregroundStyle(Palette.muted).multilineTextAlignment(.center).lineLimit(2)
             }
         }
         .frame(maxWidth: .infinity)
@@ -554,21 +563,21 @@ struct PitchCard: View {
     var body: some View {
         Card {
             VStack(alignment: .leading, spacing: 12) {
-                Text("이번 타석 투구").font(.subheadline.weight(.bold))
+                Text("이번 타석 투구").font(Typo.style(.subheadline, .bold))
                 HStack(alignment: .top, spacing: 14) {
                     StrikeZoneView(pitches: pitches).frame(width: 112, height: 136)
                     VStack(alignment: .leading, spacing: 7) {
                         ForEach(pitches) { p in
                             HStack(spacing: 8) {
                                 Text("\(p.n)")
-                                    .font(.caption2.weight(.heavy))
+                                    .font(Typo.style(.caption2, .heavy))
                                     .frame(width: 18, height: 18)
                                     .background(StrikeZoneView.color(for: p.result), in: Circle())
                                     .foregroundStyle(.black)
-                                Text(p.text).font(.caption.weight(.semibold))
+                                Text(p.text).font(Typo.style(.caption, .semibold))
                                 Spacer(minLength: 0)
                                 Text([p.pitchType, p.speed.map { "\(Int($0))km" }].compactMap { $0 }.joined(separator: " "))
-                                    .font(.caption2)
+                                    .font(Typo.style(.caption2))
                                     .foregroundStyle(Palette.muted)
                             }
                         }
@@ -609,7 +618,7 @@ struct StrikeZoneView: View {
                 guard let x = p.x, let z = p.z else { continue }
                 let c = pt(x, z), r: CGFloat = 9
                 ctx.fill(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)), with: .color(Self.color(for: p.result)))
-                ctx.draw(Text("\(p.n)").font(.system(size: 10, weight: .heavy)).foregroundColor(.black), at: c)
+                ctx.draw(Text("\(p.n)").font(Typo.font(10, .heavy)).foregroundColor(.black), at: c)
             }
         }
         .background(Palette.surfaceHigh.opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
@@ -623,10 +632,10 @@ struct StartersCard: View {
     var body: some View {
         Card {
             VStack(spacing: 14) {
-                Text("선발 투수").font(.subheadline.weight(.bold)).frame(maxWidth: .infinity, alignment: .leading)
+                Text("선발 투수").font(Typo.style(.subheadline, .bold)).frame(maxWidth: .infinity, alignment: .leading)
                 HStack {
                     starter(game.away)
-                    Text("VS").font(.caption.weight(.heavy)).foregroundStyle(Palette.muted)
+                    Text("VS").font(Typo.style(.caption, .heavy)).foregroundStyle(Palette.muted)
                     starter(game.home)
                 }
             }
@@ -635,8 +644,8 @@ struct StartersCard: View {
     private func starter(_ s: GameSide) -> some View {
         VStack(spacing: 8) {
             PlayerAvatar(url: s.starterPhoto, name: s.starter ?? s.name, team: s.code, size: 72)
-            Text(s.starter ?? "미정").font(.headline)
-            Text(s.name).font(.caption).foregroundStyle(Palette.muted)
+            Text(s.starter ?? "미정").font(Typo.style(.headline))
+            Text(s.name).font(Typo.style(.caption)).foregroundStyle(Palette.muted)
         }
         .frame(maxWidth: .infinity)
     }
@@ -648,17 +657,20 @@ struct DecisionCard: View {
     let pitchers: Pitchers
     var body: some View {
         Card {
+            // 기록이 없는 쪽(패전 투수가 비어 있는 날 등)은 칸째 뺀다
             HStack {
-                decision("승리 투수", pitchers.win, color: Palette.accent)
-                Rectangle().fill(.white.opacity(0.07)).frame(width: 1, height: 40)
-                decision("패전 투수", pitchers.lose, color: Palette.muted)
+                if pitchers.win != nil { decision("승리 투수", pitchers.win, color: Palette.accent) }
+                if pitchers.win != nil && pitchers.lose != nil {
+                    Rectangle().fill(.white.opacity(0.07)).frame(width: 1, height: 40)
+                }
+                if pitchers.lose != nil { decision("패전 투수", pitchers.lose, color: Palette.muted) }
             }
         }
     }
     private func decision(_ label: String, _ name: String?, color: Color) -> some View {
         VStack(spacing: 4) {
-            Text(label).font(.caption.weight(.semibold)).foregroundStyle(color)
-            Text(name ?? "-").font(.headline)
+            Text(label).font(Typo.style(.caption, .semibold)).foregroundStyle(color)
+            Text(name ?? "-").font(Typo.style(.headline))
         }
         .frame(maxWidth: .infinity)
     }
@@ -696,7 +708,7 @@ struct PlayTimeline: View {
             ForEach(halves) { half in
                 VStack(alignment: .leading, spacing: 0) {
                     Text(half.title)
-                        .font(.caption.weight(.bold))
+                        .font(Typo.style(.caption, .bold))
                         .foregroundStyle(Palette.muted)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
@@ -722,14 +734,14 @@ struct PlayTimeline: View {
                              team: play.half == "top" ? game.away.code : game.home.code, size: 26)
             }
             Text(play.text)
-                .font(play.isPitch ? .caption : .subheadline.weight(hr || scored ? .semibold : .regular))
+                .font(play.isPitch ? Typo.style(.caption) : Typo.style(.subheadline, hr || scored ? .semibold : .regular))
                 .foregroundStyle(play.isPitch ? Palette.muted : Palette.text)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if hr {
-                Text("홈런").font(.caption2.weight(.heavy)).padding(.horizontal, 6).padding(.vertical, 2)
+                Text("홈런").font(Typo.style(.caption2, .heavy)).padding(.horizontal, 6).padding(.vertical, 2)
                     .background(Palette.red.opacity(0.2), in: Capsule()).foregroundStyle(Palette.red)
             } else if scored {
-                Text("득점").font(.caption2.weight(.heavy)).padding(.horizontal, 6).padding(.vertical, 2)
+                Text("득점").font(Typo.style(.caption2, .heavy)).padding(.horizontal, 6).padding(.vertical, 2)
                     .background(Palette.accent.opacity(0.2), in: Capsule()).foregroundStyle(Palette.accent)
             }
         }
@@ -762,16 +774,16 @@ struct LineupTab: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
                 TeamBadge(code: side.code, size: 24)
-                Text(side.name).font(.subheadline.weight(.bold))
+                Text(side.name).font(Typo.style(.subheadline, .bold))
             }
             .padding(12)
             ForEach(players) { p in
                 HStack(spacing: 8) {
-                    Text("\(p.order)").font(.caption.weight(.heavy)).foregroundStyle(Palette.accent).frame(width: 14)
+                    Text("\(p.order)").font(Typo.style(.caption, .heavy)).foregroundStyle(Palette.accent).frame(width: 14)
                     PlayerAvatar(url: p.photo, name: p.name, team: side.code, size: 30)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(p.name).font(.subheadline.weight(.semibold)).lineLimit(1)
-                        Text(p.pos).font(.caption2).foregroundStyle(Palette.muted)
+                        Text(p.name).font(Typo.style(.subheadline, .semibold)).lineLimit(1)
+                        Text(p.pos).font(Typo.style(.caption2)).foregroundStyle(Palette.muted)
                     }
                     Spacer(minLength: 0)
                 }
@@ -840,7 +852,7 @@ struct LineScoreView: View {
         GridRow {
             HStack(spacing: 6) {
                 TeamBadge(code: side.code, size: 22)
-                Text(side.name).font(.caption.weight(.bold))
+                Text(side.name).font(Typo.style(.caption, .bold))
             }
             .frame(width: 70, alignment: .leading)
             .padding(.leading, 10)
@@ -857,7 +869,7 @@ struct LineScoreView: View {
 
     private func cell(_ text: String, header: Bool = false, total: Bool = false, live: Bool = false, scored: Bool = false) -> some View {
         Text(text)
-            .font(header ? .caption2.weight(.bold) : .system(.footnote, design: .rounded).weight(total || scored ? .heavy : .medium))
+            .font(header ? Typo.style(.caption2, .bold) : Typo.style(.footnote, total || scored ? .heavy : .medium))
             .foregroundStyle(header ? Palette.muted : total ? Palette.accent : scored ? Palette.text : Palette.muted)
             .frame(width: 28, height: 34)
             .background(live ? Palette.accent.opacity(0.16) : .clear)
@@ -873,11 +885,11 @@ struct WinRateBar: View {
         Card {
             VStack(spacing: 10) {
                 HStack {
-                    Text("\(Int(rate.away.rounded()))%").font(.headline.monospacedDigit())
+                    Text("\(Int(rate.away.rounded()))%").font(Typo.style(.headline).monospacedDigit())
                     Spacer()
-                    Text("승리 확률").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
+                    Text("승리 확률").font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted)
                     Spacer()
-                    Text("\(Int(rate.home.rounded()))%").font(.headline.monospacedDigit())
+                    Text("\(Int(rate.home.rounded()))%").font(Typo.style(.headline).monospacedDigit())
                 }
                 GeometryReader { geo in
                     let total = max(rate.away + rate.home, 1)
@@ -892,7 +904,7 @@ struct WinRateBar: View {
                     Spacer()
                     Text(game.home.name)
                 }
-                .font(.caption)
+                .font(Typo.style(.caption))
                 .foregroundStyle(Palette.muted)
             }
         }
@@ -941,11 +953,11 @@ struct WinTrendChart: View {
         Card {
             VStack(spacing: 10) {
                 HStack {
-                    Text("\(Int((100 - last).rounded()))%").font(.headline.monospacedDigit())
+                    Text("\(Int((100 - last).rounded()))%").font(Typo.style(.headline).monospacedDigit())
                     Spacer()
-                    Text("승리 확률 흐름").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
+                    Text("승리 확률 흐름").font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted)
                     Spacer()
-                    Text("\(Int(last.rounded()))%").font(.headline.monospacedDigit())
+                    Text("\(Int(last.rounded()))%").font(Typo.style(.headline).monospacedDigit())
                 }
                 Chart {
                     RuleMark(y: .value("반반", 50))
@@ -972,7 +984,7 @@ struct WinTrendChart: View {
                         AxisGridLine().foregroundStyle(.white.opacity(0.08))
                         AxisValueLabel {
                             if let i = value.as(Int.self), points.indices.contains(i) {
-                                Text("\(points[i].inning)회").font(.caption2).foregroundStyle(Palette.muted)
+                                Text("\(points[i].inning)회").font(Typo.style(.caption2)).foregroundStyle(Palette.muted)
                             }
                         }
                     }
@@ -986,7 +998,7 @@ struct WinTrendChart: View {
                     Spacer()
                     Text(game.home.name)
                 }
-                .font(.caption)
+                .font(Typo.style(.caption))
                 .foregroundStyle(Palette.muted)
             }
         }
@@ -997,7 +1009,7 @@ struct WinTrendChart: View {
 
     private func sideLabel(_ name: String, _ color: Color) -> some View {
         Text("\(name) 유리")
-            .font(.caption2.weight(.semibold))
+            .font(Typo.style(.caption2, .semibold))
             .foregroundStyle(color.opacity(0.9))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
@@ -1023,10 +1035,10 @@ struct MvpCard: View {
                 Card {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack(alignment: .firstTextBaseline) {
-                            Text("오늘의 MVP").font(.headline)
+                            Text("오늘의 MVP").font(Typo.style(.headline))
                             Spacer()
                             Text(ballot.total > 0 ? "\(ballot.total)명 참여" : "첫 표를 던져 보세요")
-                                .font(.caption).foregroundStyle(Palette.muted)
+                                .font(Typo.style(.caption)).foregroundStyle(Palette.muted)
                         }
                         if canVote && (choosing || ballot.myVote == nil) {
                             candidates(ballot)
@@ -1034,7 +1046,7 @@ struct MvpCard: View {
                             results(ballot)
                         }
                         if let failed {
-                            Text(failed).font(.caption).foregroundStyle(Palette.red)
+                            Text(failed).font(Typo.style(.caption)).foregroundStyle(Palette.red)
                         }
                     }
                 }
@@ -1056,7 +1068,7 @@ struct MvpCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 6) {
                         TeamBadge(code: team, size: 18)
-                        Text(Team.find(team)?.name ?? team).font(.caption.weight(.bold)).foregroundStyle(Palette.muted)
+                        Text(Team.find(team)?.name ?? team).font(Typo.style(.caption, .bold)).foregroundStyle(Palette.muted)
                     }
                     ScrollView(.horizontal) {
                         HStack(spacing: 12) {
@@ -1065,8 +1077,8 @@ struct MvpCard: View {
                                     VStack(spacing: 5) {
                                         PlayerAvatar(url: c.photo, name: c.name, team: c.team, size: 52)
                                             .overlay(Circle().strokeBorder(b.myVote?.name == c.name && b.myVote?.team == c.team ? Palette.accent : .clear, lineWidth: 2))
-                                        Text(c.name).font(.caption.weight(.semibold)).lineLimit(1)
-                                        Text(c.role).font(.caption2).foregroundStyle(Palette.muted).lineLimit(1)
+                                        Text(c.name).font(Typo.style(.caption, .semibold)).lineLimit(1)
+                                        Text(c.role).font(Typo.style(.caption2)).foregroundStyle(Palette.muted).lineLimit(1)
                                     }
                                     .frame(width: 66)
                                 }
@@ -1086,7 +1098,7 @@ struct MvpCard: View {
     private func results(_ b: MvpResponse) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             if b.tally.isEmpty {
-                Text("아직 투표가 없어요").font(.subheadline).foregroundStyle(Palette.muted)
+                Text("아직 투표가 없어요").font(Typo.style(.subheadline)).foregroundStyle(Palette.muted)
             }
             ForEach(b.tally.prefix(5), id: \.self) { t in
                 let mine = b.myVote?.team == t.team && b.myVote?.name == t.name
@@ -1094,7 +1106,7 @@ struct MvpCard: View {
                 let photo = b.candidates.first { $0.team == t.team && $0.name == t.name }?.photo
                 HStack(spacing: 10) {
                     PlayerAvatar(url: photo, name: t.name, team: t.team, size: 32)
-                    Text(t.name).font(.subheadline.weight(mine ? .heavy : .semibold)).frame(width: 64, alignment: .leading).lineLimit(1)
+                    Text(t.name).font(Typo.style(.subheadline, mine ? .heavy : .semibold)).frame(width: 64, alignment: .leading).lineLimit(1)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule().fill(.white.opacity(0.08))
@@ -1104,17 +1116,17 @@ struct MvpCard: View {
                     }
                     .frame(height: 8)
                     Text("\(Int((share * 100).rounded()))%")
-                        .font(.footnote.weight(.bold)).monospacedDigit().frame(width: 40, alignment: .trailing)
+                        .font(Typo.style(.footnote, .bold)).monospacedDigit().frame(width: 40, alignment: .trailing)
                 }
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("\(t.name) \(t.votes)표" + (mine ? ", 내가 고른 선수" : ""))
             }
             if canVote {
                 Button("다시 고르기") { withAnimation(.snappy) { choosing = true } }
-                    .font(.footnote.weight(.semibold))
+                    .font(Typo.style(.footnote, .semibold))
                     .foregroundStyle(Palette.accent)
             } else {
-                Text("로그인하면 투표할 수 있어요").font(.footnote).foregroundStyle(Palette.muted)
+                Text("로그인하면 투표할 수 있어요").font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
             }
         }
     }

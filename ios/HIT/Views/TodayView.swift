@@ -25,8 +25,8 @@ struct TodayView: View {
                     AppHeader { model.todayPath.append(.search) }
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(KST.short.string(from: date)).font(.subheadline).foregroundStyle(Palette.muted)
-                            Text(isToday ? "오늘의 경기" : "이날의 경기").font(.system(size: 22, weight: .heavy))
+                            Text(KST.short.string(from: date)).font(Typo.style(.subheadline)).foregroundStyle(Palette.muted)
+                            Text(isToday ? "오늘의 경기" : "이날의 경기").font(Typo.font(22, .heavy))
                         }
                         Spacer()
                         Button { withAnimation(.snappy) { showDates.toggle() } } label: {
@@ -36,7 +36,7 @@ struct TodayView: View {
                         .buttonStyle(.plain)
                     }
                     if showDates { DateStrip(selection: $date).transition(.move(edge: .top).combined(with: .opacity)) }
-                    Text(greeting).font(.subheadline.weight(.semibold)).foregroundStyle(.white.opacity(0.8))
+                    Text(greeting).font(Typo.style(.subheadline, .semibold)).foregroundStyle(.white.opacity(0.8))
                     content
                     FavoritesStrip { model.todayPath.append($0) }
                         .appearIn(4)
@@ -107,7 +107,7 @@ struct TodayView: View {
                         HStack(spacing: 12) {
                             TeamBadge(code: team.code, size: 40)
                             Text("\(team.name)는 이날 경기가 없어요")
-                                .font(.subheadline)
+                                .font(Typo.style(.subheadline))
                                 .foregroundStyle(Palette.muted)
                         }
                     }
@@ -177,9 +177,9 @@ struct DateStrip: View {
                         Button { withAnimation(.snappy) { selection = day } } label: {
                             VStack(spacing: 4) {
                                 Text(today ? "오늘" : Self.weekday.string(from: day))
-                                    .font(.caption2.weight(.semibold))
+                                    .font(Typo.style(.caption2, .semibold))
                                 Text("\(KST.calendar.component(.day, from: day))")
-                                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                                    .font(Typo.font(17, .bold))
                             }
                             .frame(width: 46, height: 58)
                             .foregroundStyle(on ? Color.black : today ? Palette.accent : Palette.text)
@@ -209,7 +209,7 @@ struct MyTeamHero: View {
                 LivePill(game: game)
                 Spacer()
                 Text([game.clockText, game.stadium].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "  "))
-                    .font(.subheadline.weight(.medium))
+                    .font(Typo.style(.subheadline, .medium))
                     .foregroundStyle(.white.opacity(0.8))
             }
             HStack(alignment: .center) {
@@ -217,13 +217,13 @@ struct MyTeamHero: View {
                 Spacer(minLength: 0)
                 VStack(spacing: 10) {
                     Text(game.status == .live ? game.inningText : game.status == .final ? "경기 종료" : "경기 전")
-                        .font(.footnote.weight(.bold))
+                        .font(Typo.style(.footnote, .bold))
                         .padding(.horizontal, 12).padding(.vertical, 5)
                         .glassCapsule()
                     HStack(alignment: .firstTextBaseline, spacing: 14) {
-                        score(game.away.score)
-                        Text("VS").font(.system(size: 15, weight: .heavy)).foregroundStyle(.white.opacity(0.45))
-                        score(game.home.score)
+                        score(game.away.score, dim: game.winner == "home")
+                        Text("VS").font(Typo.font(14, .semibold)).foregroundStyle(.white.opacity(0.45))
+                        score(game.home.score, dim: game.winner == "away")
                     }
                 }
                 Spacer(minLength: 0)
@@ -234,7 +234,7 @@ struct MyTeamHero: View {
                 if game.status == .live { Circle().fill(Palette.red).frame(width: 9, height: 9) }
                 Text(buttonTitle)
             }
-            .font(.subheadline.weight(.semibold))
+            .font(Typo.style(.subheadline, .semibold))
             .frame(maxWidth: .infinity)
             .frame(height: 46)
             .glassCard(14)
@@ -258,10 +258,11 @@ struct MyTeamHero: View {
         }
     }
 
-    private func score(_ v: Int?) -> some View {
+    /// 끝난 경기는 진 팀 점수를 흐리게
+    private func score(_ v: Int?, dim: Bool) -> some View {
         Text(game.hasScore ? "\(v ?? 0)" : "-")
-            .font(.system(size: 44, weight: .heavy, design: .rounded))
-            .monospacedDigit()
+            .font(Typo.score(44))
+            .foregroundStyle(Palette.text.opacity(dim ? 0.35 : 1))
             .contentTransition(.numericText(value: Double(v ?? 0)))
             .animation(.snappy, value: v)
             .keyframeAnimator(initialValue: 1.0, trigger: v) { view, scale in
@@ -277,7 +278,7 @@ struct MyTeamHero: View {
     private func side(_ s: GameSide) -> some View {
         VStack(spacing: 10) {
             TeamBadge(code: s.code, size: 76)
-            Text(Team.find(s.code)?.name ?? s.name).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.8)
+            Text(Team.find(s.code)?.name ?? s.name).font(Typo.style(.subheadline, .semibold)).lineLimit(1).minimumScaleFactor(0.8)
         }
         .frame(width: 100)
     }
@@ -291,7 +292,7 @@ struct LivePill: View {
             if game.status == .live { Circle().fill(Palette.red).frame(width: 8, height: 8) }
             Text(game.status == .live ? "Live" : game.status == .final ? "종료" : game.statusLabel)
         }
-        .font(.subheadline.weight(.bold))
+        .font(Typo.style(.subheadline, .bold))
         .foregroundStyle(game.status == .live ? Color.white : .white.opacity(0.8))
         .padding(.horizontal, 12).padding(.vertical, 6)
         .background(game.status == .live ? Palette.red.opacity(0.28) : .white.opacity(0.12), in: Capsule())
@@ -308,20 +309,22 @@ struct GameCard: View {
                 if game.status == .live {
                     LivePill(game: game).scaleEffect(0.85, anchor: .leading)
                 } else {
-                    Text(game.status == .final ? "종료" : "예정").font(.caption.weight(.bold)).foregroundStyle(Palette.muted)
+                    Text(game.status == .final ? "종료" : "예정").font(Typo.style(.caption, .bold)).foregroundStyle(Palette.muted)
                 }
-                Text("\(game.clockText) \(game.stadium ?? "")").font(.caption).foregroundStyle(Palette.muted).lineLimit(1)
+                Text("\(game.clockText) \(game.stadium ?? "")").font(Typo.style(.caption)).foregroundStyle(Palette.muted).lineLimit(1)
             }
             .frame(width: 78, alignment: .leading)
             team(game.away)
             Text(game.hasScore ? "\(game.away.score ?? 0)" : "")
-                .font(.system(size: 26, weight: .heavy, design: .rounded)).monospacedDigit().frame(width: 30)
+                .font(Typo.score(26)).frame(width: 30)
+                .foregroundStyle(Palette.text.opacity(game.winner == "home" ? 0.35 : 1))
             Text(game.status == .live ? game.inningText : game.status == .final ? "종료" : game.clockText)
-                .font(.caption.weight(.bold))
+                .font(Typo.style(.caption, .bold))
                 .padding(.horizontal, 9).padding(.vertical, 4)
                 .glassCapsule()
             Text(game.hasScore ? "\(game.home.score ?? 0)" : "")
-                .font(.system(size: 26, weight: .heavy, design: .rounded)).monospacedDigit().frame(width: 30)
+                .font(Typo.score(26)).frame(width: 30)
+                .foregroundStyle(Palette.text.opacity(game.winner == "away" ? 0.35 : 1))
             team(game.home)
         }
         .padding(.horizontal, 14)
@@ -332,7 +335,7 @@ struct GameCard: View {
     private func team(_ s: GameSide) -> some View {
         VStack(spacing: 6) {
             TeamBadge(code: s.code, size: 40)
-            Text(s.name).font(.caption.weight(.semibold)).lineLimit(1)
+            Text(s.name).font(Typo.style(.caption, .semibold)).lineLimit(1)
         }
         .frame(maxWidth: .infinity)
     }
@@ -351,8 +354,8 @@ struct FavoritesStrip: View {
                     HStack(spacing: 12) {
                         Image(systemName: "star.fill").foregroundStyle(Palette.accent)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("관심 선수를 추가해 보세요").font(.subheadline.weight(.bold))
-                            Text("타석 결과, 등판·강판을 바로 알려드려요").font(.caption).foregroundStyle(Palette.muted)
+                            Text("관심 선수를 추가해 보세요").font(Typo.style(.subheadline, .bold))
+                            Text("타석 결과, 등판·강판을 바로 알려드려요").font(Typo.style(.caption)).foregroundStyle(Palette.muted)
                         }
                         Spacer()
                         Image(systemName: "plus.circle.fill").font(.title2).foregroundStyle(Palette.accent)
@@ -369,7 +372,7 @@ struct FavoritesStrip: View {
                                 VStack(spacing: 6) {
                                     PlayerAvatar(url: fav.photo, name: fav.name, team: fav.team, size: 58)
                                         .overlay(alignment: .bottomTrailing) { TeamBadge(code: fav.team, size: 20) }
-                                    Text(fav.name).font(.caption.weight(.semibold)).lineLimit(1)
+                                    Text(fav.name).font(Typo.style(.caption, .semibold)).lineLimit(1)
                                 }
                                 .frame(width: 70)
                             }
@@ -380,7 +383,7 @@ struct FavoritesStrip: View {
                                 Image(systemName: "plus").font(.title3.weight(.bold))
                                     .frame(width: 58, height: 58)
                                     .glassCircle()
-                                Text("추가").font(.caption).foregroundStyle(Palette.muted)
+                                Text("추가").font(Typo.style(.caption)).foregroundStyle(Palette.muted)
                             }
                             .frame(width: 70)
                         }

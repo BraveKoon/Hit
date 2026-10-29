@@ -17,7 +17,7 @@ struct MyView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("MY").font(.system(size: 30, weight: .heavy)).padding(.top, 8)
+                    Text("MY").font(Typo.font(30, .heavy)).padding(.top, 8)
                     profile
 
                     SectionHeader(title: "응원 팀")
@@ -26,12 +26,12 @@ struct MyView: View {
                             if let team = model.team {
                                 TeamBadge(code: team.code, size: 48)
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(team.name).font(.system(size: 17, weight: .bold))
-                                    Text("홈구장 \(team.home)").font(.caption).foregroundStyle(Palette.muted)
+                                    Text(team.name).font(Typo.font(17, .bold))
+                                    Text("홈구장 \(team.home)").font(Typo.style(.caption)).foregroundStyle(Palette.muted)
                                 }
                             }
                             Spacer()
-                            Text("변경").font(.subheadline.weight(.semibold)).foregroundStyle(Palette.accent)
+                            Text("변경").font(Typo.style(.subheadline, .semibold)).foregroundStyle(Palette.accent)
                         }
                         .padding(16)
                         .glassCard(20)
@@ -42,7 +42,7 @@ struct MyView: View {
                     ForEach(model.favorites, id: \.key) { FavoriteRow(favorite: $0) }
                     Button { path.append(.search) } label: {
                         Label("선수 찾아서 추가", systemImage: "plus")
-                            .font(.subheadline.weight(.semibold))
+                            .font(Typo.style(.subheadline, .semibold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
                             .glassCapsule()
@@ -64,7 +64,7 @@ struct MyView: View {
                     .glassCard(20)
 
                     Text("경기 기록·구단 엠블럼·선수 사진은 네이버 스포츠의 KBO 데이터를 가져와 보여줍니다.")
-                        .font(.caption)
+                        .font(Typo.style(.caption))
                         .foregroundStyle(Palette.muted)
                         .padding(.top, 4)
                 }
@@ -95,7 +95,7 @@ struct MyView: View {
             AccountAvatar(size: 64)
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(auth.displayName).font(.system(size: 21, weight: .heavy))
+                    Text(auth.displayName).font(Typo.font(21, .heavy))
                     if auth.state == .signedIn {
                         Button {
                             newName = auth.account?.nickname ?? ""
@@ -106,7 +106,7 @@ struct MyView: View {
                     }
                 }
                 Text(auth.state == .signedIn ? "\(auth.account?.providerLabel ?? "")로 로그인" : "로그인하지 않음")
-                    .font(.caption)
+                    .font(Typo.style(.caption))
                     .foregroundStyle(Palette.muted)
             }
             Spacer()
@@ -124,7 +124,7 @@ struct MyView: View {
                 Spacer()
                 Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Palette.muted)
             }
-            .font(.system(size: 16, weight: .medium))
+            .font(Typo.font(16, .medium))
             .foregroundStyle(tint)
             .padding(.horizontal, 16)
             .frame(height: 54)
@@ -238,7 +238,7 @@ struct NotificationSettingsView: View {
         )) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                if let detail { Text(detail).font(.caption).foregroundStyle(Palette.muted) }
+                if let detail { Text(detail).font(Typo.style(.caption)).foregroundStyle(Palette.muted) }
             }
         }
         .tint(Palette.live)

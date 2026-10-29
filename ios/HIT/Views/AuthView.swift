@@ -21,12 +21,12 @@ struct AuthView: View {
                     .modifier(rise(0))
                     .padding(.bottom, 26)
                 Text("내 팀의 모든 순간,\n잠금화면에서.")
-                    .font(.system(size: 32, weight: .heavy))
+                    .font(Typo.font(32, .heavy))
                     .lineSpacing(4)
                     .foregroundStyle(Palette.text)
                     .modifier(rise(1))
                 Text("경기 시작부터 득점, 역전, 끝내기까지.\nKBO 10개 구단 실시간 알림.")
-                    .font(.callout)
+                    .font(Typo.style(.callout))
                     .foregroundStyle(Palette.muted)
                     .padding(.top, 12)
                     .modifier(rise(2))
@@ -54,7 +54,7 @@ struct AuthView: View {
                     .buttonStyle(PrimaryButtonStyle(fill: Color(hex: 0xFEE500), text: .black.opacity(0.85)))
 
                     Button("로그인 없이 둘러보기") { auth.continueAsGuest() }
-                        .font(.subheadline.weight(.medium))
+                        .font(Typo.style(.subheadline, .medium))
                         .foregroundStyle(Palette.muted)
                         .padding(.top, 6)
                 }
@@ -64,14 +64,14 @@ struct AuthView: View {
 
                 if let error = auth.error {
                     Text(error)
-                        .font(.footnote)
+                        .font(Typo.style(.footnote))
                         .foregroundStyle(Palette.red)
                         .padding(.top, 10)
                         .frame(maxWidth: .infinity)
                 }
 
                 Text("계속하면 HIT 이용약관과 개인정보 처리방침에 동의하게 됩니다.\n로그인하면 응원 팀과 알림 설정이 모든 기기에 저장돼요.")
-                    .font(.caption2)
+                    .font(Typo.style(.caption2))
                     .foregroundStyle(Palette.muted.opacity(0.8))
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)

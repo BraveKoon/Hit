@@ -32,7 +32,7 @@ struct OnboardingView: View {
     private var teamStep: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("\(auth.displayName)님,\n어느 팀을 응원하세요?")
-                .font(.system(size: 26, weight: .heavy))
+                .font(Typo.font(26, .heavy))
                 .lineSpacing(3)
                 .padding(.bottom, 20)
             ScrollView {
@@ -54,10 +54,10 @@ struct OnboardingView: View {
     private var notificationStep: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("중요한 순간을\n놓치지 않게")
-                .font(.system(size: 26, weight: .heavy))
+                .font(Typo.font(26, .heavy))
                 .lineSpacing(3)
             Text("득점·홈런·경기 결과를 잠금화면으로 알려드려요.\n알림 종류는 MY에서 언제든 바꿀 수 있어요.")
-                .font(.subheadline)
+                .font(Typo.style(.subheadline))
                 .foregroundStyle(Palette.muted)
                 .lineSpacing(2)
                 .padding(.top, 8)
@@ -73,7 +73,7 @@ struct OnboardingView: View {
             }
             .buttonStyle(PrimaryButtonStyle())
             Button("나중에") { model.finishOnboarding() }
-                .font(.subheadline)
+                .font(Typo.style(.subheadline))
                 .foregroundStyle(Palette.muted)
                 .frame(maxWidth: .infinity)
                 .padding(.top, 12)
@@ -97,12 +97,12 @@ struct SampleNotification: View {
                 .overlay(LogoMark(height: 10, color: .black))
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
-                    Text(title).font(.subheadline.weight(.semibold))
+                    Text(title).font(Typo.style(.subheadline, .semibold))
                     Spacer()
-                    Text(ago).font(.caption2).foregroundStyle(Palette.muted)
+                    Text(ago).font(Typo.style(.caption2)).foregroundStyle(Palette.muted)
                 }
-                Text(subtitle).font(.caption.weight(.semibold))
-                Text(text).font(.caption).foregroundStyle(Palette.text.opacity(0.8))
+                Text(subtitle).font(Typo.style(.caption, .semibold))
+                Text(text).font(Typo.style(.caption)).foregroundStyle(Palette.text.opacity(0.8))
             }
         }
         .padding(12)

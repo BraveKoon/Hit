@@ -64,7 +64,7 @@ struct TeamBadge: View {
             )
             .overlay(
                 Text(label ?? team?.short ?? "?")
-                    .font(.system(size: size * 0.32, weight: .bold))
+                    .font(Typo.font(size * 0.32, .bold))
                     .foregroundStyle(.white)
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)

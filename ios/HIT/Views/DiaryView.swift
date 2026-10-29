@@ -24,7 +24,7 @@ struct DiaryView: View {
                     if diary.canRecord {
                         if diary.entries.isEmpty {
                             Text("본 경기 날짜를 누르면 티켓으로 남아요")
-                                .font(.footnote)
+                                .font(Typo.style(.footnote))
                                 .foregroundStyle(Palette.muted)
                                 .frame(maxWidth: .infinity)
                         } else {
@@ -71,21 +71,21 @@ struct WinRateHero: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(played ? stats?.pct.map { "\(Int(($0 * 100).rounded()))%" } ?? "-" : "-")
-                    .font(.system(size: 40, weight: .heavy, design: .rounded))
+                    .font(Typo.font(40, .heavy))
                     .contentTransition(.numericText())
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("나의 승요력").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
+                    Text("나의 승요력").font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted)
                     if let stats, played {
                         Text("\(stats.wins)승 \(stats.losses)패" + (stats.draws > 0 ? " \(stats.draws)무" : ""))
-                            .font(.headline)
+                            .font(Typo.style(.headline))
                     } else {
-                        Text("아직 기록이 없어요").font(.headline)
+                        Text("아직 기록이 없어요").font(Typo.style(.headline))
                     }
                 }
                 Spacer(minLength: 0)
                 if let streak = stats?.streak {
                     Text(streak)
-                        .font(.caption.weight(.heavy))
+                        .font(Typo.style(.caption, .heavy))
                         .padding(.horizontal, 10).padding(.vertical, 4)
                         .foregroundStyle(streak.hasSuffix("연승") ? Color.black : Palette.text)
                         .background(streak.hasSuffix("연승") ? Palette.accent : Palette.red.opacity(0.6), in: Capsule())
@@ -94,7 +94,7 @@ struct WinRateHero: View {
             if let stats, played {
                 // 직관 3승 1패 · 집관 1승 0패
                 Text(stats.modes.filter { $0.games > 0 }.map { "\($0.label) \($0.record)" }.joined(separator: " · "))
-                    .font(.footnote)
+                    .font(Typo.style(.footnote))
                     .foregroundStyle(Palette.text.opacity(0.75))
             }
         }
@@ -136,18 +136,18 @@ struct MonthCalendar: View {
             HStack {
                 Button { shift(-1) } label: { Image(systemName: "chevron.left") }
                 Spacer()
-                Text(KST.monthTitle(month)).font(.headline)
+                Text(KST.monthTitle(month)).font(Typo.style(.headline))
                 Spacer()
                 Button { shift(1) } label: { Image(systemName: "chevron.right") }
             }
-            .font(.system(size: 15, weight: .bold))
+            .font(Typo.font(15, .bold))
             .foregroundStyle(Palette.text)
             .buttonStyle(.plain)
 
             let cols = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
             LazyVGrid(columns: cols, spacing: 6) {
                 ForEach(Array(["일", "월", "화", "수", "목", "금", "토"].enumerated()), id: \.offset) { i, w in
-                    Text(w).font(.caption2.weight(.bold))
+                    Text(w).font(Typo.style(.caption2, .bold))
                         .foregroundStyle(i == 0 ? Palette.red.opacity(0.8) : Palette.muted)
                 }
                 ForEach(Array(days.enumerated()), id: \.offset) { _, day in
@@ -155,7 +155,7 @@ struct MonthCalendar: View {
                 }
             }
             if failed {
-                Text("일정을 불러오지 못했어요").font(.caption).foregroundStyle(Palette.muted)
+                Text("일정을 불러오지 못했어요").font(Typo.style(.caption)).foregroundStyle(Palette.muted)
             }
         }
         .padding(14)
@@ -178,12 +178,12 @@ struct MonthCalendar: View {
         } label: {
             VStack(spacing: 3) {
                 Text(String(Int(day.suffix(2)) ?? 0))
-                    .font(.system(size: 12, weight: isToday ? .heavy : .medium))
+                    .font(Typo.font(12, isToday ? .heavy : .medium))
                     .foregroundStyle(isToday ? Palette.accent : Palette.text.opacity(game == nil ? 0.35 : 0.9))
                 ZStack {
                     if let result {
                         Text(result.title)
-                            .font(.system(size: 12, weight: .heavy))
+                            .font(Typo.font(12, .heavy))
                             .frame(width: 26, height: 22)
                             .foregroundStyle(result == .win ? Color.black : Palette.text)
                             .background(result == .win ? Palette.accent : result == .lose ? Color.white.opacity(0.18) : Color.white.opacity(0.45),
@@ -195,7 +195,7 @@ struct MonthCalendar: View {
                                 if game.status == .live { Circle().fill(Palette.red).frame(width: 6, height: 6) }
                             }
                     } else if game?.status == .canceled {
-                        Text("취소").font(.system(size: 9, weight: .semibold)).foregroundStyle(Palette.muted)
+                        Text("취소").font(Typo.font(9, .semibold)).foregroundStyle(Palette.muted)
                     }
                 }
                 .frame(height: 22)
@@ -274,15 +274,15 @@ struct TicketCard: View {
         VStack(spacing: 0) {
             HStack(spacing: 14) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(KST.ticketDate(entry.date)).font(.system(size: 26, weight: .heavy, design: .rounded))
+                    Text(KST.ticketDate(entry.date)).font(Typo.font(26, .heavy))
                     Text(KST.weekdayOf(entry.date) + (game?.stadium.map { " · \($0)" } ?? ""))
-                        .font(.caption.weight(.semibold)).foregroundStyle(Palette.text.opacity(0.75))
+                        .font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.text.opacity(0.75))
                 }
                 Spacer(minLength: 0)
                 if let game {
                     HStack(spacing: 8) {
                         TeamBadge(code: game.away.code, size: 34)
-                        Text(score(game)).font(.system(size: 20, weight: .heavy, design: .rounded)).monospacedDigit()
+                        Text(score(game)).font(Typo.font(20, .heavy)).monospacedDigit()
                         TeamBadge(code: game.home.code, size: 34)
                     }
                 }
@@ -299,11 +299,11 @@ struct TicketCard: View {
 
             HStack(spacing: 8) {
                 Label(entry.mode.title, systemImage: entry.mode.symbol)
-                    .font(.caption.weight(.heavy))
+                    .font(Typo.style(.caption, .heavy))
                     .foregroundStyle(entry.mode == .stadium ? Palette.accent : Palette.text)
-                if let seat = entry.seat { Text(seat).font(.caption.weight(.semibold)) }
+                if let seat = entry.seat { Text(seat).font(Typo.style(.caption, .semibold)) }
                 if let memo = entry.memo {
-                    Text(memo).font(.caption).foregroundStyle(Palette.text.opacity(0.75)).lineLimit(1)
+                    Text(memo).font(Typo.style(.caption)).foregroundStyle(Palette.text.opacity(0.75)).lineLimit(1)
                 }
                 Spacer(minLength: 0)
             }
@@ -329,7 +329,7 @@ struct TicketCard: View {
     private var stamp: some View {
         let r = entry.result
         Text(r?.title ?? "–")
-            .font(.system(size: 17, weight: .black))
+            .font(Typo.font(17, .black))
             .foregroundStyle(r == .win ? Palette.accent : Palette.text.opacity(0.7))
             .frame(width: 42, height: 42)
             .overlay(Circle().strokeBorder(r == .win ? Palette.accent : .white.opacity(0.35), lineWidth: 2))
@@ -365,9 +365,9 @@ struct DiaryEditor: View {
                     TeamBadge(code: game.away.code, size: 46)
                     VStack(spacing: 2) {
                         Text(game.away.score.map { "\($0) : \(game.home.score ?? 0)" } ?? "vs")
-                            .font(.system(size: 26, weight: .heavy, design: .rounded))
+                            .font(Typo.font(26, .heavy))
                         Text((game.date.map { KST.ticketDate($0) } ?? "") + (game.stadium.map { " · \($0)" } ?? ""))
-                            .font(.caption).foregroundStyle(Palette.muted)
+                            .font(Typo.style(.caption)).foregroundStyle(Palette.muted)
                     }
                     TeamBadge(code: game.home.code, size: 46)
                 }
@@ -376,7 +376,7 @@ struct DiaryEditor: View {
                 if let onOpenGame {
                     Button { dismiss(); onOpenGame() } label: {
                         Label(game.status == .final ? "경기 결과 보기" : "중계 보기", systemImage: "chevron.right")
-                            .font(.subheadline.weight(.semibold))
+                            .font(Typo.style(.subheadline, .semibold))
                             .padding(.horizontal, 16).frame(height: 36).glassCapsule()
                     }
                     .buttonStyle(.plain)
@@ -417,7 +417,7 @@ struct DiaryEditor: View {
                         Button("이 기록 지우기", role: .destructive) {
                             Task { await diary.delete(gameId: game.id); dismiss() }
                         }
-                        .font(.subheadline)
+                        .font(Typo.style(.subheadline))
                     }
                 }
             }
@@ -436,9 +436,9 @@ struct GuestDiaryCard: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: "ticket.fill").font(.system(size: 30)).foregroundStyle(Palette.accent)
-            Text("로그인하면 직관 기록과 승률이 쌓여요").font(.headline)
+            Text("로그인하면 직관 기록과 승률이 쌓여요").font(Typo.style(.headline))
             Text("어느 기기에서든 내 티켓을 다시 볼 수 있게 계정에 저장해요")
-                .font(.footnote).foregroundStyle(Palette.muted).multilineTextAlignment(.center)
+                .font(Typo.style(.footnote)).foregroundStyle(Palette.muted).multilineTextAlignment(.center)
             Button("로그인 · 회원가입") { Task { await AuthManager.shared.signOut() } }
                 .buttonStyle(PrimaryButtonStyle())
         }

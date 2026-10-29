@@ -153,7 +153,7 @@ docker run -d -p 8787:8787 -v hit-data:/data --env-file .env \
 
 ## 디자인
 
-검정 바탕 위에 강조색과 내 팀 색이 은은하게 번지는 배경(`AppBackground`), 그 위에 반투명 유리 카드. 화면 아래에 떠 있는 알약 탭바(고른 탭만 이름이 펼쳐짐), 머리의 원형 검색·알림 버튼, 알약 칩, 화면 끝까지 붙은 순위표에 구단 엠블럼. 강조색은 탠저린 오렌지(#FF8A4C)이고 앱 아이콘·실행 화면 로고도 같은 색입니다. `ios/Shared/Theme.swift`의 `Palette.accent` 한 줄과 `Assets.xcassets`의 `AccentColor`로 바꿀 수 있습니다.
+검정 바탕 위에 강조색과 내 팀 색이 은은하게 번지는 배경(`AppBackground`), 그 위에 반투명 유리 카드. 화면 아래에 떠 있는 알약 탭바(고른 탭만 이름이 펼쳐짐), 머리의 원형 검색·알림 버튼, 알약 칩, 화면 끝까지 붙은 순위표에 구단 엠블럼. 글꼴은 Pretendard(SIL OFL 1.1, `ios/Shared/Fonts`, 자주 쓰는 한글 2,350자 묶음)이고 `Typo.style(.headline)`·`Typo.font(16, .bold)`로 씁니다. 점수는 숫자 폭이 고정된 Bold이고, 끝난 경기는 진 팀 점수를 흐리게 보여 줍니다. 강조색은 탠저린 오렌지(#FF8A4C)이고 앱 아이콘·실행 화면 로고도 같은 색입니다. `ios/Shared/Theme.swift`의 `Palette.accent` 한 줄과 `Assets.xcassets`의 `AccentColor`로 바꿀 수 있습니다.
 
 **글라스.** 카드·알약·원형 버튼은 모두 `Components.swift`의 `glassCard()`, `glassCapsule()`, `glassCircle()`를 거칩니다. Xcode 26으로 빌드해 iOS 26에서 돌리면 애플의 Liquid Glass(`glassEffect`)가 쓰이고, 그보다 낮은 Xcode나 iOS에서는 `ultraThinMaterial`에 얇은 빛 테두리를 얹은 모양으로 대신합니다. 유리 느낌을 줄이거나 없애려면 이 세 함수만 고치면 됩니다.
 
