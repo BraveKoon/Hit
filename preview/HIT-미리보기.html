@@ -497,7 +497,7 @@ table.ls tbody tr{border-top:1px solid var(--ln)}
 .la .cnt2 span{display:inline-flex;align-items:center;gap:3px}
 .la .cnt2 i{width:5.5px;height:5.5px;border-radius:50%;background:rgba(255,255,255,.25)}
 .la .cnt2 i.b{background:#36d583}.la .cnt2 i.s{background:#f5c542}.la .cnt2 i.o{background:#e2544a}
-.la .play{font-size:11.5px;font-weight:500;color:rgba(255,255,255,.85);text-align:center;padding:6px 12px;border-radius:99px;background:rgba(0,0,0,.22);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08);
+.la .lplay{font-size:11.5px;font-weight:500;color:rgba(255,255,255,.85);text-align:center;padding:6px 12px;border-radius:99px;background:rgba(0,0,0,.22);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nt{display:grid;grid-template-columns:36px 1fr;gap:10px;padding:11px 13px;border-radius:20px;background:rgba(36,44,56,.82);border:1px solid rgba(255,255,255,.06);margin-bottom:8px}
 .nt.fresh{animation:drop .4s cubic-bezier(.2,.8,.3,1)}@keyframes drop{from{opacity:0;transform:translateY(-10px)}}
@@ -1159,7 +1159,7 @@ function vLock(){
       laBases(live?g.bases:[0,0,0])+'<span class="sc" data-score="la-h">'+hs+'</span><b>'+T[g.h].s+'</b></div>'+
       '<div class="r2">'+laPlayer(g,'a',live)+'<div class="mid"><span class="inn">'+(live?innText(g):g.status==='final'?'경기 종료':'경기 전')+'</span>'+
       (live?'<span class="cnt2">'+laDots('B',g.balls||0,3,'b')+laDots('S',g.strikes||0,2,'s')+laDots('OUT',g.outs||0,2,'o')+'</span>':'')+'</div>'+laPlayer(g,'h',live)+'</div>'+
-      '<div class="play">'+esc(last||'PO 2차전 · 대구')+'</div></div>';
+      '<div class="lplay">'+esc(last||'PO 2차전 · 대구')+'</div></div>';
   }
   h+=S.notifs.slice(0,4).map(function(n){
     var sub=typeof n.s==='string'?n.s:(n.s&&(n.s[S.my]||n.s.SS))||'';
