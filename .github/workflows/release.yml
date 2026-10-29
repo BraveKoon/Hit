@@ -1,0 +1,39 @@
+name: Release
+
+# Actions 탭 → Release → Run workflow → 태그 이름(예: v0.1) 입력.
+# 내용은 .github/release-notes/<태그>.md 를 씁니다. 태그가 없으면 main 의 최신 커밋에 만듭니다.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "릴리즈 태그 (예: v0.1)"
+        required: true
+        default: "v0.1"
+      title:
+        description: "릴리즈 제목"
+        required: false
+        default: "HIT v0.1 — 첫 릴리즈"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: 릴리즈 만들기
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          TITLE: ${{ inputs.title }}
+        run: |
+          NOTES=".github/release-notes/${TAG}.md"
+          [ -f "$NOTES" ] || { echo "::error::$NOTES 파일이 없습니다"; exit 1; }
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::$TAG 릴리즈가 이미 있습니다"; exit 1
+          fi
+          gh release create "$TAG" --target main --title "$TITLE" --notes-file "$NOTES"
+          gh release view "$TAG" --json url,tagName,targetCommitish -q '"릴리즈: \(.url) (\(.tagName))"'
