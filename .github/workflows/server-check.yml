@@ -1,0 +1,44 @@
+name: Server check
+
+# 배포한 서버가 제대로 데이터를 가져오는지 GitHub 서버에서 호출해 보고, Fly 로그 끝부분을 보여 줍니다.
+# 개인정보나 비밀 값은 출력하지 않습니다 (응답은 앞부분만, 긴 16진 문자열은 가립니다).
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "경기 날짜 (YYYY-MM-DD, 비우면 오늘 한국 날짜)"
+        required: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: 주소 호출
+        run: |
+          APP=$(sed -n "s/^app = '\(.*\)'/\1/p" server/fly.toml)
+          BASE="https://${APP}.fly.dev"
+          D="${{ inputs.date }}"; [ -n "$D" ] || D=$(TZ=Asia/Seoul date +%F)
+          Y=${D%%-*}
+          show() {
+            echo "=== $1"
+            CODE=$(curl -sS -m 40 -o /tmp/out.txt -w '%{http_code} %{time_total}s' "$BASE$1" 2>&1) || true
+            echo "HTTP $CODE, $(wc -c < /tmp/out.txt 2>/dev/null) bytes"
+            head -c 700 /tmp/out.txt 2>/dev/null | sed -E 's/[0-9a-fA-F]{32,}/<hex>/g'; echo
+          }
+          show /health
+          show "/v1/games?date=$D"
+          show "/v1/standings?season=$Y"
+          show "/v1/players?q=%EB%94%94%EC%95%84%EC%A6%88"
+          show "/v1/leaders?type=hitter"
+          show "/v1/postseason?season=$Y"
+      - name: Fly 로그
+        if: env.FLY_API_TOKEN != ''
+        run: |
+          APP=$(sed -n "s/^app = '\(.*\)'/\1/p" server/fly.toml)
+          flyctl logs -a "$APP" --no-tail 2>&1 | tail -n 60 | sed -E 's/[0-9a-fA-F]{32,}/<hex>/g'
+          echo "---"; flyctl status -a "$APP" 2>&1 | head -20
