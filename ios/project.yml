@@ -45,7 +45,7 @@ targets:
           UIImageName: LaunchLogo
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIUserInterfaceStyle: Dark
-        UIBackgroundModes: [remote-notification]
+        UIBackgroundModes: [remote-notification, audio]
         NSSupportsLiveActivities: true
         NSSupportsLiveActivitiesFrequentUpdates: true
         ITSAppUsesNonExemptEncryption: false
