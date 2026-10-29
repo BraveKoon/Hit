@@ -78,23 +78,25 @@ struct TodayView: View {
     }
 
     private var greeting: String {
-        let name = AuthManager.shared.displayName
-        guard let team = model.team else { return "\(name)님, 반가워요" }
+        // 손님은 이미 호칭이라 "님"을 또 붙이지 않는다
+        let raw = AuthManager.shared.displayName
+        let name = raw == "손님" ? raw : "\(raw)님"
+        guard let team = model.team else { return "\(name), 반가워요" }
         if !isToday { return KST.display.string(from: date) }
         if myGames.isEmpty, let next = upcoming {
             if let start = next.startDate, KST.calendar.isDateInTomorrow(start) {
-                return "\(name)님, 다음 경기는 내일 \(next.clockText)"
+                return "\(name), 다음 경기는 내일 \(next.clockText)"
             }
-            return "\(name)님, 다음 경기는 \(next.startDate.map { KST.display.string(from: $0) } ?? "곧")"
+            return "\(name), 다음 경기는 \(next.startDate.map { KST.display.string(from: $0) } ?? "곧")"
         }
         if let g = myGames.first {
             switch g.status {
             case .live: return "\(team.short), 지금 경기 중!"
-            case .final: return "\(name)님, 오늘 경기 끝"
-            default: return "\(name)님, 오늘 \(g.clockText) \(team.short) 경기"
+            case .final: return "\(name), 오늘 경기 끝"
+            default: return "\(name), 오늘 \(g.clockText) \(team.short) 경기"
             }
         }
-        return "\(name)님, 오늘은 쉬는 날"
+        return "\(name), 오늘은 쉬는 날"
     }
 
     @ViewBuilder
