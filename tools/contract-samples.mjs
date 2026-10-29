@@ -91,7 +91,8 @@ const start = activityStartPayload(live.game, state, { title: 't', body: 'b' });
 
 console.log(JSON.stringify({
   GamesResponse: [{ date: '2026-10-29', games: fx('naver-schedule.json').games.map(normalizeGame) }, { date: 'x', games: [rgame] }],
-  GameDetail: [live, before, final, rdetail, await decorated.detail('x')],
+  GameDetail: [live, before, final, rdetail, await decorated.detail('x'),
+    { ...live, entries: { away: { batters: [{ name: '이재현', pos: '유격수', photo: null }], pitchers: [{ name: '김재윤', pos: '투수', photo: 'https://img/x.png' }] }, home: { batters: [], pitchers: [] } } }],
   StandingsResponse: [{ season: '2026', teams: fx('naver-standings.json').seasonTeamStats.map(normalizeStanding) }, { season: '2026', teams: await replay.standings() }],
   ContentState: [state, start.aps['content-state']],
   GameActivityAttributes: [start.aps.attributes],

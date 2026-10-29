@@ -169,6 +169,10 @@ function decorateDetail(roster, d) {
       away: d.lineups.away.map((p) => withPhoto(roster, game.away.code, p)),
       home: d.lineups.home.map((p) => withPhoto(roster, game.home.code, p)),
     },
+    entries: d.entries && {
+      away: { batters: d.entries.away.batters.map((p) => withPhoto(roster, game.away.code, p)), pitchers: d.entries.away.pitchers.map((p) => withPhoto(roster, game.away.code, p)) },
+      home: { batters: d.entries.home.batters.map((p) => withPhoto(roster, game.home.code, p)), pitchers: d.entries.home.pitchers.map((p) => withPhoto(roster, game.home.code, p)) },
+    },
   };
 }
 

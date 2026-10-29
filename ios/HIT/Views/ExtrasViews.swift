@@ -292,3 +292,119 @@ struct BlockedUsersView: View {
         Task { try? await APIClient().unblock(userId: b.id) }
     }
 }
+
+// MARK: - 경기 정보 한눈에 (경기 화면 맨 위, 모든 탭에서 보인다)
+
+/// 일시 · 구장 · 중계 · (포스트시즌이면) 시리즈 · 선발 투수를 한 장에.
+struct GameInfoCard: View {
+    let game: Game
+    var series: (title: String, status: String)? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let series {
+                HStack(spacing: 8) {
+                    Image(systemName: "trophy.fill").font(.system(size: 12, weight: .bold)).foregroundStyle(Palette.accent)
+                    Text(series.title).font(Typo.style(.subheadline, .bold))
+                    Spacer(minLength: 8)
+                    Text(series.status).font(Typo.style(.footnote, .semibold)).foregroundStyle(Palette.accent)
+                }
+            }
+            HStack(spacing: 8) {
+                if let d = game.startDate { chip("calendar", "\(KST.short.string(from: d)) \(KST.clock.string(from: d))") }
+                if let s = game.stadium { chip("mappin.and.ellipse", s) }
+                if let b = game.broadcast { chip("tv", b) }
+            }
+            if game.away.starter != nil || game.home.starter != nil {
+                Divider().overlay(.white.opacity(0.08))
+                HStack(spacing: 10) {
+                    starter(game.away, trailing: false)
+                    Text("선발").font(Typo.font(11, .bold)).foregroundStyle(Palette.muted)
+                    starter(game.home, trailing: true)
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(18)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func chip(_ icon: String, _ text: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon).font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.accent)
+            Text(text).font(Typo.style(.footnote, .semibold)).lineLimit(1)
+        }
+        .padding(.horizontal, 10).frame(height: 30)
+        .background(.white.opacity(0.07), in: Capsule())
+    }
+
+    private func starter(_ side: GameSide, trailing: Bool) -> some View {
+        HStack(spacing: 8) {
+            if trailing { Spacer(minLength: 0) }
+            if !trailing { PlayerAvatar(url: side.starterPhoto, name: side.starter ?? "?", team: side.code, size: 30) }
+            Text(side.starter ?? "미정").font(Typo.style(.subheadline, .semibold)).lineLimit(1)
+            if trailing { PlayerAvatar(url: side.starterPhoto, name: side.starter ?? "?", team: side.code, size: 30) }
+            if !trailing { Spacer(minLength: 0) }
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - 포스트시즌 시리즈 현황 + 대진표 (프리뷰 탭)
+
+/// 이 경기가 속한 시리즈: 승패 · 차전별 결과. 포스트시즌 경기가 아니면 아무것도 그리지 않는다.
+struct SeriesCard: View {
+    let data: PostseasonResponse
+    let game: Game
+
+    private var round: PostseasonRound? { data.rounds.first { $0.games.contains { $0.id == game.id } } }
+
+    var body: some View {
+        if let r = round, let low = r.low {
+            Card {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        Text("\(r.label) 시리즈").font(Typo.style(.headline, .bold))
+                        Spacer()
+                        Text(r.format).font(Typo.style(.caption)).foregroundStyle(Palette.muted)
+                    }
+                    HStack(spacing: 18) {
+                        side(low, wins: r.wins.low, win: r.winner == low)
+                        Text(":").font(Typo.score(22)).foregroundStyle(Palette.muted)
+                        side(r.high, wins: r.wins.high, win: r.winner == r.high)
+                    }
+                    .frame(maxWidth: .infinity)
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 8) {
+                            ForEach(r.games) { g in gameChip(g, low: low, high: r.high, current: g.id == game.id) }
+                        }
+                    }
+                    .scrollIndicators(.hidden)
+                }
+            }
+        }
+    }
+
+    private func side(_ code: String, wins: Int, win: Bool) -> some View {
+        HStack(spacing: 10) {
+            TeamBadge(code: code, size: 34)
+            Text("\(wins)").font(Typo.score(34)).foregroundStyle(win ? Palette.accent : Palette.text)
+            Text("승").font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+        }
+    }
+
+    private func gameChip(_ g: SeriesGame, low: String, high: String, current: Bool) -> some View {
+        let done = g.status == .final
+        let winner: String? = done ? ((g.low ?? 0) > (g.high ?? 0) ? low : (g.low ?? 0) < (g.high ?? 0) ? high : nil) : nil
+        return VStack(spacing: 5) {
+            Text("\(g.no)차전").font(Typo.font(11, .bold)).foregroundStyle(current ? Palette.accent : Palette.muted)
+            if let winner { TeamBadge(code: winner, size: 24) } else { Image(systemName: g.status == .live ? "circle.fill" : "clock").font(.system(size: 13)).foregroundStyle(g.status == .live ? Palette.live : Palette.muted).frame(height: 24) }
+            Text(done ? "\(g.low ?? 0):\(g.high ?? 0)" : g.status == .live ? "경기 중" : "예정")
+                .font(Typo.style(.caption, .semibold)).monospacedDigit()
+        }
+        .frame(width: 64).padding(.vertical, 10)
+        .background(current ? Palette.accent.opacity(0.14) : .white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(current ? Palette.accent : .clear, lineWidth: 1.2))
+    }
+}
