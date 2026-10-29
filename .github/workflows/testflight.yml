@@ -38,15 +38,21 @@ jobs:
           mkdir -p ~/.appstoreconnect/private_keys
           KEY=~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
           # 시크릿은 base64 로 바꾼 값이어야 하지만, .p8 내용을 그대로 붙여 넣은 경우도 읽는다.
+          # 붙여 넣다가 줄바꿈이 공백·\n 글자로 바뀌거나 따옴표가 붙은 경우도 풀어서 64자 줄로 다시 만든다.
           if printf '%s' "$ASC_KEY_RAW" | grep -q 'BEGIN PRIVATE KEY'; then
-            printf '%s\n' "$ASC_KEY_RAW" > "$KEY"
+            BODY=$(printf '%s' "$ASC_KEY_RAW" | sed -e 's/\\n/ /g' -e 's/-----BEGIN PRIVATE KEY-----//' -e 's/-----END PRIVATE KEY-----//' | tr -d ' \r\n\t"'"'"'')
+            { echo "-----BEGIN PRIVATE KEY-----"; printf '%s' "$BODY" | fold -w 64; echo; echo "-----END PRIVATE KEY-----"; } > "$KEY"
           else
             printf '%s' "$ASC_KEY_RAW" | tr -d ' \r\n\t' | base64 --decode > "$KEY" || true
           fi
           # 키가 올바른지 먼저 확인해서, 아니면 원인을 알려 주고 멈춘다 (키 내용은 출력하지 않는다)
           if ! openssl pkey -in "$KEY" -noout 2>/dev/null; then
             echo "::error::ASC_KEY_P8_BASE64 값을 .p8 키로 읽지 못했습니다. AuthKey_XXXX.p8 파일 전체(-----BEGIN PRIVATE KEY----- 부터 -----END PRIVATE KEY----- 까지)를 base64 로 바꿔 다시 저장하세요 (ios/TESTFLIGHT.md 참고)."
-            echo "읽은 크기: $(wc -c < "$KEY") 바이트, 첫 줄 모양: $(head -c 11 "$KEY" | tr -c '[:print:]' '?')"
+            RAWLEN=$(printf '%s' "$ASC_KEY_RAW" | wc -c | tr -d ' ')
+            BEGINS=$(printf '%s' "$ASC_KEY_RAW" | grep -o 'BEGIN PRIVATE KEY' | wc -l | tr -d ' ')
+            BADCH=$(printf '%s' "$ASC_KEY_RAW" | sed -e 's/-----[A-Z ]*-----//g' | tr -d 'A-Za-z0-9+/= \r\n\t' | wc -c | tr -d ' ')
+            BLEN=$(grep -v -- '-----' "$KEY" | tr -d '\n' | wc -c | tr -d ' ')
+            echo "진단(키 내용은 출력하지 않음): 저장된 값 ${RAWLEN}자, BEGIN 표시 ${BEGINS}개, 키 본문 ${BLEN}자 (P-256 키는 184자), 키에 쓸 수 없는 글자 ${BADCH}개"
             exit 1
           fi
           echo "API 키 확인 완료 (Key ID: $ASC_KEY_ID)"
