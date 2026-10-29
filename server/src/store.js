@@ -112,6 +112,13 @@ CREATE TABLE IF NOT EXISTS post_comments (
 );
 CREATE INDEX IF NOT EXISTS post_comments_post ON post_comments(post_id, id);
 CREATE TABLE IF NOT EXISTS comment_reports (comment_id INTEGER NOT NULL, user_id INTEGER NOT NULL, PRIMARY KEY (comment_id, user_id));
+CREATE TABLE IF NOT EXISTS blocks (
+  user_id    INTEGER NOT NULL,
+  blocked_id INTEGER NOT NULL,
+  nickname   TEXT,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, blocked_id)
+);
 CREATE TABLE IF NOT EXISTS predictions (
   game_id    TEXT NOT NULL,
   user_id    INTEGER NOT NULL,
@@ -226,6 +233,17 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
       WHERE p.reports < ${CHAT_HIDE_REPORTS} AND (? IS NULL OR p.team = ?) AND (? = 0 OR p.id < ?) ORDER BY p.id DESC LIMIT ?`),
     getPost: db.prepare(`SELECT p.*, EXISTS(SELECT 1 FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked FROM posts p WHERE p.id = ? AND p.reports < ${CHAT_HIDE_REPORTS}`),
     rawPost: db.prepare('SELECT * FROM posts WHERE id = ?'),
+    // 인기 글: 최근 3일, 좋아요 2점 + 댓글 1점
+    hotPosts: db.prepare(`SELECT p.*, EXISTS(SELECT 1 FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked FROM posts p
+      WHERE p.reports < ${CHAT_HIDE_REPORTS} AND (? IS NULL OR p.team = ?) AND p.created_at >= ? AND p.likes + p.comments > 0
+      ORDER BY p.likes * 2 + p.comments DESC, p.id DESC LIMIT ?`),
+    searchPosts: db.prepare(`SELECT p.*, EXISTS(SELECT 1 FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked FROM posts p
+      WHERE p.reports < ${CHAT_HIDE_REPORTS} AND (? IS NULL OR p.team = ?) AND (? = 0 OR p.id < ?)
+        AND (p.title LIKE ? ESCAPE '\\' OR p.body LIKE ? ESCAPE '\\' OR p.player LIKE ? ESCAPE '\\') ORDER BY p.id DESC LIMIT ?`),
+    block: db.prepare('INSERT OR IGNORE INTO blocks (user_id, blocked_id, nickname, created_at) VALUES (?, ?, ?, ?)'),
+    unblock: db.prepare('DELETE FROM blocks WHERE user_id = ? AND blocked_id = ?'),
+    blocks: db.prepare('SELECT blocked_id, nickname, created_at FROM blocks WHERE user_id = ? ORDER BY created_at DESC'),
+    deleteUserBlocks: db.prepare('DELETE FROM blocks WHERE user_id = ? OR blocked_id = ?'),
     lastPost: db.prepare('SELECT MAX(created_at) AS at FROM posts WHERE user_id = ?'),
     deletePost: db.prepare('DELETE FROM posts WHERE id = ? AND user_id = ?'),
     deletePostComments: db.prepare('DELETE FROM post_comments WHERE post_id = ?'),
@@ -336,6 +354,7 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
       q.deleteUserLikes.run(id);
       q.recountAll.run();
       q.deleteUserPredictions.run(id);
+      q.deleteUserBlocks.run(id, id);
       return q.deleteUser.run(id).changes > 0;
     },
     // 직관 다이어리
@@ -383,6 +402,17 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
     posts: (viewer, { team = null, before = 0, limit = 20 } = {}) => q.listPosts.all(viewer ?? 0, team, team, before, before, limit),
     post: (viewer, id) => q.getPost.get(viewer ?? 0, id) ?? null,
     rawPost: (id) => q.rawPost.get(id) ?? null,
+    hotPosts: (viewer, { team = null, days = 3, limit = 20 } = {}) => q.hotPosts.all(viewer ?? 0, team, team, now() - days * 86_400_000, limit),
+    searchPosts(viewer, text, { team = null, before = 0, limit = 20 } = {}) {
+      const like = `%${String(text).replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+      return q.searchPosts.all(viewer ?? 0, team, team, before, before, like, like, like, limit);
+    },
+    // 차단: 차단한 사람의 글·댓글·응원톡은 나에게 보이지 않는다
+    block: (userId, blockedId, nickname) => q.block.run(userId, blockedId, nickname ?? null, now()).changes > 0,
+    unblock: (userId, blockedId) => q.unblock.run(userId, blockedId).changes > 0,
+    blocks: (userId) => q.blocks.all(userId).map((r) => ({ id: r.blocked_id, nickname: r.nickname ?? '야구팬', at: new Date(r.created_at).toISOString() })),
+    blockedIds: (userId) => new Set(userId ? q.blocks.all(userId).map((r) => r.blocked_id) : []),
+    userDevices: (userId) => q.userDevices.all(userId).map(parseDevice),
     lastPostAt: (userId) => q.lastPost.get(userId)?.at ?? null,
     deletePost(id, userId) {
       if (q.deletePost.run(id, userId).changes === 0) return false;

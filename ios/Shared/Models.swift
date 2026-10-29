@@ -227,6 +227,82 @@ struct LikeResponse: Codable {
     let liked: Bool
 }
 
+// MARK: - 구장 날씨
+
+struct GameWeather: Codable, Hashable {
+    let gameId: String
+    let stadium: String
+    let dome: Bool
+    let temp: Int?
+    let pop: Int?           // 강수 확률 %
+    let sky: String         // clear · partly · cloudy · fog · rain · snow · storm
+    let label: String       // "맑음"
+    let wind: Double?       // m/s
+    let risk: String        // high · medium · low · dome (우천 취소 가능성)
+    let hours: [WeatherHour]
+    let source: String
+
+    static func symbol(_ sky: String) -> String {
+        switch sky {
+        case "clear": "sun.max.fill"
+        case "partly": "cloud.sun.fill"
+        case "fog": "cloud.fog.fill"
+        case "rain": "cloud.rain.fill"
+        case "snow": "cloud.snow.fill"
+        case "storm": "cloud.bolt.rain.fill"
+        default: "cloud.fill"
+        }
+    }
+}
+
+struct WeatherHour: Codable, Hashable {
+    let time: String        // "18:00"
+    let temp: Int?
+    let pop: Int?
+    let sky: String
+    let label: String
+}
+
+// MARK: - 내 팀 소식
+
+struct NewsResponse: Codable {
+    let team: String
+    let tags: [NewsTag]
+    let items: [NewsItem]
+}
+
+struct NewsTag: Codable, Hashable {
+    let key: String
+    let label: String
+}
+
+struct NewsItem: Codable, Hashable, Identifiable {
+    let id: String
+    let title: String
+    let summary: String
+    let url: String
+    let source: String?
+    let at: String?
+    let tags: [String]
+}
+
+// MARK: - 차단
+
+struct BlockedUser: Codable, Hashable, Identifiable {
+    let id: Int
+    let nickname: String
+    let at: String
+}
+
+struct BlocksResponse: Codable {
+    let blocks: [BlockedUser]
+}
+
+struct BlockResult: Codable {
+    let blocked: Bool
+    let nickname: String
+}
+
 // MARK: - 승부예측
 
 struct Prediction: Codable, Hashable {
@@ -329,6 +405,26 @@ struct GamePreview: Codable, Hashable {
     let starters: PreviewStarters
     let teams: PreviewTeams
     let headToHead: HeadToHead
+    var keyPlayers: KeyPlayers? = nil
+}
+
+/// 오늘의 키플레이어 (팀마다 타자 한 명)
+struct KeyPlayers: Codable, Hashable {
+    let away: KeyPlayer?
+    let home: KeyPlayer?
+}
+
+struct KeyPlayer: Codable, Hashable {
+    let id: String
+    let team: String
+    let name: String
+    let photo: String?
+    let reason: String      // "오늘 라인업 OPS 1위" · "팀 타자 WAR 1위"
+    let line: String        // ".312 · 25홈런 · OPS .950"
+    let war: Double?
+    let avg: Double?
+    let hr: Int?
+    let ops: Double?
 }
 
 struct PreviewInfo: Codable, Hashable {
@@ -458,6 +554,7 @@ struct NotificationPrefs: Codable, Hashable {
     var players = true   // 관심 선수 타석 결과·등판·강판
     var hit = false      // 내 팀 안타
     var walk = false     // 내 팀 볼넷·사구
+    var comments = true  // 커뮤니티: 내 글에 댓글
 }
 
 extension NotificationPrefs {
@@ -471,7 +568,7 @@ extension NotificationPrefs {
                   score: try v(.score, d.score), homerun: try v(.homerun, d.homerun), lead: try v(.lead, d.lead),
                   extra: try v(.extra, d.extra), end: try v(.end, d.end), cancel: try v(.cancel, d.cancel),
                   liveActivity: try v(.liveActivity, d.liveActivity), players: try v(.players, d.players),
-                  hit: try v(.hit, d.hit), walk: try v(.walk, d.walk))
+                  hit: try v(.hit, d.hit), walk: try v(.walk, d.walk), comments: try v(.comments, d.comments))
     }
 }
 

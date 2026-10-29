@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gamePreview } from '../src/preview.js';
+import { gamePreview, keyPlayer, hitterLine } from '../src/preview.js';
 
 const side = (code, name, score, starter = null) => ({ code, name, score, starter, starterPhoto: null });
 const game = (id, date, away, home, status, winner) => ({ id, date, status, winner, startsAt: `${date}T18:30:00+09:00`, stadium: '광주', broadcast: 'SBS',
@@ -41,4 +41,19 @@ test('프리뷰: 순위·일정을 못 받아도 나머지는 돌려준다', asy
   assert.deepEqual(p.teams, { away: null, home: null });
   assert.equal(p.headToHead.wins, 0);
   assert.equal(p.starters.away.stats, null);
+});
+
+test('오늘의 키플레이어: 라인업이 있으면 그 안의 OPS 1위(20경기 이상), 없으면 팀 타자 WAR 1위', () => {
+  const h = (name, games, ops, war, avg = 0.3, hr = 10) => ({ id: name, name, team: 'SS', type: 'hitter', photo: null, stats: { games, ops, war, avg, hr } });
+  const players = [h('디아즈', 140, 0.95, 5.1, 0.314, 50), h('구자욱', 130, 0.98, 4.2, 0.319, 19), h('대타왕', 10, 1.3, 0.2), h('김영웅', 120, 0.82, 3.0)];
+  const roster = {
+    find: (t, n) => players.find((p) => p.name === n) ?? null,
+    teamPlayers: () => [...players].sort((a, b) => b.stats.war - a.stats.war),
+  };
+  const withLineup = keyPlayer(roster, 'SS', [{ name: '김영웅' }, { name: '구자욱' }, { name: '대타왕' }]);
+  assert.deepEqual([withLineup.name, withLineup.reason, withLineup.line], ['구자욱', '오늘 라인업 OPS 1위', '.319 · 19홈런 · OPS .980'], '20경기 안 된 선수는 빼고');
+  const noLineup = keyPlayer(roster, 'SS', null);
+  assert.deepEqual([noLineup.name, noLineup.reason], ['디아즈', '팀 타자 WAR 1위']);
+  assert.equal(keyPlayer(null, 'SS', null), null);
+  assert.equal(hitterLine({ avg: 0.3, hr: null, ops: 1.012 }), '.300 · OPS 1.012');
 });

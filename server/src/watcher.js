@@ -6,7 +6,7 @@ import { kstDate } from './time.js';
 
 const HOUR = 3600 * 1000;
 
-export function createWatcher({ provider, store, apns, photos = null, now = () => Date.now(), log = () => {}, pregameMinutes = 10, idleDetailMs = 5 * 60 * 1000 }) {
+export function createWatcher({ provider, store, apns, photos = null, weather = null, now = () => Date.now(), log = () => {}, pregameMinutes = 10, idleDetailMs = 5 * 60 * 1000 }) {
   const photoOf = (team, name) => (photos && team && name ? photos.photo(team, name) : null);
   const lastDetailAt = new Map();
 
@@ -26,6 +26,7 @@ export function createWatcher({ provider, store, apns, photos = null, now = () =
   async function sendAlerts(event, game, detail, t) {
     if (!store.markSent(event.key)) return 0;
     if (event.type === 'end') event.pitchers = detail?.pitchers ?? null;
+    if (event.type === 'pregame' && weather) event.weather = await weather.forGame(game); // 비 예보면 알림에 한 줄
     if (event.type === 'lineup') event.lineups = detail?.lineups ?? null;
     // 홈런 알림엔 친 선수 사진
     const image = event.type === 'score' && event.hitter

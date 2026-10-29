@@ -16,6 +16,7 @@ export const DEFAULT_PREFS = {
   players: true, // 관심 선수 타석 결과·등판·강판
   hit: false, // 내 팀 안타 (많이 와서 기본은 끔)
   walk: false, // 내 팀 볼넷·사구
+  comments: true, // 커뮤니티: 내 글에 댓글
 };
 
 export function wants(prefs, event) {
@@ -44,6 +45,12 @@ function viewerSide(g, teams) {
   return a && !h ? 'away' : h && !a ? 'home' : null;
 }
 
+// 경기 전 알림에 붙이는 비 소식 (돔·맑음이면 없음)
+export function rainNote(w) {
+  if (!w || w.dome || !['high', 'medium'].includes(w.risk)) return null;
+  return `${w.risk === 'high' ? '☔ 비 예보' : '🌦 비 가능성'} ${w.pop ?? '-'}%`;
+}
+
 export function render(event, game, viewerTeams = [], { now = Date.now() } = {}) {
   const g = game;
   const mine = viewerSide(g, viewerTeams);
@@ -54,7 +61,7 @@ export function render(event, game, viewerTeams = [], { now = Date.now() } = {})
   switch (event.type) {
     case 'pregame': {
       const mins = Math.max(1, Math.round((Date.parse(g.startsAt) - now) / 60000));
-      return { ...base, title: `${matchup(g)} · ${mins}분 뒤 시작`, body: join(`${clock} ${g.stadium ?? ''}`.trim(), starters(g), g.broadcast) };
+      return { ...base, title: `${matchup(g)} · ${mins}분 뒤 시작`, body: join(`${clock} ${g.stadium ?? ''}`.trim(), starters(g), g.broadcast, rainNote(event.weather)) };
     }
     case 'starters':
       return { ...base, level: 'passive', title: `선발 발표 · ${matchup(g)}`, body: join(`${g.away.starter} 대 ${g.home.starter}`, `${clock} ${g.stadium ?? ''}`.trim()) };

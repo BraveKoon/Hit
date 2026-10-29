@@ -120,6 +120,12 @@ export function createRoster({ fetch = globalThis.fetch, base = NAVER_BASE, now 
         .map(([, p]) => p);
     },
 
+    /** 한 팀의 타자 또는 투수 (WAR 순) */
+    teamPlayers(team, type) {
+      refresh();
+      return players.filter((p) => p.team === team && p.type === type).sort(byWar);
+    },
+
     leaders(type, limit = 20) {
       refresh();
       return players.filter((p) => p.type === type && p.stats.war !== null).sort(byWar).slice(0, limit);

@@ -29,6 +29,10 @@
 //   POST   /v1/comments/:id/report                  댓글 신고 · GET /v1/uploads/:name 글 사진
 //   GET    /v1/games/:id/prediction · PUT { pick: away|home }  승부예측 (경기 시작 전까지, 로그인 필요)
 //   GET    /v1/me/predictions                       내 승부예측 적중률·연속 적중
+//   GET    /v1/posts?sort=hot · ?q=검색어             인기 글 (최근 3일) · 글 검색
+//   POST   /v1/blocks { post | comment | chat }     그 글쓴이 차단 · GET /v1/me/blocks · DELETE /v1/me/blocks/:userId
+//   GET    /v1/games/:id/weather                    구장 날씨 (경기 시간대, 우천 취소 가능성)
+//   GET    /v1/news?team=SS&tag=move|injury         내 팀 소식 (네이버 뉴스 검색)
 import http from 'node:http';
 import { TEAM_CODES, shortName } from './teams.js';
 import { DEFAULT_PREFS } from './messages.js';
@@ -41,6 +45,7 @@ import { CHAT_GAP_MS, chatMessage, chatOpen, cleanText, ticketHash } from './cha
 import { screen } from './moderation.js';
 import { COMMENT_GAP_MS, POST_GAP_MS, checkComment, checkPost, commentJson, postJson, readImage, saveImage } from './community.js';
 import { myRecord, predictionJson, predictionOpen } from './predict.js';
+import { NEWS_TAGS } from './news.js';
 
 const TOKEN = /^[0-9a-fA-F]{32,256}$/;
 const ENVS = new Set(['sandbox', 'production']);
@@ -112,7 +117,7 @@ function nickname(v) {
 
 export const publicUser = (u) => ({ id: u.id, provider: u.provider, nickname: u.nickname, email: u.email, avatar: u.avatar, team: u.team, prefs: u.prefs, players: u.players ?? [] });
 
-export function createApi({ provider, store, auth = null, roster = null, uploadsDir = null, info = {}, now = () => Date.now(), log = () => {} }) {
+export function createApi({ provider, store, auth = null, roster = null, uploadsDir = null, weather = null, news = null, notifier = null, info = {}, now = () => Date.now(), log = () => {} }) {
   const needRoster = () => { if (!roster) throw new HttpError(503, '선수 정보가 준비되지 않았습니다'); return roster; };
   const needAuth = () => { if (!auth) throw new HttpError(503, '로그인이 설정되지 않았습니다'); return auth; };
   const me = (req) => {
@@ -265,7 +270,8 @@ export function createApi({ provider, store, auth = null, roster = null, uploads
     ['GET', /^\/v1\/games\/([\w-]{6,40})\/chat$/, async (m, url, _b, req) => {
       const after = Number(url.searchParams.get('after') ?? 0);
       const viewer = auth?.userFrom(req)?.id ?? null;
-      return { messages: store.chat(m[1], Number.isInteger(after) && after > 0 ? after : 0).map((r) => chatMessage(r, viewer)) };
+      const blocked = store.blockedIds(viewer);
+      return { messages: store.chat(m[1], Number.isInteger(after) && after > 0 ? after : 0).filter((r) => !blocked.has(r.user_id)).map((r) => chatMessage(r, viewer)) };
     }],
     ['POST', /^\/v1\/games\/([\w-]{6,40})\/chat$/, async (m, _u, body, req) => {
       const u = me(req);
@@ -291,9 +297,15 @@ export function createApi({ provider, store, auth = null, roster = null, uploads
       const team = url.searchParams.get('team');
       if (team && !TEAM_CODES.includes(team)) throw new HttpError(400, 'team code');
       const before = Number(url.searchParams.get('before') ?? 0);
+      const cursor = Number.isInteger(before) && before > 0 ? before : 0;
       const viewer = viewerOf(req);
-      const rows = store.posts(viewer, { team: team || null, before: Number.isInteger(before) && before > 0 ? before : 0 });
-      return { posts: rows.map((r) => postJson(r, viewer)), next: rows.length === 20 ? rows.at(-1).id : null };
+      const text = (url.searchParams.get('q') ?? '').trim().slice(0, 30);
+      const hot = url.searchParams.get('sort') === 'hot';
+      const rows = hot ? store.hotPosts(viewer, { team: team || null })
+        : text ? store.searchPosts(viewer, text, { team: team || null, before: cursor })
+        : store.posts(viewer, { team: team || null, before: cursor });
+      const blocked = store.blockedIds(viewer);
+      return { posts: rows.filter((r) => !blocked.has(r.user_id)).map((r) => postJson(r, viewer)), next: !hot && rows.length === 20 ? rows.at(-1).id : null };
     }],
     ['POST', /^\/v1\/posts$/, async (_m, _u, body, req) => {
       const u = me(req);
@@ -314,7 +326,9 @@ export function createApi({ provider, store, auth = null, roster = null, uploads
     ['GET', /^\/v1\/posts\/(\d{1,12})$/, async (m, _u, _b, req) => {
       const viewer = viewerOf(req);
       const p = postOr404(viewer, Number(m[1]));
-      return { ...postJson(p, viewer, { full: true }), replies: store.comments(p.id).map((c) => commentJson(c, viewer)) };
+      const blocked = store.blockedIds(viewer);
+      if (blocked.has(p.user_id)) throw new HttpError(404, '차단한 사용자의 글이에요');
+      return { ...postJson(p, viewer, { full: true }), replies: store.comments(p.id).filter((c) => !blocked.has(c.user_id)).map((c) => commentJson(c, viewer)) };
     }],
     ['DELETE', /^\/v1\/posts\/(\d{1,12})$/, async (m, _u, _b, req) => ({ deleted: store.deletePost(Number(m[1]), me(req).id) })],
     ['POST', /^\/v1\/posts\/(\d{1,12})\/like$/, async (m, _u, body, req) => {
@@ -338,7 +352,15 @@ export function createApi({ provider, store, auth = null, roster = null, uploads
       if (c.error) throw new HttpError(400, c.error);
       const last = store.lastCommentAt(u.id);
       if (last && now() - last < COMMENT_GAP_MS) throw new HttpError(429, '조금만 천천히 써 주세요');
-      return commentJson(store.addComment(p.id, u, c.text), u.id);
+      const saved = store.addComment(p.id, u, c.text);
+      // 글쓴이에게 알림 (내 글에 내가 단 댓글, 나를 차단한 사람 제외)
+      if (notifier && p.user_id !== u.id && !store.blockedIds(p.user_id).has(u.id)) {
+        notifier.toUser(p.user_id, {
+          type: 'comments', postId: p.id, threadId: `post-${p.id}`, collapseId: `post-${p.id}`,
+          title: `내 글에 댓글 · ${p.title.slice(0, 30)}`, body: `${u.nickname || '야구팬'}: ${c.text.slice(0, 80)}`,
+        }).catch((err) => log(`댓글 알림 실패: ${err.message}`));
+      }
+      return commentJson(saved, u.id);
     }],
     ['POST', /^\/v1\/comments\/(\d{1,12})\/report$/, async (m, _u, _b, req) => {
       const u = me(req);
@@ -360,6 +382,34 @@ export function createApi({ provider, store, auth = null, roster = null, uploads
       if (!predictionOpen(game, now())) throw new HttpError(409, '경기가 시작되면 예측을 바꿀 수 없어요');
       store.predict(m[1], u.id, game.date ?? kstDate(now()), body.pick);
       return (await predictionOf(m[1], u.id)).json;
+    }],
+    ['POST', /^\/v1\/blocks$/, async (_m, _u, body, req) => {
+      const u = me(req);
+      const target = Number.isInteger(body.post) ? store.rawPost(body.post)
+        : Number.isInteger(body.comment) ? store.rawComment(body.comment)
+        : Number.isInteger(body.chat) ? store.getChat(body.chat) : undefined;
+      if (target === undefined) throw new HttpError(400, 'post, comment, chat 중 하나');
+      if (!target) throw new HttpError(404, '없는 글이에요');
+      if (target.user_id === u.id) throw new HttpError(400, '나를 차단할 수는 없어요');
+      store.block(u.id, target.user_id, target.nickname);
+      return { blocked: true, nickname: target.nickname ?? '야구팬' };
+    }],
+    ['GET', /^\/v1\/me\/blocks$/, async (_m, _u, _b, req) => ({ blocks: store.blocks(me(req).id) })],
+    ['DELETE', /^\/v1\/me\/blocks\/(\d{1,12})$/, async (m, _u, _b, req) => ({ deleted: store.unblock(me(req).id, Number(m[1])) })],
+    ['GET', /^\/v1\/games\/([\w-]{6,40})\/weather$/, async (m) => {
+      if (!weather) throw new HttpError(503, '날씨가 설정되지 않았습니다');
+      const { game } = await provider.detail(m[1]);
+      const w = await weather.forGame(game);
+      if (!w) throw new HttpError(404, '이 경기는 날씨 예보가 없어요');
+      return w;
+    }],
+    ['GET', /^\/v1\/news$/, async (_m, url) => {
+      if (!news) throw new HttpError(503, '뉴스가 설정되지 않았습니다');
+      const team = url.searchParams.get('team');
+      if (!TEAM_CODES.includes(team)) throw new HttpError(400, 'team code');
+      const tag = url.searchParams.get('tag');
+      const items = await news.team(team);
+      return { team, tags: NEWS_TAGS, items: (tag ? items.filter((i) => i.tags.includes(tag)) : items).slice(0, 30) };
     }],
     ['GET', /^\/v1\/me\/predictions$/, async (_m, _u, _b, req) => myRecord(provider, store.myPredictions(me(req).id), now())],
     ['DELETE', /^\/v1\/me\/diary\/([\w-]{6,40})$/, async (m, _u, _b, req) => ({ deleted: store.deleteDiary(me(req).id, m[1]) })],

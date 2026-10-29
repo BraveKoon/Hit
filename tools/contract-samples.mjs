@@ -15,6 +15,9 @@ import { postseason } from '../server/src/postseason.js';
 import { chatMessage } from '../server/src/chat.js';
 import { postJson, commentJson } from '../server/src/community.js';
 import { predictionJson, myRecord } from '../server/src/predict.js';
+import { gameWeather, stadiumOf } from '../server/src/weather.js';
+import { normalizeNews, NEWS_TAGS } from '../server/src/news.js';
+import { keyPlayer } from '../server/src/preview.js';
 
 const fx = (n) => JSON.parse(readFileSync(new URL(`../server/test/fixtures/${n}`, import.meta.url))).result;
 const live = { ...normalizeDetail(fx('naver-game-live.json').game, fx('naver-relay-live.json').textRelayData), fetchedAt: new Date().toISOString() };
@@ -75,6 +78,15 @@ const postBare = store.addPost(fresh, { team: 'LG', title: '사진 없는 글' }
 const commentRow = store.addComment(postRow.id, fresh, '인정');
 const predOpen = predictionJson(before.game, { away: 0, home: 0 }, null, 0);
 const predDone = predictionJson({ ...final.game, winner: 'home' }, { away: 3, home: 5 }, 'home', Date.now());
+const meteoDay = before.game.startsAt.slice(0, 10);
+const meteo = { hourly: { time: Array.from({ length: 24 }, (_, h) => `${meteoDay}T${String(h).padStart(2, '0')}:00`),
+  temperature_2m: Array(24).fill(14.2), precipitation_probability: Array(24).fill(60), precipitation: Array(24).fill(0.4), weather_code: Array(24).fill(61), wind_speed_10m: Array(24).fill(11) } };
+const weatherOut = gameWeather(meteo, before.game, stadiumOf(before.game.stadium) ?? stadiumOf('광주'));
+const domeOut = gameWeather({ hourly: { ...meteo.hourly, temperature_2m: Array(24).fill(null), precipitation_probability: Array(24).fill(null), weather_code: Array(24).fill(null), wind_speed_10m: Array(24).fill(null) } }, before.game, stadiumOf('고척'));
+const newsItems = normalizeNews({ items: [{ title: '<b>삼성 라이온즈</b> FA 계약', originallink: 'https://www.yna.co.kr/1', link: 'x', description: '야구', pubDate: 'Thu, 29 Oct 2026 10:00:00 +0900' },
+  { title: '삼성 라이온즈 훈련', originallink: '', link: 'https://n.news.naver.com/2', description: '', pubDate: 'bad' }] }, 'SS');
+const keyRoster = { find: (t, n) => photos.find(t, n), teamPlayers: (t, type) => photos.leaders(type === 'hitter' ? 'hitter' : 'pitcher', 50).filter((p) => p.team === t || true) };
+const previewKeyed = { ...preview, keyPlayers: { away: keyPlayer(keyRoster, 'SS', null), home: null } };
 const start = activityStartPayload(live.game, state, { title: 't', body: 'b' });
 
 console.log(JSON.stringify({
@@ -95,12 +107,16 @@ console.log(JSON.stringify({
   Player: [photos.get('1'), photos.get('2'), photos.get('4')],
   ChatResponse: [{ messages: chatRows.map((r) => chatMessage(r, configured.id)) }, { messages: [] }],
   PostseasonResponse: [bracket, bracketOff],
-  GamePreview: [preview, previewBare],
+  GamePreview: [preview, previewBare, previewKeyed],
   MvpResponse: [mvpEmpty, mvpVoted, ballot(before, store, null)],
   PostsResponse: [{ posts: [postJson(postRow, configured.id), postJson(postBare, null)], next: 12 }, { posts: [], next: null }],
   CommunityPost: [postJson(postRow, configured.id, { full: true }), { ...postJson(postRow, fresh.id, { full: true }), replies: [commentJson(commentRow, fresh.id)] }],
   LikeResponse: [{ likes: 1, liked: true }],
   Prediction: [predOpen, predDone],
   PredictionRecord: [await myRecord({ schedule: async () => [] }, [], Date.now()), { total: 3, decided: 2, correct: 1, rate: 0.5, streak: 0 }],
+  GameWeather: [weatherOut, domeOut],
+  NewsResponse: [{ team: 'SS', tags: NEWS_TAGS, items: newsItems }, { team: 'SS', tags: NEWS_TAGS, items: [] }],
+  BlocksResponse: [{ blocks: [{ id: 3, nickname: '팬', at: new Date().toISOString() }] }, { blocks: [] }],
+  BlockResult: [{ blocked: true, nickname: '팬' }],
   WinTrendResponse: [{ gameId: live.game.id, points: winPointsOf(fx('naver-relay-live.json').textRelayData, 3) }, await replay.winTrend(rgame.id)],
 }));
