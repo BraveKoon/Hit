@@ -117,13 +117,14 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .sb-r{display:flex;gap:5px;align-items:center}
 #view{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;position:relative}
 #view::-webkit-scrollbar{width:0}
-.ftab{position:absolute;left:50%;transform:translateX(-50%);bottom:26px;z-index:35;display:flex;gap:7px;padding:8px;border-radius:999px;
+.ftab{position:absolute;left:16px;right:16px;bottom:26px;z-index:35;display:flex;gap:0;padding:5px;border-radius:999px;
   background:rgba(118,118,128,.34);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.12);box-shadow:0 14px 30px rgba(0,0,0,.55)}
-.ftab button{height:50px;min-width:50px;border-radius:999px;border:0;background:rgba(255,255,255,.16);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;padding:0;transition:padding .25s,background .25s}
+.ftab button{flex:1;height:54px;min-width:0;border-radius:999px;border:0;background:none;color:rgba(255,255,255,.75);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding:0;transition:background .25s,color .25s}
+.ftab button svg{width:19px;height:19px}.ftab .hmark{width:20px;height:15px;margin:2px 0}
 .hmark{display:inline-block;width:23px;height:17px;background:currentColor;-webkit-mask:var(--logoH) center/contain no-repeat;mask:var(--logoH) center/contain no-repeat}
-.ftab button span{display:none;font-size:15px;font-weight:900;letter-spacing:.01em;white-space:nowrap}
-.ftab button[aria-selected="true"]{background:var(--am);color:#000;padding:0 18px}
-.ftab button[aria-selected="true"] span{display:inline}
+.ftab button span{font-size:10.5px;font-weight:600;white-space:nowrap}
+.ftab button[aria-selected="true"]{background:rgba(255,255,255,.12);color:var(--am)}
+.ftab button[aria-selected="true"] span{font-weight:800}
 .homebar{flex:none;height:22px;display:grid;place-items:center}
 .homebar i{width:122px;height:4.5px;border-radius:9px;background:rgba(255,255,255,.35)}
 .screen.app #view .pad{padding-bottom:112px}
@@ -135,7 +136,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   background:linear-gradient(135deg,var(--tc,#3a4656),#1d2531);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
 .card{background:var(--sf);border:1px solid var(--ln);border-radius:22px;padding:16px}
 .sh{display:flex;align-items:baseline;justify-content:space-between;margin:20px 0 10px}
-.sh h3{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em}.sh span{font-size:12px;color:var(--mu)}
+.sh h3{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em}.sh span{font-size:12.5px;color:var(--mu)}
 .pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--tx);white-space:nowrap}
 .pill.live{background:rgba(54,213,131,.14);color:var(--lv)}.pill.done{color:var(--mu)}
 .live-dot{width:7px;height:7px;border-radius:50%;background:var(--lv);animation:breathe 1.8s ease-in-out infinite}
@@ -281,7 +282,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .dec{display:grid;grid-template-columns:1fr 1px 1fr;align-items:center;text-align:center}.dec i{height:40px;background:var(--ln)}
 .dec small{display:block;font-size:12px;font-weight:600}.dec b{font-size:17px}
 /* 루타 느낌: 머리 원형 버튼, 알약 칩, 끝까지 붙은 표 */
-.ahead{display:flex;align-items:center;gap:10px;padding:6px 0 10px}.ahead .logo{height:21px;color:var(--tx)}.ahead .sp{flex:1}
+.ahead{display:flex;align-items:center;gap:10px;padding:6px 0 10px}.ahead .ptitle{margin:0;font-size:30px;font-weight:900;letter-spacing:-.02em}.ahead .logo{height:21px;color:var(--tx)}.ahead .sp{flex:1}
 .cbtn{width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.08);background:var(--sf);color:#fff;display:grid;place-items:center;cursor:pointer}
 .greet{margin:4px 0 0;font-size:23px;font-weight:800;letter-spacing:-.02em}
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:4px 0 6px}.chips::-webkit-scrollbar{height:0}
@@ -335,7 +336,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .setrows button{width:100%;height:54px;display:flex;align-items:center;gap:12px;padding:0 16px;border:0;border-bottom:1px solid var(--sf2);background:none;cursor:pointer;font-size:16px;text-align:left}
 .setrows button:last-child{border-bottom:0}.setrows button span{flex:1}.setrows .red{color:#ff6b61}.setrows .amb{color:var(--am)}
 /* ── 글라스: 반투명 + 뒤가 흐리게 비침 + 위쪽 밝은 테두리 ── */
-#view{background:radial-gradient(70% 38% at 100% 0%,rgba(255,138,76,.22),transparent 70%),radial-gradient(85% 45% at 0% 78%,var(--glow,rgba(255,138,76,.14)),transparent 70%),#000}
+#view{background:radial-gradient(90% 34% at 15% -6%,var(--glow,rgba(255,138,76,.14)),transparent 70%),#000}
 .card,.gcard,.gc2,.half,.plist,.myteam,.setrows,.sbox,.fact,.favempty,.lsbox,.dchip:not([aria-pressed="true"]),.cbtn,.addbtn,.grp,.prof,.rank,.dhero,.phero{
   -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);
   border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
@@ -344,9 +345,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 
 /* ── 홈: 오늘의 경기 ── */
 .dayhead{display:flex;align-items:flex-end;justify-content:space-between;margin:6px 0 2px}
-.dayhead small{display:block;color:var(--mu);font-size:13.5px}.dayhead b{font-size:21px;font-weight:900}
+.dayhead small{display:block;color:var(--mu);font-size:13.5px}.dayhead b{font-size:26px;font-weight:900;letter-spacing:-.02em}
 .dayhead button{border:0;background:none;color:var(--mu);font-size:13.5px;cursor:pointer;padding:4px 0}
-.greet2{margin:6px 0 0;color:rgba(255,255,255,.75);font-size:13.5px;font-weight:600}
+.greet2{margin:6px 0 4px;color:var(--mu);font-size:13.5px;font-weight:500}
 .hero2{display:block;width:100%;text-align:left;border:1px solid rgba(255,255,255,.14);border-radius:26px;padding:18px;margin-top:14px;cursor:pointer;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.2);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
 .brkc{margin-top:6px}.brkc h3{margin:0 0 6px;font-size:19px;font-weight:800}.brk{display:block;width:100%;height:auto;font-family:Pretendard,sans-serif}
@@ -668,6 +669,11 @@ ol.steps{margin:0;padding-left:1.3em;font-size:13.5px;color:var(--ink-2);line-he
 .thm.on .mini{outline:2px solid var(--am)}
 .thm .mini>b{font-size:14px;font-weight:900}.thm .mini em{font-style:normal;font-family:var(--round);font-size:24px;font-weight:700;margin-left:auto}.thm .mini em+span+em{margin:0 auto 0 0}
 .thm .mini span{display:flex;flex-direction:column;align-items:center;width:54px}.thm .mini span b{font-size:11px}.thm .mini span small{font-size:10px;opacity:.7}
+
+/* 눌림 표시: 카드형 버튼은 살짝 작아지고 흐려진다 */
+#view button:not(:disabled),#overlay button:not(:disabled){transition:transform .18s cubic-bezier(.3,.7,.4,1),opacity .18s}
+#view button:not(:disabled):active,#overlay button:not(:disabled):active{transform:scale(.97);opacity:.85}
+.ftab button:active{transform:scale(.94)}
 </style>
 
 <div class="wrap">
@@ -710,7 +716,7 @@ ol.steps{margin:0;padding-left:1.3em;font-size:13.5px;color:var(--ink-2);line-he
           </div>
           <div id="view"></div>
           <nav class="ftab" id="tabbar" hidden>
-            <button data-act="tab" data-v="home" aria-label="HOME"><i class="hmark" aria-hidden="true"></i><span>HOME</span></button>
+            <button data-act="tab" data-v="home" aria-label="홈"><i class="hmark" aria-hidden="true"></i><span>홈</span></button>
             <button data-act="tab" data-v="diary" aria-label="직관"><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5V9a3 3 0 0 0 0 6v2.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5V15a3 3 0 0 0 0-6z"/></svg><span>직관</span></button>
             <button data-act="tab" data-v="comm" aria-label="커뮤니티"><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3h9A2.5 2.5 0 0 1 17 5.5v5a2.5 2.5 0 0 1-2.5 2.5H9l-3.6 2.8c-.4.3-1 0-1-.5V13A2.5 2.5 0 0 1 3 10.5z"/><path d="M19 8.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2v2c0 .4-.5.7-.8.4L15.3 17.5H11a2 2 0 0 1-2-2v-.5h5.5A4.5 4.5 0 0 0 19 10.5z"/></svg><span>커뮤니티</span></button>
             <button data-act="tab" data-v="rec" aria-label="기록"><svg width="21" height="21" viewBox="0 0 22 22" fill="currentColor" aria-hidden="true"><rect x="3" y="10" width="4" height="9" rx="1.2"/><rect x="9" y="4" width="4" height="15" rx="1.2"/><rect x="15" y="7" width="4" height="12" rx="1.2"/></svg><span>기록</span></button>
@@ -1005,7 +1011,7 @@ function vHome(){
   else if (next) greet=name()+'님, 다음 경기는 '+(next.date==='2026-10-29'?'내일 '+next.time:dayLabel(next.date));
   else greet=name()+'님, 오늘은 쉬는 날';
 
-  var h='<div class="pad">'+appHeader()+(isToday?bracket():'')+
+  var h='<div class="pad">'+appHeader()+
     '<div class="dayhead"><div><small>'+shortDate(S.day)+'</small><b>'+(isToday?'오늘의 경기':'이날의 경기')+'</b></div>'+
     '<button data-act="dates">'+(S.dates?'접기 ⌃':'더보기 ›')+'</button></div><p class="greet2">'+esc(greet)+'</p>';
   h+='<div class="dstrip" id="dstrip"'+(S.dates?'':' hidden')+'>';
@@ -1021,10 +1027,12 @@ function vHome(){
   else if (games.length && !mine.length) h+='<div class="card restcard">'+emb(S.my,40)+'<span style="color:var(--mu)">'+esc(team.n)+'는 이날 경기가 없어요</span></div>';
   mine.forEach(function(g){ h+=hero(g); });
   if (others.length){ h+='<div class="sh"><h3>다른 경기</h3><span>'+others.length+'경기</span></div>'; others.forEach(function(g){ h+=gcard(g); }); }
+  // 대진표는 오늘 경기 아래 (가장 궁금한 내 팀 경기가 첫 화면에 오도록)
+  if (isToday) h+='<div class="sh"><h3>2026 포스트시즌</h3><span>플레이오프</span></div>'+bracket();
   return h+favStrip()+'</div>';
 }
-function appHeader(){
-  return '<div class="ahead">'+emb(S.my,36)+'<i class="logo" role="img" aria-label="HIT!"></i><span class="sp"></span>'+
+function appHeader(title){
+  return '<div class="ahead">'+(title?'<h1 class="ptitle">'+esc(title)+'</h1>':emb(S.my,36)+'<i class="logo" role="img" aria-label="HIT!"></i>')+'<span class="sp"></span>'+
     '<button class="cbtn" data-act="search" aria-label="선수 검색">'+ICON.search+'</button><button class="cbtn" data-act="noti" aria-label="알림 설정">'+ICON.bell+'</button></div>';
 }
 function favStrip(){
@@ -1083,7 +1091,7 @@ function bracket(){
       '<text x="'+x+'" y="'+(base+58)+'" text-anchor="middle" font-size="13" font-weight="500" fill="#fff">'+T[c].s+'</text>'+
       (playing.indexOf(c)>=0?'<circle cx="'+x+'" cy="'+(base+70)+'" r="3" fill="#ff8a4c"/>':'')+'</g>';
   });
-  return '<div class="card brkc"><h3>포스트시즌 대진표</h3>'+svg+'</svg></div>';
+  return '<div class="card brkc">'+svg+'</svg></div>';
 }
 function hero(g){
   var c=T[S.my].c, has=g.status!=='scheduled', live=g.status==='live', as=score(g,'a'), hs=score(g,'h');
@@ -1292,7 +1300,7 @@ function recordTab(g){
 
 /* ── 화면: 기록 ── */
 function vRecords(){
-  var h='<div class="pad">'+appHeader()+'<div class="chips" role="tablist">'+[['team','팀'],['pitcher','투수 TOP20'],['hitter','타자 TOP20']].map(function(c){
+  var h='<div class="pad">'+appHeader('기록')+'<div class="chips" role="tablist">'+[['team','팀'],['pitcher','투수 TOP20'],['hitter','타자 TOP20']].map(function(c){
     return '<button class="pchip" role="tab" data-act="chip" data-v="'+c[0]+'" aria-pressed="'+(S.rec===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>';
   if (S.rec==='team'){
     h+='<div class="rtbl"><div class="hd"><span>팀</span><span>승</span><span>패</span><span>무</span><span>승률</span><span>게임차</span></div>';
@@ -1339,7 +1347,7 @@ function diaryStats(list){
 }
 function pct100(p){ return p==null?'-':Math.round(p*100)+'%'; }
 function vDiary(){
-  var h='<div class="pad">'+appHeader();
+  var h='<div class="pad">'+appHeader('직관');
   if (!S.user){
     return h+'<div class="dguest"><span class="ic">'+ICON.ticket+'</span><b>로그인하면 직관 기록과 승률이 쌓여요</b><small>어느 기기에서든 내 티켓을 다시 볼 수 있게 계정에 저장해요</small>'+
       '<button class="btn amber" data-act="logout">로그인 · 회원가입</button></div>'+calendar()+'</div>';
@@ -1428,7 +1436,7 @@ function vPlayer(){
 
 /* ── 화면: MY ── */
 function vMy(){
-  var h='<div class="pad"><div class="ttl" style="margin-top:8px">MY</div>';
+  var h='<div class="pad">'+appHeader('MY');
   h+='<div class="prof" style="'+glow([S.my])+'">'+ava(name(),S.my,64)+'<div><b>'+esc(name())+'</b>'+(S.user?' <span style="color:var(--mu);font-size:13px">✎</span>':'')+
     '<small>'+(S.user?esc(S.user.provider)+'로 로그인':'로그인하지 않음')+'</small></div></div>';
   h+='<div class="sh"><h3>응원 팀</h3></div><button class="myteam" data-act="sheet">'+emb(S.my,48)+'<span><b>'+esc(T[S.my].n)+'</b><small>홈구장 '+esc(T[S.my].h)+'</small></span><em>변경</em></button>';
@@ -1511,7 +1519,7 @@ function bchip(team,player){ return '<span class="bchip" style="--tc:'+T[team].c
 function vCommunity(){
   var board=S.board||'', mine=S.my;
   var boards=[['','전체']].concat(mine?[[mine,T[mine].s]]:[]).concat(PICK.filter(function(k){ return k!==mine; }).map(function(k){ return [k,T[k].s]; }));
-  var h='<div class="pad">'+appHeader()+'<div class="chips" role="tablist">'+boards.map(function(b){
+  var h='<div class="pad">'+appHeader('커뮤니티')+'<div class="chips" role="tablist">'+boards.map(function(b){
     return '<button class="pchip" data-act="board" data-v="'+b[0]+'" aria-pressed="'+(board===b[0])+'">'+esc(b[1])+'</button>'; }).join('')+'</div>';
   var list=posts().filter(function(p){ return !board||p.team===board; });
   if (!list.length) h+='<p class="mnone" style="text-align:center;padding:60px 0">아직 글이 없어요. 첫 글을 남겨 보세요</p>';
@@ -1691,7 +1699,7 @@ function render(){
   document.getElementById('tabbar').hidden=!inApp;
   screen.classList.toggle('bare',!inApp);
   screen.classList.toggle('app',inApp);
-  if (S.my) view.style.setProperty('--glow', rgba(T[S.my].c,.34));
+  if (S.my) view.style.setProperty('--glow', rgba(T[S.my].c,.22));
   screen.classList.toggle('lock',S.screen==='lock');
   document.getElementById('c-lock').setAttribute('aria-pressed',S.screen==='lock');
   [].forEach.call(document.querySelectorAll('#tabbar button'),function(b){ b.setAttribute('aria-selected',b.dataset.v===S.tab); });
@@ -1776,8 +1784,9 @@ function buildSlides(){
   var keep={}; ['screen','tab','sub','user','my','day','seg','dtab','replay','po2','notifs','fav','pid','rec','dates','anim','bk','cal'].forEach(function(k){ keep[k]=S[k]; });
   var g=po2Base(); for (var i=0;i<8;i++) applyStep(g,PO2_STEPS[i]);   // 3회말 디아즈 투런 직후
   S.user={name:'라이온즈팬',provider:'Apple'}; S.my='SS'; S.po2=g; S.replay='play'; S.day='2026-10-27'; S.dates=false; S.fav=['diaz','gjw','hurado'];
-  var tabs=function(on){ return '<nav class="ftab">'+['home','diary','rec','my'].map(function(t){
-      return '<button aria-selected="'+(t===on)+'">'+(t==='home'?'<i class="hmark"></i>':t==='diary'?ICON.ticket:t==='rec'?'▮':'●')+'<span>'+({home:'HOME',diary:'직관',rec:'기록',my:'MY'})[t]+'</span></button>'; }).join('')+'</nav>'; };
+  var tabs=function(on){ var real=document.getElementById('tabbar');
+    return '<nav class="ftab">'+[].map.call(real.querySelectorAll('button'),function(b){
+      return b.outerHTML.replace(/ data-act="tab"/,'').replace(/aria-selected="[^"]*"/,'').replace('<button','<button aria-selected="'+(b.dataset.v===on)+'"'); }).join('')+'</nav>'; };
   var lockNotifs=[
     {t:'디아즈 · 3회말',s:'KIA 1 : 4 삼성',b:'우중간 담장 넘어가는 홈런',tm:'3회말'},
     {t:'홈런! KIA 1 : 4 삼성',s:'삼성 득점',b:'3회말 · 디아즈 : 우중간 담장 넘어가는 홈런',tm:'3회말'},

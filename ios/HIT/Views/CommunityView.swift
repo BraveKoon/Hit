@@ -25,7 +25,7 @@ struct CommunityView: View {
         NavigationStack(path: $model.communityPath) {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    AppHeader { model.communityPath.append(.search) }
+                    AppHeader(title: "커뮤니티") { model.communityPath.append(.search) }
                         .padding(.bottom, 14)
                     PillChips(items: boards, selection: $board)
                         .padding(.bottom, 12)
@@ -34,7 +34,7 @@ struct CommunityView: View {
                     }
                     ForEach(posts) { p in
                         NavigationLink(value: Route.post(p.id)) { PostRow(post: p) }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.press)
                             .onAppear { if p.id == posts.last?.id { Task { await load(more: true) } } }
                         Divider().overlay(.white.opacity(0.06))
                     }
@@ -63,14 +63,14 @@ struct CommunityView: View {
     private var emptyState: some View {
         VStack(spacing: 8) {
             if loading {
-                ProgressView()
+                SkeletonList(hero: 0, rows: 4)
             } else {
                 Image(systemName: failed ? "wifi.exclamationmark" : "text.bubble").font(.system(size: 30)).foregroundStyle(Palette.muted)
                 Text(failed ? "글을 불러오지 못했어요" : "아직 글이 없어요. 첫 글을 남겨 보세요")
                     .font(Typo.style(.subheadline)).foregroundStyle(Palette.muted)
             }
         }
-        .frame(maxWidth: .infinity).padding(.top, 80)
+        .frame(maxWidth: .infinity).padding(.top, loading ? 4 : 80)
     }
 
     private var writeButton: some View {
@@ -264,8 +264,9 @@ struct PostDetailView: View {
                         .padding(.horizontal, 16).frame(height: 38)
                         .overlay(Capsule().strokeBorder(p.liked ? Palette.accent : Palette.surfaceHigh, lineWidth: 1.5))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.press)
                 .disabled(!canWrite)
+                .sensoryFeedback(.impact(weight: .light), trigger: p.liked)
                 Label("\(p.comments)", systemImage: "bubble.right").font(Typo.style(.subheadline)).foregroundStyle(Palette.muted)
             }
             .padding(.top, 4)

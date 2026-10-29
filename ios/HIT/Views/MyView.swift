@@ -19,7 +19,7 @@ struct MyView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("MY").font(Typo.font(30, .heavy)).padding(.top, 8)
+                    AppHeader(title: "MY") { path.append(.search) }
                     profile
 
                     SectionHeader(title: "응원 팀")
@@ -38,7 +38,7 @@ struct MyView: View {
                         .padding(16)
                         .glassCard(20)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.press)
 
                     if auth.state == .signedIn {
                         SectionHeader(title: "승부예측")
@@ -54,7 +54,7 @@ struct MyView: View {
                             .frame(height: 48)
                             .glassCapsule()
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.press)
 
                     SectionHeader(title: "설정")
                     VStack(spacing: 0) {
@@ -147,7 +147,7 @@ struct MyView: View {
             .frame(height: 54)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.press)
     }
 
     private var teamSheet: some View {
@@ -319,7 +319,7 @@ struct LiveThemeSheet: View {
                                 sample(t)
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.press)
                     }
                 }
                 .padding(16)

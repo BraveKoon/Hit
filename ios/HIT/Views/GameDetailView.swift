@@ -67,7 +67,7 @@ struct GameDetailView: View {
                         MessageView(title: "중계를 불러오지 못했어요", detail: error, systemImage: "wifi.exclamationmark")
                             .padding(.top, 60)
                     } else {
-                        ProgressView().padding(.top, 80)
+                        SkeletonList(hero: 200, rows: 3).padding(.top, 8)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -198,7 +198,7 @@ struct GameDetailView: View {
                     .frame(height: 44)
                     .glassCapsule()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.press)
         }
     }
 
@@ -347,7 +347,7 @@ struct DetailTabs: View {
                     }
                     .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.press)
                 .disabled(!open)
             }
         }
@@ -502,7 +502,7 @@ struct InningChips: View {
                                 if on { Capsule().fill(Palette.accent) } else { Color.clear.glassCapsule() }
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.press)
                         .id(n)
                         .accessibilityLabel("\(n)회" + (n == live ? ", 진행 중" : ""))
                         .accessibilityAddTraits(on ? .isSelected : [])
@@ -1290,7 +1290,7 @@ struct MvpCard: View {
                                     }
                                     .frame(width: 66)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.press)
                                 .disabled(sending)
                             }
                         }
@@ -1373,7 +1373,7 @@ struct PreviewTab: View {
             } else if failed {
                 Card { Label("프리뷰를 불러오지 못했어요", systemImage: "wifi.exclamationmark").foregroundStyle(Palette.muted) }
             } else {
-                ProgressView().frame(maxWidth: .infinity).padding(.top, 20)
+                SkeletonList(hero: 220, rows: 2)
             }
         }
         .task(id: game.id) {
@@ -1728,6 +1728,7 @@ struct PredictionCard: View {
                 }
             }
         }
+        .sensoryFeedback(.selection, trigger: prediction?.myPick)
         .task(id: game.id) { prediction = try? await APIClient().prediction(gameId: game.id) }
     }
 
@@ -1758,7 +1759,7 @@ struct PredictionCard: View {
             .background(picked ? Team.color(for: team.code).opacity(0.22) : .white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(picked ? Team.color(for: team.code) : .clear, lineWidth: 1.5))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.press)
         .disabled(!canPick)
         .accessibilityLabel("\(team.name) 승리 예측")
         .accessibilityAddTraits(picked ? .isSelected : [])

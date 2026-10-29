@@ -94,7 +94,7 @@ struct PlayerRow: View {
                     Spacer(minLength: 0)
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.press)
             FavoriteStar(favorite: player.favorite)
         }
         .padding(.horizontal, 14)
@@ -139,7 +139,7 @@ struct FavoriteStar: View {
                 .contentTransition(.symbolEffect(.replace))
                 .symbolEffect(.bounce, value: on)   // 누르면 별이 통 튄다
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.press)
         .accessibilityLabel(on ? "관심 선수에서 빼기" : "관심 선수로 추가")
     }
 }
@@ -199,7 +199,7 @@ struct PlayerDetailView: View {
                     .foregroundStyle(on ? Color.black : Palette.text)
                     .background(on ? Palette.accent : Palette.surfaceHigh, in: Capsule())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.press)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 22)

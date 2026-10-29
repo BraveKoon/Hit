@@ -18,7 +18,7 @@ struct RecordsView: View {
         NavigationStack(path: $model.recordsPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    AppHeader { model.recordsPath.append(.search) }
+                    AppHeader(title: "기록") { model.recordsPath.append(.search) }
                     PillChips(items: [(RecordKind.team, "팀"), (.pitcher, "투수 TOP20"), (.hitter, "타자 TOP20")], selection: $kind)
                     if let error, standings.isEmpty && pitchers.isEmpty {
                         MessageView(title: "기록을 불러오지 못했어요", detail: error, systemImage: "wifi.exclamationmark")
@@ -124,7 +124,7 @@ struct LeadersTable: View {
 
     var body: some View {
         if players.isEmpty {
-            ProgressView().frame(maxWidth: .infinity).padding(.top, 40)
+            SkeletonList(hero: 0, rows: 6).padding(.top, 8)
         } else {
             VStack(spacing: 0) {
                 HStack(spacing: 0) {
@@ -137,7 +137,7 @@ struct LeadersTable: View {
                 Rectangle().fill(Palette.surfaceHigh).frame(height: 2)
                 ForEach(Array(players.enumerated()), id: \.element.id) { i, p in
                     Button { open(p.id) } label: { row(i + 1, p) }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.press)
                         .appearIn(i)
                     Rectangle().fill(Color.black.opacity(0.55)).frame(height: 1)
                 }

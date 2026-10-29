@@ -13,7 +13,7 @@ struct DiaryView: View {
         NavigationStack(path: $model.diaryPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    AppHeader { model.diaryPath.append(.search) }
+                    AppHeader(title: "직관") { model.diaryPath.append(.search) }
                     if !diary.canRecord {
                         GuestDiaryCard()
                     } else {
@@ -148,7 +148,7 @@ struct MonthCalendar: View {
             }
             .font(Typo.font(15, .bold))
             .foregroundStyle(Palette.text)
-            .buttonStyle(.plain)
+            .buttonStyle(.press)
 
             let cols = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
             LazyVGrid(columns: cols, spacing: 6) {
@@ -221,7 +221,7 @@ struct MonthCalendar: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.press)
         .disabled(game == nil)
         .accessibilityLabel(accessibility(day, game, result, entry))
     }
@@ -395,7 +395,7 @@ struct DiaryEditor: View {
                             .font(Typo.style(.subheadline, .semibold))
                             .padding(.horizontal, 16).frame(height: 36).glassCapsule()
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.press)
                 }
 
                 if !diary.canRecord {

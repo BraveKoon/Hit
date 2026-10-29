@@ -24,25 +24,27 @@ struct TodayView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     AppHeader { model.todayPath.append(.search) }
-                    if let postseason, postseason.active, isToday {
-                        PostseasonBracket(data: postseason)
-                            .appearIn(0)
-                    }
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(KST.short.string(from: date)).font(Typo.style(.subheadline)).foregroundStyle(Palette.muted)
-                            Text(isToday ? "오늘의 경기" : "이날의 경기").font(Typo.font(22, .heavy))
+                            Text(isToday ? "오늘의 경기" : "이날의 경기").font(Typo.font(26, .heavy, relativeTo: .title))
                         }
                         Spacer()
                         Button { withAnimation(.snappy) { showDates.toggle() } } label: {
                             HStack(spacing: 3) { Text(showDates ? "접기" : "더보기"); Image(systemName: showDates ? "chevron.up" : "chevron.right") }
                                 .font(.subheadline).foregroundStyle(Palette.muted)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.press)
                     }
                     if showDates { DateStrip(selection: $date).transition(.move(edge: .top).combined(with: .opacity)) }
-                    Text(greeting).font(Typo.style(.subheadline, .semibold)).foregroundStyle(.white.opacity(0.8))
+                    Text(greeting).font(Typo.style(.subheadline, .medium)).foregroundStyle(Palette.muted)
                     content
+                    // 대진표는 오늘 경기 아래 (가장 궁금한 내 팀 경기가 첫 화면에 오도록)
+                    if let postseason, postseason.active, isToday {
+                        SectionHeader(title: "\(postseason.season) 포스트시즌", detail: postseason.champion.flatMap { Team.find($0)?.short }.map { "\($0) 우승" } ?? postseason.current?.name)
+                        PostseasonBracket(data: postseason)
+                            .appearIn(3)
+                    }
                     FavoritesStrip { model.todayPath.append($0) }
                         .appearIn(4)
                 }
@@ -93,7 +95,7 @@ struct TodayView: View {
             MessageView(title: "경기 정보를 불러오지 못했어요", detail: error, systemImage: "wifi.exclamationmark")
                 .padding(.top, 40)
         } else if !loaded {
-            ProgressView().frame(maxWidth: .infinity).padding(.top, 60)
+            SkeletonList(hero: 230, rows: 3)
         } else if games.isEmpty && upcoming == nil {
             MessageView(title: "경기가 없는 날이에요", detail: "날짜를 넘겨 다른 날 경기를 확인해 보세요.")
                 .padding(.top, 40)
@@ -105,7 +107,7 @@ struct TodayView: View {
                 if myGames.isEmpty, let next = upcoming {
                     SectionHeader(title: "다음 경기", detail: next.startDate.map { KST.display.string(from: $0) })
                     NavigationLink(value: Route.game(next.id)) { MyTeamHero(game: next, myTeam: team.code, series: postseason?.series(for: next)) }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.press)
                         .appearIn(0)
                 } else if myGames.isEmpty {
                     Card {
@@ -119,7 +121,7 @@ struct TodayView: View {
                 }
                 ForEach(myGames) { game in
                     NavigationLink(value: Route.game(game.id)) { MyTeamHero(game: game, myTeam: team.code, series: postseason?.series(for: game)) }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.press)
                         .appearIn(0)
                 }
             }
@@ -128,7 +130,7 @@ struct TodayView: View {
                 VStack(spacing: 10) {
                     ForEach(Array(otherGames.enumerated()), id: \.element.id) { i, game in
                         NavigationLink(value: Route.game(game.id)) { GameCard(game: game, series: postseason?.series(for: game)) }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.press)
                             .appearIn(i + 1)
                     }
                 }
@@ -194,7 +196,7 @@ struct DateStrip: View {
                             .foregroundStyle(on ? Color.black : today ? Palette.accent : Palette.text)
                             .background(on ? Palette.accent : Palette.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.press)
                         .id(day)
                     }
                 }
@@ -400,7 +402,7 @@ struct FavoritesStrip: View {
                     .padding(16)
                     .glassCard(20)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.press)
             } else {
                 ScrollView(.horizontal) {
                     HStack(spacing: 12) {
@@ -413,7 +415,7 @@ struct FavoritesStrip: View {
                                 }
                                 .frame(width: 70)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.press)
                         }
                         Button { open(.search) } label: {
                             VStack(spacing: 6) {
@@ -424,7 +426,7 @@ struct FavoritesStrip: View {
                             }
                             .frame(width: 70)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.press)
                     }
                 }
                 .scrollIndicators(.hidden)
@@ -445,7 +447,6 @@ struct PostseasonBracket: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(data.champion != nil ? "\(data.season) 포스트시즌" : "포스트시즌 대진표").font(Typo.font(22, .bold))
             GeometryReader { geo in
                 let w = geo.size.width
                 let xs = (0..<5).map { w * (0.1 + 0.2 * CGFloat($0)) }
