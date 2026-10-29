@@ -1,0 +1,19 @@
+name: probe-daum
+on:
+  push:
+    branches: [claude/probe-daum]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: robots.txt 먼저 확인하고, 허용될 때만 일정 페이지 한 번 읽기
+        run: |
+          UA='Mozilla/5.0 (compatible; HIT/0.1)'
+          echo "== sports.daum.net/robots.txt"
+          curl -sS -m 15 -A "$UA" -w '\n[%{http_code}]\n' https://sports.daum.net/robots.txt | head -40 | tee /tmp/robots.txt
+          if grep -qiE '^\s*Disallow:\s*/\s*$' /tmp/robots.txt; then
+            echo "robots.txt 가 전체 차단이라 여기서 중단"; exit 0
+          fi
+          echo "== 일정 페이지 (HTML 에서 api 주소만 추림)"
+          curl -sS -m 20 -A "$UA" -o /tmp/p.html -w '[%{http_code}] %{size_download}B\n' https://sports.daum.net/schedule/kbo
+          grep -oE 'https?://[A-Za-z0-9./_?=&%-]*(api|prx|data|score|schedule|relay|live)[A-Za-z0-9./_?=&%-]*' /tmp/p.html | sort -u | head -40
