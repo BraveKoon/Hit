@@ -149,3 +149,23 @@ test('승리 확률: 다른 이닝 줄과 중복은 빼고, 경기 전이면 빈
   const fetch = fakeFetch({ '/schedule/games/20261029SSHT02026': fixture('naver-game-before.json') });
   assert.deepEqual(await createNaverProvider({ fetch }).winTrend('20261029SSHT02026'), { gameId: '20261029SSHT02026', points: [] });
 });
+
+test('진행 중 상황: 베이스의 주자 이름과 대기 타석 두 명', async () => {
+  const relay = structuredClone(fixture('naver-relay-live.json'));
+  const r = relay.result.textRelayData;
+  r.currentGameState.base2 = 'B_KJW';      // 2루에 구자욱
+  r.currentGameState.base3 = 'P_UNKNOWN';  // 명단에 없는 코드는 이름 없이
+  r.currentGameState.batter = 'B_DIAZ';    // 4번 타자 → 대기 5번 강민호(교체된 대타), 6번 없음
+  const fetch = fakeFetch({
+    '/schedule/games/20261027HTSS02026': fixture('naver-game-live.json'),
+    '/schedule/games/20261027HTSS02026/relay': relay,
+  });
+  const d = await createNaverProvider({ fetch }).detail('20261027HTSS02026');
+  assert.deepEqual(d.situation.runners, [null, '구자욱', null]);
+  assert.deepEqual(d.situation.next.map((p) => [p.order, p.name]), [[5, '대타선수']], '같은 타순은 나중에 들어온 선수');
+  const base = await createNaverProvider({ fetch: fakeFetch({
+    '/schedule/games/20261027HTSS02026': fixture('naver-game-live.json'),
+    '/schedule/games/20261027HTSS02026/relay': fixture('naver-relay-live.json'),
+  }) }).detail('20261027HTSS02026');
+  assert.deepEqual(base.situation.runners, [null, null, null]);
+});

@@ -306,10 +306,8 @@ struct LiveTab: View {
             switch detail.game.status {
             case .live:
                 if let s = detail.situation {
-                    FieldCard(situation: s)
-                    MatchupCard(game: detail.game, situation: s)
+                    GamedayCard(game: detail.game, situation: s, pitches: detail.atBat)
                 }
-                if !detail.atBat.isEmpty { PitchCard(pitches: detail.atBat) }
             case .scheduled:
                 StartersCard(game: detail.game)
             default:
@@ -458,133 +456,206 @@ struct InningChips: View {
     }
 }
 
-// MARK: - 그라운드
+// MARK: - 게임데이 (그라운드 · 볼카운트 · 투수 대 타자 · 투구 · 대기 타석)
+// 다음 스포츠 그래픽 중계, MLB Gameday 처럼 지금 상황을 카드 한 장에 모은다.
 
-struct FieldCard: View {
-    let situation: Situation
-
-    var body: some View {
-        Card {
-            HStack(spacing: 18) {
-                FieldGraphic(bases: situation.bases)
-                    .frame(width: 128, height: 112)
-                VStack(alignment: .leading, spacing: 10) {
-                    count("B", situation.balls, of: 3, color: Palette.live)
-                    count("S", situation.strikes, of: 2, color: Palette.accent)
-                    count("O", situation.outs, of: 2, color: Palette.red)
-                }
-                Spacer(minLength: 0)
-            }
-        }
-    }
-
-    private func count(_ label: String, _ n: Int, of max: Int, color: Color) -> some View {
-        HStack(spacing: 7) {
-            Text(label).font(Typo.style(.callout, .heavy)).foregroundStyle(Palette.muted).frame(width: 16)
-            ForEach(0..<max, id: \.self) { i in
-                Circle().fill(i < n ? color : Color.white.opacity(0.1)).frame(width: 14, height: 14)
-                    .shadow(color: i < n ? color.opacity(0.6) : .clear, radius: 4)
-            }
-        }
-        .accessibilityElement()
-        .accessibilityLabel("\(label == "B" ? "볼" : label == "S" ? "스트라이크" : "아웃") \(n)")
-    }
-}
-
-struct FieldGraphic: View {
-    let bases: [Bool]
-    private func on(_ i: Int) -> Bool { bases.indices.contains(i) && bases[i] }
-
-    var body: some View {
-        Canvas { ctx, size in
-            let w = size.width, h = size.height
-            // 외야 잔디 부채꼴
-            var grass = Path()
-            grass.move(to: CGPoint(x: w / 2, y: h))
-            grass.addArc(center: CGPoint(x: w / 2, y: h), radius: h * 0.98, startAngle: .degrees(-135), endAngle: .degrees(-45), clockwise: false)
-            grass.closeSubpath()
-            ctx.fill(grass, with: .linearGradient(Gradient(colors: [Color(hex: 0x1F6B3E), Color(hex: 0x154D2D)]), startPoint: .zero, endPoint: CGPoint(x: 0, y: h)))
-            // 내야 흙
-            let home = CGPoint(x: w / 2, y: h * 0.9), first = CGPoint(x: w * 0.78, y: h * 0.58)
-            let second = CGPoint(x: w / 2, y: h * 0.26), third = CGPoint(x: w * 0.22, y: h * 0.58)
-            var dirt = Path()
-            dirt.addLines([home, first, second, third])
-            dirt.closeSubpath()
-            ctx.fill(dirt, with: .color(Palette.clay.opacity(0.85)))
-            ctx.stroke(dirt, with: .color(.white.opacity(0.7)), lineWidth: 1.5)
-            // 베이스
-            for (i, p) in [first, second, third].enumerated() {
-                let r = CGRect(x: p.x - 8, y: p.y - 8, width: 16, height: 16)
-                let base = Path(roundedRect: r, cornerRadius: 2).applying(CGAffineTransform(translationX: -p.x, y: -p.y).concatenating(CGAffineTransform(rotationAngle: .pi / 4)).concatenating(CGAffineTransform(translationX: p.x, y: p.y)))
-                ctx.fill(base, with: .color(on(i) ? Palette.accent : .white))
-            }
-            var plate = Path()
-            plate.addEllipse(in: CGRect(x: home.x - 5, y: home.y - 5, width: 10, height: 10))
-            ctx.fill(plate, with: .color(.white))
-        }
-        .accessibilityLabel(bases.contains(true) ? "주자 " + [0, 1, 2].filter(on).map { "\($0 + 1)루" }.joined(separator: " ") : "주자 없음")
-    }
-}
-
-/// 투수 대 타자
-struct MatchupCard: View {
+struct GamedayCard: View {
     let game: Game
     let situation: Situation
-
-    var body: some View {
-        let battingTeam = game.half == "top" ? game.away.code : game.home.code
-        let pitchingTeam = game.half == "top" ? game.home.code : game.away.code
-        Card {
-            HStack(alignment: .top, spacing: 12) {
-                person("투수", situation.pitcher, team: pitchingTeam)
-                Text("VS").font(Typo.style(.caption, .heavy)).foregroundStyle(Palette.muted).padding(.top, 24)
-                person("타자", situation.batter, team: battingTeam)
-            }
-        }
-    }
-
-    private func person(_ role: String, _ p: PlayerLine?, team: String) -> some View {
-        VStack(spacing: 6) {
-            PlayerAvatar(url: p?.photo, name: p?.name ?? role, team: team, size: 58)
-            Text(role).font(Typo.style(.caption2, .bold)).foregroundStyle(Palette.muted)
-            Text(p?.name ?? "-").font(Typo.style(.subheadline, .bold))
-            if let line = p?.line {
-                Text(line).font(Typo.style(.caption2)).foregroundStyle(Palette.muted).multilineTextAlignment(.center).lineLimit(2)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-/// 현재 타석 투구
-struct PitchCard: View {
     let pitches: [Pitch]
 
+    private var battingTeam: String { game.half == "top" ? game.away.code : game.home.code }
+    private var pitchingTeam: String { game.half == "top" ? game.home.code : game.away.code }
+
     var body: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("이번 타석 투구").font(Typo.style(.subheadline, .bold))
-                HStack(alignment: .top, spacing: 14) {
-                    StrikeZoneView(pitches: pitches).frame(width: 112, height: 136)
-                    VStack(alignment: .leading, spacing: 7) {
-                        ForEach(pitches) { p in
-                            HStack(spacing: 8) {
-                                Text("\(p.n)")
-                                    .font(Typo.style(.caption2, .heavy))
-                                    .frame(width: 18, height: 18)
-                                    .background(StrikeZoneView.color(for: p.result), in: Circle())
-                                    .foregroundStyle(.black)
-                                Text(p.text).font(Typo.style(.caption, .semibold))
-                                Spacer(minLength: 0)
-                                Text([p.pitchType, p.speed.map { "\(Int($0))km" }].compactMap { $0 }.joined(separator: " "))
-                                    .font(Typo.style(.caption2))
-                                    .foregroundStyle(Palette.muted)
+        Card(padding: 0) {
+            VStack(spacing: 0) {
+                // 이닝 · 아웃 | B S O
+                HStack(spacing: 8) {
+                    LiveDot()
+                    Text(game.inningText).font(Typo.style(.subheadline, .bold))
+                    Text("\(situation.outs)아웃").font(Typo.style(.subheadline)).foregroundStyle(Palette.muted)
+                    Spacer(minLength: 0)
+                    CountLights(balls: situation.balls, strikes: situation.strikes, outs: situation.outs)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+
+                FieldGraphic(bases: situation.bases, runners: situation.runners ?? [],
+                             batter: situation.batter?.name, pitcher: situation.pitcher?.name)
+                    .frame(height: 196)
+                    .padding(.horizontal, 12)
+
+                divider
+                HStack(alignment: .center, spacing: 10) {
+                    player(situation.pitcher, role: "투수", team: pitchingTeam, trailing: false)
+                    Text("VS").font(Typo.style(.caption2, .bold)).foregroundStyle(Palette.muted)
+                    player(situation.batter, role: "타자", team: battingTeam, trailing: true)
+                }
+                .padding(16)
+
+                if !pitches.isEmpty {
+                    divider
+                    HStack(alignment: .top, spacing: 14) {
+                        StrikeZoneView(pitches: pitches).frame(width: 104, height: 128)
+                        VStack(alignment: .leading, spacing: 7) {
+                            Text("이번 타석").font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted)
+                            ForEach(pitches.reversed()) { p in
+                                HStack(spacing: 8) {
+                                    Text("\(p.n)")
+                                        .font(Typo.font(10, .bold))
+                                        .frame(width: 18, height: 18)
+                                        .background(StrikeZoneView.color(for: p.result), in: Circle())
+                                        .foregroundStyle(.black)
+                                    Text(p.text).font(Typo.style(.caption, .semibold)).lineLimit(1)
+                                    Spacer(minLength: 0)
+                                    Text([p.pitchType, p.speed.map { "\(Int($0))" }].compactMap { $0 }.joined(separator: " "))
+                                        .font(Typo.style(.caption2)).monospacedDigit()
+                                        .foregroundStyle(Palette.muted)
+                                }
                             }
                         }
                     }
+                    .padding(16)
+                }
+
+                if let next = situation.next, !next.isEmpty {
+                    divider
+                    HStack(spacing: 12) {
+                        Text("대기 타석").font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted)
+                        ForEach(next) { p in
+                            HStack(spacing: 6) {
+                                PlayerAvatar(url: p.photo, name: p.name, team: battingTeam, size: 24)
+                                Text("\(p.order)번 \(p.name)").font(Typo.style(.caption, .semibold)).lineLimit(1)
+                            }
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
                 }
             }
         }
+    }
+
+    private var divider: some View { Rectangle().fill(.white.opacity(0.07)).frame(height: 1) }
+
+    /// 사진 + 이름 + 오늘 기록. 투수는 왼쪽, 타자는 오른쪽 정렬
+    private func player(_ p: PlayerLine?, role: String, team: String, trailing: Bool) -> some View {
+        HStack(spacing: 10) {
+            if trailing { Spacer(minLength: 0) }
+            if !trailing { PlayerAvatar(url: p?.photo, name: p?.name ?? role, team: team, size: 44) }
+            VStack(alignment: trailing ? .trailing : .leading, spacing: 2) {
+                Text(role).font(Typo.style(.caption2, .semibold)).foregroundStyle(Palette.muted)
+                Text(p?.name ?? "-").font(Typo.style(.subheadline, .bold)).lineLimit(1)
+                if let line = p?.line {
+                    Text(line).font(Typo.style(.caption2)).foregroundStyle(Palette.muted).lineLimit(2)
+                        .multilineTextAlignment(trailing ? .trailing : .leading)
+                }
+            }
+            if trailing { PlayerAvatar(url: p?.photo, name: p?.name ?? role, team: team, size: 44) }
+            if !trailing { Spacer(minLength: 0) }
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// B ●●○ S ●○ O ●○
+struct CountLights: View {
+    let balls: Int
+    let strikes: Int
+    let outs: Int
+
+    var body: some View {
+        HStack(spacing: 10) {
+            group("B", balls, 3, Palette.live)
+            group("S", strikes, 2, Color(hex: 0xF5C542))
+            group("O", outs, 2, Palette.red)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("볼 \(balls), 스트라이크 \(strikes), 아웃 \(outs)")
+    }
+
+    private func group(_ label: String, _ n: Int, _ max: Int, _ color: Color) -> some View {
+        HStack(spacing: 4) {
+            Text(label).font(Typo.font(12, .bold)).foregroundStyle(Palette.muted)
+            ForEach(0..<max, id: \.self) { i in
+                Circle().fill(i < n ? color : Color.white.opacity(0.12)).frame(width: 9, height: 9)
+                    .shadow(color: i < n ? color.opacity(0.5) : .clear, radius: 3)
+            }
+        }
+    }
+}
+
+/// 위에서 본 그라운드. 주자가 있는 베이스는 강조색, 이름을 알면 그 위에 이름표.
+/// 타석에는 타자, 마운드에는 투수 이름.
+struct FieldGraphic: View {
+    let bases: [Bool]
+    var runners: [String?] = []
+    var batter: String? = nil
+    var pitcher: String? = nil
+
+    private func on(_ i: Int) -> Bool { bases.indices.contains(i) && bases[i] }
+    private func runner(_ i: Int) -> String? { runners.indices.contains(i) ? runners[i] : nil }
+
+    // 비율 좌표 (가로 0~1, 세로 0~1)
+    private static let home = CGPoint(x: 0.5, y: 0.88), first = CGPoint(x: 0.74, y: 0.58)
+    private static let second = CGPoint(x: 0.5, y: 0.3), third = CGPoint(x: 0.26, y: 0.58), mound = CGPoint(x: 0.5, y: 0.6)
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width, h = geo.size.height
+            let at = { (p: CGPoint) in CGPoint(x: p.x * w, y: p.y * h) }
+            ZStack {
+                Canvas { ctx, _ in
+                    // 외야 잔디 부채꼴
+                    let plate = at(Self.home)
+                    var grass = Path()
+                    grass.move(to: plate)
+                    grass.addArc(center: plate, radius: h * 0.86, startAngle: .degrees(-135), endAngle: .degrees(-45), clockwise: false)
+                    grass.closeSubpath()
+                    ctx.fill(grass, with: .linearGradient(Gradient(colors: [Color(hex: 0x23774A), Color(hex: 0x15502F)]), startPoint: CGPoint(x: 0, y: 0), endPoint: CGPoint(x: 0, y: h)))
+                    // 내야 흙과 라인
+                    var dirt = Path()
+                    dirt.addLines([at(Self.home), at(Self.first), at(Self.second), at(Self.third)])
+                    dirt.closeSubpath()
+                    ctx.fill(dirt, with: .color(Palette.clay.opacity(0.8)))
+                    ctx.stroke(dirt, with: .color(.white.opacity(0.65)), lineWidth: 1.5)
+                    let m = at(Self.mound)
+                    ctx.fill(Path(ellipseIn: CGRect(x: m.x - 7, y: m.y - 5, width: 14, height: 10)), with: .color(Color(hex: 0xC8714C)))
+                    // 베이스
+                    for (i, p) in [Self.first, Self.second, Self.third].enumerated() {
+                        let c = at(p)
+                        let r = CGRect(x: c.x - 8, y: c.y - 8, width: 16, height: 16)
+                        let base = Path(roundedRect: r, cornerRadius: 2).applying(CGAffineTransform(translationX: -c.x, y: -c.y).concatenating(CGAffineTransform(rotationAngle: .pi / 4)).concatenating(CGAffineTransform(translationX: c.x, y: c.y)))
+                        ctx.fill(base, with: .color(on(i) ? Palette.accent : .white))
+                    }
+                    ctx.fill(Path(ellipseIn: CGRect(x: plate.x - 5, y: plate.y - 5, width: 10, height: 10)), with: .color(.white))
+                }
+                ForEach(0..<3, id: \.self) { i in
+                    if on(i), let name = runner(i) {
+                        tag(name, accent: true).position(x: at([Self.first, Self.second, Self.third][i]).x, y: at([Self.first, Self.second, Self.third][i]).y - 20)
+                    }
+                }
+                if let pitcher { tag(pitcher, accent: false).position(x: at(Self.mound).x, y: at(Self.mound).y + 16) }
+                if let batter { tag(batter, accent: false).position(x: at(Self.home).x, y: min(h - 10, at(Self.home).y + 16)) }
+            }
+        }
+        .accessibilityElement()
+        .accessibilityLabel(bases.contains(true)
+            ? "주자 " + [0, 1, 2].filter(on).map { "\($0 + 1)루" + (runner($0).map { " \($0)" } ?? "") }.joined(separator: ", ")
+            : "주자 없음")
+    }
+
+    private func tag(_ name: String, accent: Bool) -> some View {
+        Text(name)
+            .font(Typo.font(11, .semibold))
+            .foregroundStyle(accent ? Color.black : Palette.text)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2)
+            .background(accent ? Palette.accent : Color.black.opacity(0.55), in: Capsule())
+            .fixedSize()
     }
 }
 

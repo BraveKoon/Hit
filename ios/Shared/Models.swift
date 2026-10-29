@@ -72,6 +72,8 @@ struct Situation: Codable, Hashable {
     let bases: [Bool]
     let batter: PlayerLine?
     let pitcher: PlayerLine?
+    var runners: [String?]? = nil      // 1·2·3루 주자 이름 (모르면 nil)
+    var next: [LineupEntry]? = nil     // 대기 타석 두 명
 }
 
 struct Play: Codable, Hashable, Identifiable {

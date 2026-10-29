@@ -264,7 +264,7 @@ struct FloatingTabBar: View {
     @Namespace private var pill
 
     private let tabs: [(AppTab, String, String)] = [
-        (.today, "heart.fill", "HOME"),
+        (.today, "LogoH", "HOME"),   // HIT! 로고의 H (에셋)
         (.diary, "ticket.fill", "직관"),
         (.records, "chart.bar.fill", "기록"),
         (.my, "person.fill", "MY"),
@@ -277,7 +277,11 @@ struct FloatingTabBar: View {
                 let on = selection == tab
                 Button { withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { selection = tab } } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: icon).font(.system(size: 19, weight: .bold))
+                        if tab == .today {
+                            Image(icon).resizable().renderingMode(.template).scaledToFit().frame(height: 17)
+                        } else {
+                            Image(systemName: icon).font(.system(size: 19, weight: .bold))
+                        }
                         if on { Text(title).font(Typo.font(16, .heavy)).fixedSize() }
                     }
                     .foregroundStyle(on ? Color.black : Palette.text)

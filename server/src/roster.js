@@ -156,6 +156,7 @@ function decorateDetail(roster, d) {
       ...d.situation,
       batter: withPhoto(roster, batting, d.situation.batter),
       pitcher: withPhoto(roster, fielding, d.situation.pitcher),
+      ...(d.situation.next ? { next: d.situation.next.map((p) => withPhoto(roster, batting, p)) } : {}),
     },
     plays: playsWithPhotos(roster, d.plays, game.away.code, game.home.code),
     lineups: d.lineups && {

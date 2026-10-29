@@ -243,6 +243,13 @@ function lineupOf(batters) {
     .map(([order, p]) => ({ order, pos: str(p.posName) ?? '', name: p.name, photo: null }));
 }
 
+// 대기 타석: 지금 타자 다음 두 타순 (9번 다음은 1번)
+function nextBatters(batter, lineup) {
+  const order = num(batter?.batOrder);
+  if (!order || !lineup.length) return [];
+  return [order % 9 + 1, (order + 1) % 9 + 1].map((o) => lineup.find((p) => p.order === o)).filter(Boolean);
+}
+
 function lineScoreOf(inningScore) {
   if (!inningScore) return null;
   const home = inningScore.home ?? {};
@@ -366,6 +373,9 @@ export function normalizeDetail(basic, relay) {
     const pitcher = awayBatting
       ? findPlayer(cs.pitcher, relay.homeLineup?.pitcher, relay.homeEntry?.pitcher)
       : findPlayer(cs.pitcher, relay.awayLineup?.pitcher, relay.awayEntry?.pitcher);
+    const batting = awayBatting ? [relay.awayLineup?.batter, relay.awayEntry?.batter] : [relay.homeLineup?.batter, relay.homeEntry?.batter];
+    // 베이스 값은 비었으면 "0", 주자가 있으면 그 선수 코드. 코드로 이름을 못 찾으면 null (그림엔 주자만 표시)
+    const runner = (code) => (isOn(code) ? findPlayer(String(code), ...batting)?.name ?? null : null);
     detail.situation = {
       balls: num(cs.ball) ?? 0,
       strikes: num(cs.strike) ?? 0,
@@ -373,6 +383,8 @@ export function normalizeDetail(basic, relay) {
       bases: [isOn(cs.base1), isOn(cs.base2), isOn(cs.base3)],
       batter: batterLine(batter),
       pitcher: pitcherLine(pitcher),
+      runners: [runner(cs.base1), runner(cs.base2), runner(cs.base3)],
+      next: nextBatters(batter, lineupOf(batting[0])),
     };
   }
   detail.lineScore = lineScoreOf(relay.inningScore);
