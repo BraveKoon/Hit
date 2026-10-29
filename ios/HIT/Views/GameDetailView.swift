@@ -1710,7 +1710,17 @@ struct PredictionCard: View {
     let game: Game
     @State private var prediction: Prediction?
     @State private var notice: String?
-    private var canPick: Bool { AuthManager.shared.state == .signedIn && prediction?.open == true }
+    // 마감과 결과는 앱이 이미 아는 경기 정보로 판단한다 (서버가 네이버를 못 읽어도 되도록)
+    private var isOpen: Bool { game.status == .scheduled && (game.startDate.map { $0 > Date() } ?? true) }
+    private var outcome: String? {
+        guard game.status == .final, let a = game.away.score, let h = game.home.score, a != h else { return nil }
+        return a > h ? "away" : "home"
+    }
+    private var correct: Bool? {
+        guard let outcome, let pick = prediction?.myPick else { return nil }
+        return outcome == pick
+    }
+    private var canPick: Bool { AuthManager.shared.state == .signedIn && isOpen }
 
     var body: some View {
         Card {
@@ -1724,7 +1734,7 @@ struct PredictionCard: View {
                     pickButton("away", game.away)
                     pickButton("home", game.home)
                 }
-                if let p = prediction, p.myPick != nil || !p.open {
+                if let p = prediction, p.myPick != nil || !isOpen {
                     shareBar(p)
                 }
                 if let notice {
@@ -1733,23 +1743,25 @@ struct PredictionCard: View {
             }
         }
         .sensoryFeedback(.selection, trigger: prediction?.myPick)
-        .task(id: game.id) { prediction = try? await APIClient().prediction(gameId: game.id) }
+        .task(id: game.id) { prediction = try? await APIClient().prediction(gameId: game.id, startsAt: game.startsAt) }
     }
 
     private var status: String {
-        guard let p = prediction else { return "" }
-        if let correct = p.correct { return correct ? "적중!" : "아쉽게 빗나갔어요" }
-        if p.open { return p.myPick == nil ? (AuthManager.shared.state == .signedIn ? "경기 시작 전까지" : "로그인하면 참여") : "다시 누르면 바꿀 수 있어요" }
-        return p.outcome == nil ? "예측 마감" : "결과"
+        if let correct { return correct ? "적중!" : "아쉽게 빗나갔어요" }
+        if isOpen {
+            let mine = prediction?.myPick
+            return mine == nil ? (AuthManager.shared.state == .signedIn ? "경기 시작 전까지" : "로그인하면 참여") : "다시 누르면 바꿀 수 있어요"
+        }
+        return outcome == nil ? "예측 마감" : "결과"
     }
 
     private var statusColor: Color {
-        prediction?.correct == true ? Palette.live : prediction?.correct == false ? Palette.red : Palette.muted
+        correct == true ? Palette.live : correct == false ? Palette.red : Palette.muted
     }
 
     private func pickButton(_ side: String, _ team: GameSide) -> some View {
         let picked = prediction?.myPick == side
-        let won = prediction?.outcome == side
+        let won = outcome == side
         return Button { pick(side) } label: {
             HStack(spacing: 8) {
                 TeamBadge(code: team.code, size: 28)
@@ -1795,7 +1807,7 @@ struct PredictionCard: View {
         guard canPick, prediction?.myPick != side else { return }
         Task {
             do {
-                let p = try await APIClient().predict(gameId: game.id, pick: side)
+                let p = try await APIClient().predict(gameId: game.id, pick: side, startsAt: game.startsAt)
                 withAnimation(.snappy) { prediction = p }
                 notice = nil
             } catch {

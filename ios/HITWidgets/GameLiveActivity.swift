@@ -175,7 +175,7 @@ private struct IslandPlayBar: View {
                 Image(systemName: state.isFinal ? "flag.checkered" : "baseball.fill")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Palette.accent)
-                Text(state.headline.isEmpty ? attributes.stadium : state.headline)
+                Text(bottomLine)
                     .font(Typo.font(13, .medium))
                     .foregroundStyle(Palette.text.opacity(0.9))
                     .lineLimit(1)
@@ -214,11 +214,19 @@ struct LockScreenScoreboard: View {
         VStack(spacing: 8) {
             HStack(spacing: 0) {
                 teamName(attributes.awayName, alignment: .leading)
-                score(state.awayScore)
-                BasesView(bases: state.bases, dimmed: !state.isLive)
-                    .frame(width: 58, height: 30)
-                    .padding(.horizontal, 10)
-                score(state.homeScore)
+                if state.status == "scheduled" {
+                    // 경기 전: 0 : 0 과 빈 주자 표시 대신 시작 시각
+                    Text(attributes.startClock.isEmpty ? "VS" : attributes.startClock)
+                        .font(Typo.font(30, .heavy))
+                        .monospacedDigit()
+                        .padding(.horizontal, 14)
+                } else {
+                    score(state.awayScore)
+                    BasesView(bases: state.bases, dimmed: !state.isLive)
+                        .frame(width: 58, height: 30)
+                        .padding(.horizontal, 10)
+                    score(state.homeScore)
+                }
                 teamName(attributes.homeName, alignment: .trailing)
             }
 
@@ -255,6 +263,15 @@ struct LockScreenScoreboard: View {
     }
 
     var theme: LiveTheme = SharedSettings.liveTheme
+
+    /// 아래 줄: 경기 전엔 "광주 · 곧 시작" 처럼 구장과 시작 안내(상태 알약과 같은 말을 되풀이하지 않는다)
+    private var bottomLine: String {
+        if state.status == "scheduled" {
+            return [attributes.stadium.isEmpty ? nil : attributes.stadium, attributes.startClock.isEmpty ? nil : "\(attributes.startClock) 플레이볼"]
+                .compactMap { $0 }.joined(separator: " · ")
+        }
+        return state.headline.isEmpty ? attributes.stadium : state.headline
+    }
 
     /// 잠금화면 시스템 바탕 (카드 가장자리·알림 센터)
     static func backgroundTint(for attributes: GameActivityAttributes) -> Color {

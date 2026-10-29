@@ -128,8 +128,26 @@ export function createApi({ provider, store, auth = null, roster = null, uploads
     if (!p) throw new HttpError(404, '없는 글이에요');
     return p;
   };
-  const predictionOf = async (gameId, viewer) => {
-    const { game } = await provider.detail(gameId);
+  // 서버가 네이버에 접속하지 못할 때(해외 서버)는 앱이 알려 준 시작 시각으로 대신한다.
+  // 경기 id 의 날짜와 같은 한국 날짜 안, 10~22시 사이일 때만 믿는다. 네이버가 되면 네이버 값만 쓴다.
+  const hintedGame = (gameId, startsAt) => {
+    const m = /^(\d{4})(\d{2})(\d{2})/.exec(gameId);
+    const t = Date.parse(startsAt ?? '');
+    if (!m || !Number.isFinite(t)) return null;
+    const date = `${m[1]}-${m[2]}-${m[3]}`;
+    const hour = new Date(t + 9 * 3600_000).getUTCHours();
+    if (kstDate(t) !== date || hour < 10 || hour > 22) return null;
+    return { id: gameId, date, status: 'scheduled', startsAt: new Date(t).toISOString() };
+  };
+  const gameForPrediction = async (gameId, startsAt) => {
+    try {
+      return (await provider.detail(gameId)).game;
+    } catch {
+      return hintedGame(gameId, startsAt);
+    }
+  };
+  const predictionOf = async (gameId, viewer, startsAt) => {
+    const game = (await gameForPrediction(gameId, startsAt)) ?? { id: gameId, status: 'unknown' };
     return { game, json: predictionJson(game, store.predictionCounts(gameId), viewer ? store.myPrediction(gameId, viewer) : null, now()) };
   };
 
@@ -323,14 +341,15 @@ export function createApi({ provider, store, auth = null, roster = null, uploads
       if (!img) throw new HttpError(404, 'not found');
       return { __file: img };
     }],
-    ['GET', /^\/v1\/games\/([\w-]{6,40})\/prediction$/, async (m, _u, _b, req) => (await predictionOf(m[1], viewerOf(req))).json],
+    ['GET', /^\/v1\/games\/([\w-]{6,40})\/prediction$/, async (m, url, _b, req) => (await predictionOf(m[1], viewerOf(req), url.searchParams.get('startsAt'))).json],
     ['PUT', /^\/v1\/games\/([\w-]{6,40})\/prediction$/, async (m, _u, body, req) => {
       const u = me(req);
       if (body.pick !== 'away' && body.pick !== 'home') throw new HttpError(400, 'pick 은 away 또는 home');
-      const { game } = await provider.detail(m[1]);
+      const game = await gameForPrediction(m[1], body.startsAt);
+      if (!game) throw new HttpError(503, '경기 정보를 확인할 수 없어요. 잠시 뒤 다시 해 주세요');
       if (!predictionOpen(game, now())) throw new HttpError(409, '경기가 시작되면 예측을 바꿀 수 없어요');
       store.predict(m[1], u.id, game.date ?? kstDate(now()), body.pick);
-      return (await predictionOf(m[1], u.id)).json;
+      return (await predictionOf(m[1], u.id, body.startsAt)).json;
     }],
     ['POST', /^\/v1\/blocks$/, async (_m, _u, body, req) => {
       const u = me(req);
