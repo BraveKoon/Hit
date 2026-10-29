@@ -82,6 +82,44 @@ CREATE TABLE IF NOT EXISTS chat_reports (
   user_id    INTEGER NOT NULL,
   PRIMARY KEY (message_id, user_id)
 );
+CREATE TABLE IF NOT EXISTS posts (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id     INTEGER NOT NULL,
+  team        TEXT NOT NULL,
+  player      TEXT,
+  title       TEXT NOT NULL,
+  body        TEXT,
+  image       TEXT,
+  nickname    TEXT NOT NULL,
+  author_team TEXT,
+  likes       INTEGER NOT NULL DEFAULT 0,
+  comments    INTEGER NOT NULL DEFAULT 0,
+  reports     INTEGER NOT NULL DEFAULT 0,
+  created_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS posts_team ON posts(team, id);
+CREATE TABLE IF NOT EXISTS post_likes (post_id INTEGER NOT NULL, user_id INTEGER NOT NULL, PRIMARY KEY (post_id, user_id));
+CREATE TABLE IF NOT EXISTS post_reports (post_id INTEGER NOT NULL, user_id INTEGER NOT NULL, PRIMARY KEY (post_id, user_id));
+CREATE TABLE IF NOT EXISTS post_comments (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  post_id    INTEGER NOT NULL,
+  user_id    INTEGER NOT NULL,
+  nickname   TEXT NOT NULL,
+  team       TEXT,
+  text       TEXT NOT NULL,
+  reports    INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS post_comments_post ON post_comments(post_id, id);
+CREATE TABLE IF NOT EXISTS comment_reports (comment_id INTEGER NOT NULL, user_id INTEGER NOT NULL, PRIMARY KEY (comment_id, user_id));
+CREATE TABLE IF NOT EXISTS predictions (
+  game_id    TEXT NOT NULL,
+  user_id    INTEGER NOT NULL,
+  date       TEXT NOT NULL,
+  pick       TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (game_id, user_id)
+);
 CREATE TABLE IF NOT EXISTS sent (
   key TEXT PRIMARY KEY,
   at  INTEGER NOT NULL
@@ -182,6 +220,40 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
     reportChat: db.prepare('INSERT OR IGNORE INTO chat_reports (message_id, user_id) VALUES (?, ?)'),
     bumpReports: db.prepare('UPDATE chat SET reports = reports + 1 WHERE id = ?'),
     deleteUserChat: db.prepare('DELETE FROM chat WHERE user_id = ?'),
+    // 커뮤니티
+    addPost: db.prepare('INSERT INTO posts (user_id, team, player, title, body, image, nickname, author_team, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'),
+    listPosts: db.prepare(`SELECT p.*, EXISTS(SELECT 1 FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked FROM posts p
+      WHERE p.reports < ${CHAT_HIDE_REPORTS} AND (? IS NULL OR p.team = ?) AND (? = 0 OR p.id < ?) ORDER BY p.id DESC LIMIT ?`),
+    getPost: db.prepare(`SELECT p.*, EXISTS(SELECT 1 FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked FROM posts p WHERE p.id = ? AND p.reports < ${CHAT_HIDE_REPORTS}`),
+    rawPost: db.prepare('SELECT * FROM posts WHERE id = ?'),
+    lastPost: db.prepare('SELECT MAX(created_at) AS at FROM posts WHERE user_id = ?'),
+    deletePost: db.prepare('DELETE FROM posts WHERE id = ? AND user_id = ?'),
+    deletePostComments: db.prepare('DELETE FROM post_comments WHERE post_id = ?'),
+    deletePostLikes: db.prepare('DELETE FROM post_likes WHERE post_id = ?'),
+    like: db.prepare('INSERT OR IGNORE INTO post_likes (post_id, user_id) VALUES (?, ?)'),
+    unlike: db.prepare('DELETE FROM post_likes WHERE post_id = ? AND user_id = ?'),
+    countLikes: db.prepare('UPDATE posts SET likes = (SELECT COUNT(*) FROM post_likes WHERE post_id = ?) WHERE id = ?'),
+    reportPost: db.prepare('INSERT OR IGNORE INTO post_reports (post_id, user_id) VALUES (?, ?)'),
+    bumpPostReports: db.prepare('UPDATE posts SET reports = reports + 1 WHERE id = ?'),
+    addComment: db.prepare('INSERT INTO post_comments (post_id, user_id, nickname, team, text, created_at) VALUES (?, ?, ?, ?, ?, ?)'),
+    comments: db.prepare(`SELECT * FROM post_comments WHERE post_id = ? AND reports < ${CHAT_HIDE_REPORTS} ORDER BY id`),
+    countComments: db.prepare(`UPDATE posts SET comments = (SELECT COUNT(*) FROM post_comments WHERE post_id = ? AND reports < ${CHAT_HIDE_REPORTS}) WHERE id = ?`),
+    lastComment: db.prepare('SELECT MAX(created_at) AS at FROM post_comments WHERE user_id = ?'),
+    rawComment: db.prepare('SELECT * FROM post_comments WHERE id = ?'),
+    reportComment: db.prepare('INSERT OR IGNORE INTO comment_reports (comment_id, user_id) VALUES (?, ?)'),
+    bumpCommentReports: db.prepare('UPDATE post_comments SET reports = reports + 1 WHERE id = ?'),
+    deleteUserPosts: db.prepare('DELETE FROM posts WHERE user_id = ?'),
+    deleteUserComments: db.prepare('DELETE FROM post_comments WHERE user_id = ?'),
+    deleteUserLikes: db.prepare('DELETE FROM post_likes WHERE user_id = ?'),
+    recountAll: db.prepare(`UPDATE posts SET likes = (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id),
+      comments = (SELECT COUNT(*) FROM post_comments WHERE post_id = posts.id AND reports < ${CHAT_HIDE_REPORTS})`),
+    // 승부예측
+    predict: db.prepare(`INSERT INTO predictions (game_id, user_id, date, pick, updated_at) VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(game_id, user_id) DO UPDATE SET pick = excluded.pick, updated_at = excluded.updated_at`),
+    predictionCounts: db.prepare("SELECT SUM(pick = 'away') AS away, SUM(pick = 'home') AS home FROM predictions WHERE game_id = ?"),
+    myPrediction: db.prepare('SELECT pick FROM predictions WHERE game_id = ? AND user_id = ?'),
+    myPredictions: db.prepare('SELECT game_id, date, pick FROM predictions WHERE user_id = ?'),
+    deleteUserPredictions: db.prepare('DELETE FROM predictions WHERE user_id = ?'),
     getDiary: db.prepare('SELECT * FROM diary WHERE user_id = ? AND game_id = ?'),
     deleteDiary: db.prepare('DELETE FROM diary WHERE user_id = ? AND game_id = ?'),
     deleteUserDiary: db.prepare('DELETE FROM diary WHERE user_id = ?'),
@@ -259,6 +331,11 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
       q.deleteUserDiary.run(id);
       q.deleteUserMvp.run(id);
       q.deleteUserChat.run(id);
+      q.deleteUserPosts.run(id);
+      q.deleteUserComments.run(id);
+      q.deleteUserLikes.run(id);
+      q.recountAll.run();
+      q.deleteUserPredictions.run(id);
       return q.deleteUser.run(id).changes > 0;
     },
     // 직관 다이어리
@@ -298,6 +375,53 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
       q.bumpReports.run(id);
       return true;
     },
+    // 커뮤니티
+    addPost(user, { team, player, title, body, image }) {
+      const r = q.addPost.run(user.id, team, player ?? null, title, body ?? '', image ?? null, user.nickname || '야구팬', user.team ?? null, now());
+      return q.getPost.get(user.id, Number(r.lastInsertRowid));
+    },
+    posts: (viewer, { team = null, before = 0, limit = 20 } = {}) => q.listPosts.all(viewer ?? 0, team, team, before, before, limit),
+    post: (viewer, id) => q.getPost.get(viewer ?? 0, id) ?? null,
+    rawPost: (id) => q.rawPost.get(id) ?? null,
+    lastPostAt: (userId) => q.lastPost.get(userId)?.at ?? null,
+    deletePost(id, userId) {
+      if (q.deletePost.run(id, userId).changes === 0) return false;
+      q.deletePostComments.run(id);
+      q.deletePostLikes.run(id);
+      return true;
+    },
+    toggleLike(id, userId, on) {
+      (on ? q.like : q.unlike).run(id, userId);
+      q.countLikes.run(id, id);
+    },
+    reportPost(id, userId) {
+      if (q.reportPost.run(id, userId).changes === 0) return false;
+      q.bumpPostReports.run(id);
+      return true;
+    },
+    addComment(postId, user, text) {
+      const r = q.addComment.run(postId, user.id, user.nickname || '야구팬', user.team ?? null, text, now());
+      q.countComments.run(postId, postId);
+      return q.rawComment.get(Number(r.lastInsertRowid));
+    },
+    comments: (postId) => q.comments.all(postId),
+    lastCommentAt: (userId) => q.lastComment.get(userId)?.at ?? null,
+    rawComment: (id) => q.rawComment.get(id) ?? null,
+    reportComment(id, userId) {
+      if (q.reportComment.run(id, userId).changes === 0) return false;
+      q.bumpCommentReports.run(id);
+      const c = q.rawComment.get(id);
+      if (c) q.countComments.run(c.post_id, c.post_id);
+      return true;
+    },
+    // 승부예측
+    predict: (gameId, userId, date, pick) => q.predict.run(gameId, userId, date, pick, now()),
+    predictionCounts(gameId) {
+      const r = q.predictionCounts.get(gameId);
+      return { away: Number(r?.away ?? 0), home: Number(r?.home ?? 0) };
+    },
+    myPrediction: (gameId, userId) => q.myPrediction.get(gameId, userId)?.pick ?? null,
+    myPredictions: (userId) => q.myPredictions.all(userId).map((r) => ({ gameId: r.game_id, date: r.date, pick: r.pick })),
     deleteDiary: (userId, gameId) => q.deleteDiary.run(userId, gameId).changes > 0,
     createSession: (hash, userId) => q.createSession.run(hash, userId, now(), now()),
     sessionUser(hash) {

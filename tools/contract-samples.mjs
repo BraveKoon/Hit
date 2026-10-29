@@ -13,6 +13,8 @@ import { ballot } from '../server/src/mvp.js';
 import { gamePreview } from '../server/src/preview.js';
 import { postseason } from '../server/src/postseason.js';
 import { chatMessage } from '../server/src/chat.js';
+import { postJson, commentJson } from '../server/src/community.js';
+import { predictionJson, myRecord } from '../server/src/predict.js';
 
 const fx = (n) => JSON.parse(readFileSync(new URL(`../server/test/fixtures/${n}`, import.meta.url))).result;
 const live = { ...normalizeDetail(fx('naver-game-live.json').game, fx('naver-relay-live.json').textRelayData), fetchedAt: new Date().toISOString() };
@@ -68,6 +70,11 @@ const psProvider = { standings: async () => PS.map((code, i) => ({ ...standingsR
 const bracket = await postseason({ provider: psProvider, season: '2026', today: '2026-10-29' });
 const bracketOff = await postseason({ provider: { standings: async () => [], range: async () => [] }, season: '2026', today: '2026-10-29' });
 const chatRows = [store.addChat('G1', configured, '삼성 가자!'), store.addChat('G1', fresh, '디아즈!')];
+const postRow = store.addPost(configured, { team: 'SS', player: '디아즈', title: '디아즈 50홈런', body: '대박', image: 'a'.repeat(24) + '.jpg' });
+const postBare = store.addPost(fresh, { team: 'LG', title: '사진 없는 글' });
+const commentRow = store.addComment(postRow.id, fresh, '인정');
+const predOpen = predictionJson(before.game, { away: 0, home: 0 }, null, 0);
+const predDone = predictionJson({ ...final.game, winner: 'home' }, { away: 3, home: 5 }, 'home', Date.now());
 const start = activityStartPayload(live.game, state, { title: 't', body: 'b' });
 
 console.log(JSON.stringify({
@@ -90,5 +97,10 @@ console.log(JSON.stringify({
   PostseasonResponse: [bracket, bracketOff],
   GamePreview: [preview, previewBare],
   MvpResponse: [mvpEmpty, mvpVoted, ballot(before, store, null)],
+  PostsResponse: [{ posts: [postJson(postRow, configured.id), postJson(postBare, null)], next: 12 }, { posts: [], next: null }],
+  CommunityPost: [postJson(postRow, configured.id, { full: true }), { ...postJson(postRow, fresh.id, { full: true }), replies: [commentJson(commentRow, fresh.id)] }],
+  LikeResponse: [{ likes: 1, liked: true }],
+  Prediction: [predOpen, predDone],
+  PredictionRecord: [await myRecord({ schedule: async () => [] }, [], Date.now()), { total: 3, decided: 2, correct: 1, rate: 0.5, streak: 0 }],
   WinTrendResponse: [{ gameId: live.game.id, points: winPointsOf(fx('naver-relay-live.json').textRelayData, 3) }, await replay.winTrend(rgame.id)],
 }));

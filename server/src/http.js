@@ -24,6 +24,11 @@
 //   POST   /v1/me/diary/:gameId/verify { ticket }   직관 티켓 인증 (앱이 티켓 사진에서 읽은 예매번호·바코드)
 //   GET    /v1/games/:id/chat?after=N · POST { text }  응원톡 (쓰기는 로그인, 경기 당일만)
 //   POST   /v1/chat/:messageId/report               응원톡 신고 (3번이면 숨김)
+//   GET    /v1/posts?team=SS&before=N · POST { team, title, body, player?, image?(base64) }  커뮤니티 글 목록·쓰기
+//   GET    /v1/posts/:id (댓글 포함) · DELETE (내 글) · POST /v1/posts/:id/like { on } · /report · /comments { text }
+//   POST   /v1/comments/:id/report                  댓글 신고 · GET /v1/uploads/:name 글 사진
+//   GET    /v1/games/:id/prediction · PUT { pick: away|home }  승부예측 (경기 시작 전까지, 로그인 필요)
+//   GET    /v1/me/predictions                       내 승부예측 적중률·연속 적중
 import http from 'node:http';
 import { TEAM_CODES, shortName } from './teams.js';
 import { DEFAULT_PREFS } from './messages.js';
@@ -34,6 +39,8 @@ import { gamePreview } from './preview.js';
 import { postseason } from './postseason.js';
 import { CHAT_GAP_MS, chatMessage, chatOpen, cleanText, ticketHash } from './chat.js';
 import { screen } from './moderation.js';
+import { COMMENT_GAP_MS, POST_GAP_MS, checkComment, checkPost, commentJson, postJson, readImage, saveImage } from './community.js';
+import { myRecord, predictionJson, predictionOpen } from './predict.js';
 
 const TOKEN = /^[0-9a-fA-F]{32,256}$/;
 const ENVS = new Set(['sandbox', 'production']);
@@ -42,12 +49,12 @@ class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
 
-async function readJson(req) {
+async function readJson(req, limit = 16 * 1024) {
   let size = 0;
   const chunks = [];
   for await (const c of req) {
     size += c.length;
-    if (size > 16 * 1024) throw new HttpError(413, 'body too large');
+    if (size > limit) throw new HttpError(413, 'body too large');
     chunks.push(c);
   }
   if (!chunks.length) return {};
@@ -105,7 +112,7 @@ function nickname(v) {
 
 export const publicUser = (u) => ({ id: u.id, provider: u.provider, nickname: u.nickname, email: u.email, avatar: u.avatar, team: u.team, prefs: u.prefs, players: u.players ?? [] });
 
-export function createApi({ provider, store, auth = null, roster = null, info = {}, now = () => Date.now(), log = () => {} }) {
+export function createApi({ provider, store, auth = null, roster = null, uploadsDir = null, info = {}, now = () => Date.now(), log = () => {} }) {
   const needRoster = () => { if (!roster) throw new HttpError(503, '선수 정보가 준비되지 않았습니다'); return roster; };
   const needAuth = () => { if (!auth) throw new HttpError(503, '로그인이 설정되지 않았습니다'); return auth; };
   const me = (req) => {
@@ -114,6 +121,18 @@ export function createApi({ provider, store, auth = null, roster = null, info = 
     return u;
   };
 
+  const viewerOf = (req) => auth?.userFrom(req)?.id ?? null;
+  const postOr404 = (viewer, id) => {
+    const p = store.post(viewer, id);
+    if (!p) throw new HttpError(404, '없는 글이에요');
+    return p;
+  };
+  const predictionOf = async (gameId, viewer) => {
+    const { game } = await provider.detail(gameId);
+    return { game, json: predictionJson(game, store.predictionCounts(gameId), viewer ? store.myPrediction(gameId, viewer) : null, now()) };
+  };
+
+  // [method, path, handler, bodyLimit?]
   const routes = [
     ['GET', /^\/health$/, async () => ({ ok: true, provider: provider.name, ...info })],
     ['GET', /^\/v1\/games$/, async (_m, url) => {
@@ -268,6 +287,81 @@ export function createApi({ provider, store, auth = null, roster = null, info = 
       if (msg.user_id === u.id) throw new HttpError(400, '내 메시지는 신고할 수 없어요');
       return { reported: store.reportChat(msg.id, u.id) };
     }],
+    ['GET', /^\/v1\/posts$/, async (_m, url, _b, req) => {
+      const team = url.searchParams.get('team');
+      if (team && !TEAM_CODES.includes(team)) throw new HttpError(400, 'team code');
+      const before = Number(url.searchParams.get('before') ?? 0);
+      const viewer = viewerOf(req);
+      const rows = store.posts(viewer, { team: team || null, before: Number.isInteger(before) && before > 0 ? before : 0 });
+      return { posts: rows.map((r) => postJson(r, viewer)), next: rows.length === 20 ? rows.at(-1).id : null };
+    }],
+    ['POST', /^\/v1\/posts$/, async (_m, _u, body, req) => {
+      const u = me(req);
+      if (!TEAM_CODES.includes(body.team)) throw new HttpError(400, '게시판(팀)을 골라 주세요');
+      const post = checkPost(body);
+      if (post.error) throw new HttpError(400, post.error);
+      const last = store.lastPostAt(u.id);
+      if (last && now() - last < POST_GAP_MS) throw new HttpError(429, '글은 30초에 하나씩 쓸 수 있어요');
+      let image = null;
+      if (body.image) {
+        if (!uploadsDir) throw new HttpError(503, '사진 저장소가 설정되지 않았습니다');
+        const saved = saveImage(uploadsDir, body.image);
+        if (saved.error) throw new HttpError(400, saved.error);
+        image = saved.name;
+      }
+      return postJson(store.addPost(u, { team: body.team, ...post, image }), u.id, { full: true });
+    }, 3 * 1024 * 1024],
+    ['GET', /^\/v1\/posts\/(\d{1,12})$/, async (m, _u, _b, req) => {
+      const viewer = viewerOf(req);
+      const p = postOr404(viewer, Number(m[1]));
+      return { ...postJson(p, viewer, { full: true }), replies: store.comments(p.id).map((c) => commentJson(c, viewer)) };
+    }],
+    ['DELETE', /^\/v1\/posts\/(\d{1,12})$/, async (m, _u, _b, req) => ({ deleted: store.deletePost(Number(m[1]), me(req).id) })],
+    ['POST', /^\/v1\/posts\/(\d{1,12})\/like$/, async (m, _u, body, req) => {
+      const u = me(req);
+      const p = postOr404(u.id, Number(m[1]));
+      store.toggleLike(p.id, u.id, body.on !== false);
+      const after = store.post(u.id, p.id);
+      return { likes: after.likes, liked: !!after.liked };
+    }],
+    ['POST', /^\/v1\/posts\/(\d{1,12})\/report$/, async (m, _u, _b, req) => {
+      const u = me(req);
+      const p = store.rawPost(Number(m[1]));
+      if (!p) throw new HttpError(404, '없는 글이에요');
+      if (p.user_id === u.id) throw new HttpError(400, '내 글은 신고할 수 없어요');
+      return { reported: store.reportPost(p.id, u.id) };
+    }],
+    ['POST', /^\/v1\/posts\/(\d{1,12})\/comments$/, async (m, _u, body, req) => {
+      const u = me(req);
+      const p = postOr404(u.id, Number(m[1]));
+      const c = checkComment(body.text);
+      if (c.error) throw new HttpError(400, c.error);
+      const last = store.lastCommentAt(u.id);
+      if (last && now() - last < COMMENT_GAP_MS) throw new HttpError(429, '조금만 천천히 써 주세요');
+      return commentJson(store.addComment(p.id, u, c.text), u.id);
+    }],
+    ['POST', /^\/v1\/comments\/(\d{1,12})\/report$/, async (m, _u, _b, req) => {
+      const u = me(req);
+      const c = store.rawComment(Number(m[1]));
+      if (!c) throw new HttpError(404, '없는 댓글이에요');
+      if (c.user_id === u.id) throw new HttpError(400, '내 댓글은 신고할 수 없어요');
+      return { reported: store.reportComment(c.id, u.id) };
+    }],
+    ['GET', /^\/v1\/uploads\/([\w.]{1,40})$/, async (m) => {
+      const img = uploadsDir ? readImage(uploadsDir, m[1]) : null;
+      if (!img) throw new HttpError(404, 'not found');
+      return { __file: img };
+    }],
+    ['GET', /^\/v1\/games\/([\w-]{6,40})\/prediction$/, async (m, _u, _b, req) => (await predictionOf(m[1], viewerOf(req))).json],
+    ['PUT', /^\/v1\/games\/([\w-]{6,40})\/prediction$/, async (m, _u, body, req) => {
+      const u = me(req);
+      if (body.pick !== 'away' && body.pick !== 'home') throw new HttpError(400, 'pick 은 away 또는 home');
+      const { game } = await provider.detail(m[1]);
+      if (!predictionOpen(game, now())) throw new HttpError(409, '경기가 시작되면 예측을 바꿀 수 없어요');
+      store.predict(m[1], u.id, game.date ?? kstDate(now()), body.pick);
+      return (await predictionOf(m[1], u.id)).json;
+    }],
+    ['GET', /^\/v1\/me\/predictions$/, async (_m, _u, _b, req) => myRecord(provider, store.myPredictions(me(req).id), now())],
     ['DELETE', /^\/v1\/me\/diary\/([\w-]{6,40})$/, async (m, _u, _b, req) => ({ deleted: store.deleteDiary(me(req).id, m[1]) })],
     ['DELETE', /^\/v1\/me$/, async (_m, _u, _b, req) => ({ deleted: store.deleteUser(me(req).id) })],
   ];
@@ -284,8 +378,13 @@ export function createApi({ provider, store, auth = null, roster = null, info = 
       if (!pathMatches.length) throw new HttpError(404, 'not found');
       const route = pathMatches.find(([method]) => method === req.method);
       if (!route) throw new HttpError(405, 'method not allowed');
-      const body = req.method === 'GET' || req.method === 'DELETE' ? {} : await readJson(req);
+      const body = req.method === 'GET' || req.method === 'DELETE' ? {} : await readJson(req, route[3]);
       const result = await route[2](url.pathname.match(route[1]), url, body ?? {}, req);
+      if (result?.__file) {
+        res.writeHead(200, { 'content-type': result.__file.type, 'cache-control': 'public, max-age=31536000, immutable' });
+        res.end(result.__file.data);
+        return;
+      }
       if (result?.__redirect) {
         res.writeHead(302, { location: result.__redirect, 'cache-control': 'no-store' });
         res.end();

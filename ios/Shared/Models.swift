@@ -186,6 +186,73 @@ struct ChatResponse: Codable {
     let messages: [ChatMessage]
 }
 
+// MARK: - 커뮤니티 (팀 게시판)
+
+struct CommunityPost: Codable, Hashable, Identifiable {
+    let id: Int
+    let team: String
+    let player: String?
+    let title: String
+    let preview: String?          // 목록에서만
+    let body: String?             // 상세에서만
+    let image: String?            // "/v1/uploads/…" (서버 기준 경로)
+    let nickname: String
+    let authorTeam: String?
+    var likes: Int
+    var comments: Int
+    let at: String
+    let mine: Bool
+    var liked: Bool
+    var replies: [PostComment]?   // 상세에서만
+
+    var imageURL: URL? { image.map { SharedSettings.apiBaseURL.appendingPathComponent(String($0.dropFirst())) } }
+}
+
+struct PostComment: Codable, Hashable, Identifiable {
+    let id: Int
+    let nickname: String
+    let team: String?
+    let text: String
+    let at: String
+    let mine: Bool
+}
+
+struct PostsResponse: Codable {
+    let posts: [CommunityPost]
+    let next: Int?
+}
+
+struct LikeResponse: Codable {
+    let likes: Int
+    let liked: Bool
+}
+
+// MARK: - 승부예측
+
+struct Prediction: Codable, Hashable {
+    let gameId: String
+    let open: Bool
+    let away: Int
+    let home: Int
+    let total: Int
+    let myPick: String?      // "away" | "home"
+    let outcome: String?     // 끝난 경기의 승리 팀 쪽
+    let correct: Bool?
+
+    func share(_ side: String) -> Double {
+        guard total > 0 else { return 0.5 }
+        return Double(side == "away" ? away : home) / Double(total)
+    }
+}
+
+struct PredictionRecord: Codable, Hashable {
+    let total: Int
+    let decided: Int
+    let correct: Int
+    let rate: Double?
+    let streak: Int
+}
+
 // MARK: - 포스트시즌 대진표
 
 struct PostseasonResponse: Codable, Hashable {

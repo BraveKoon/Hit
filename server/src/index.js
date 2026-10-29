@@ -1,3 +1,4 @@
+import { dirname, join } from 'node:path';
 import { loadConfig } from './config.js';
 import { createNaverProvider } from './naver.js';
 import { createReplayProvider } from './replay.js';
@@ -22,6 +23,7 @@ const watcher = createWatcher({ provider: raw, store, apns, photos: roster, log,
 const auth = createAuth({ store, apple: cfg.apple, kakao: cfg.kakao, log });
 const api = createApi({
   provider, store, auth, roster, log,
+  uploadsDir: join(dirname(cfg.dbPath), 'uploads'),
   info: { apns: cfg.apns ? 'live' : 'dry-run', login: { apple: !!cfg.apple.clientId, kakao: !!(cfg.kakao.restKey && cfg.kakao.redirectUri) } },
 });
 
