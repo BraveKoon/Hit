@@ -52,6 +52,8 @@ test('진행 중 상세: 점수·상황·이닝별 점수·문자중계·라인�
   assert.equal(d.situation.batter.name, '강민호');
   assert.equal(d.situation.pitcher.name, '올러');
   assert.match(d.situation.pitcher.line, /58구/);
+  assert.equal(d.situation.pitcher.pitches, 58);
+  assert.equal(d.situation.batter.avg, '.270');
   assert.equal(d.lineScore.away.length, 9);
   assert.deepEqual(d.lineScore.home.slice(0, 4), ['0', '0', '4', '']);
   assert.deepEqual(d.totals.home, { r: 4, h: 4, e: 0, b: 1 });

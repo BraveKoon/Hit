@@ -16,6 +16,11 @@ struct GameActivityAttributes: ActivityAttributes {
         var bases: [Bool]
         var status: String
         var headline: String
+        // 잠금화면 아래 줄. 예전 서버가 보낸 상태에는 없을 수 있다.
+        var pitcherName: String? = nil
+        var pitchCount: Int? = nil
+        var batterName: String? = nil
+        var batterAvg: String? = nil
     }
 
     var gameId: String
@@ -51,7 +56,9 @@ extension GameActivityAttributes.ContentState {
             inning: g.inning ?? 0, half: g.half ?? "",
             outs: s?.outs ?? 0, balls: s?.balls ?? 0, strikes: s?.strikes ?? 0,
             bases: s?.bases ?? [false, false, false],
-            status: g.status.rawValue, headline: headline
+            status: g.status.rawValue, headline: headline,
+            pitcherName: s?.pitcher?.name, pitchCount: s?.pitcher?.pitches,
+            batterName: s?.batter?.name, batterAvg: s?.batter?.avg
         )
     }
 
@@ -69,4 +76,8 @@ extension GameActivityAttributes.ContentState {
     }
 
     func base(_ i: Int) -> Bool { bases.indices.contains(i) && bases[i] }
+
+    var isLive: Bool { status == "live" }
+    /// 원정 팀이 공격 중인가 (초). 말이면 홈 팀 공격.
+    var awayBatting: Bool { half != "bottom" }
 }

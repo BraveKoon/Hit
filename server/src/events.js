@@ -19,6 +19,8 @@ export function snapshotOf(detail) {
     balls: s?.balls ?? 0,
     strikes: s?.strikes ?? 0,
     bases: s?.bases ?? NO_BASES,
+    pitcher: s?.pitcher ? { name: s.pitcher.name, pitches: s.pitcher.pitches ?? null } : null,
+    batter: s?.batter ? { name: s.batter.name, avg: s.batter.avg ?? null } : null,
     awayStarter: g.away.starter ?? null,
     homeStarter: g.home.starter ?? null,
     lastSeq: plays.reduce((m, p) => Math.max(m, p.seq ?? 0), 0),
@@ -173,12 +175,17 @@ export function activityState(snap, headline) {
     bases: snap.bases ?? NO_BASES,
     status: snap.status,
     headline: headline ?? '',
+    // 잠금화면 카드 아래 줄: 수비 팀 투수와 투구 수, 공격 팀 타자와 시즌 타율
+    pitcherName: snap.pitcher?.name ?? null,
+    pitchCount: snap.pitcher?.pitches ?? null,
+    batterName: snap.batter?.name ?? null,
+    batterAvg: snap.batter?.avg ?? null,
   };
 }
 
-// 공 하나마다 푸시하지 않도록, 볼·스트라이크를 뺀 값이 바뀔 때만 갱신한다.
+// 공 하나마다 푸시하지 않도록, 볼·스트라이크·투구 수를 뺀 값이 바뀔 때만 갱신한다.
 export function activityChanged(a, b) {
   if (!a || !b) return true;
-  const strip = ({ balls, strikes, ...rest }) => JSON.stringify(rest);
+  const strip = ({ balls, strikes, pitchCount, ...rest }) => JSON.stringify(rest);
   return strip(a) !== strip(b);
 }
