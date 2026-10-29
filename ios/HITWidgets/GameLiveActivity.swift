@@ -175,7 +175,7 @@ private struct IslandPlayBar: View {
                 Image(systemName: state.isFinal ? "flag.checkered" : "baseball.fill")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Palette.accent)
-                Text(bottomLine)
+                Text(state.bottomLine(for: attributes))
                     .font(Typo.font(13, .medium))
                     .foregroundStyle(Palette.text.opacity(0.9))
                     .lineLimit(1)
@@ -246,7 +246,7 @@ struct LockScreenScoreboard: View {
                 player(away: false)
             }
 
-            Text(state.headline.isEmpty ? attributes.stadium : state.headline)
+            Text(state.bottomLine(for: attributes))
                 .font(Typo.font(11.5, .medium))
                 .foregroundStyle(.white.opacity(0.85))
                 .lineLimit(1)
@@ -264,14 +264,6 @@ struct LockScreenScoreboard: View {
 
     var theme: LiveTheme = SharedSettings.liveTheme
 
-    /// 아래 줄: 경기 전엔 "광주 · 곧 시작" 처럼 구장과 시작 안내(상태 알약과 같은 말을 되풀이하지 않는다)
-    private var bottomLine: String {
-        if state.status == "scheduled" {
-            return [attributes.stadium.isEmpty ? nil : attributes.stadium, attributes.startClock.isEmpty ? nil : "\(attributes.startClock) 플레이볼"]
-                .compactMap { $0 }.joined(separator: " · ")
-        }
-        return state.headline.isEmpty ? attributes.stadium : state.headline
-    }
 
     /// 잠금화면 시스템 바탕 (카드 가장자리·알림 센터)
     static func backgroundTint(for attributes: GameActivityAttributes) -> Color {
@@ -407,5 +399,16 @@ extension Color {
         let t = CGFloat(amount)
         return Color(red: Double(r1 + (r2 - r1) * t), green: Double(g1 + (g2 - g1) * t),
                      blue: Double(b1 + (b2 - b1) * t), opacity: Double(a1 + (a2 - a1) * t))
+    }
+}
+
+extension GameActivityAttributes.ContentState {
+    /// 아래 줄: 경기 전엔 "광주 · 18:30 플레이볼" 처럼 구장과 시작 안내(상태 알약과 같은 말을 되풀이하지 않는다)
+    func bottomLine(for attributes: GameActivityAttributes) -> String {
+        if status == "scheduled" {
+            return [attributes.stadium.isEmpty ? nil : attributes.stadium, attributes.startClock.isEmpty ? nil : "\(attributes.startClock) 플레이볼"]
+                .compactMap { $0 }.joined(separator: " · ")
+        }
+        return headline.isEmpty ? attributes.stadium : headline
     }
 }
