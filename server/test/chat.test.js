@@ -4,6 +4,7 @@ import { openStore } from '../src/store.js';
 import { createAuth, hashToken } from '../src/auth.js';
 import { createApi } from '../src/http.js';
 import { cleanText, ticketHash } from '../src/chat.js';
+import { screen } from '../src/moderation.js';
 
 test('응원톡 글 다듬기와 티켓 지문', () => {
   assert.equal(cleanText('  삼성\n\n화이팅  '), '삼성 화이팅');
@@ -48,6 +49,10 @@ test('HTTP: 응원톡 — 누구나 읽고, 로그인해야 쓰고, 경기 당�
     t += 3000;
     await call('POST', '/v1/games/GTODAY1/chat', { text: '디아즈!' }, users[0].tok);
     assert.equal((await call('POST', '/v1/games/GTODAY1/chat', { text: '' }, users[1].tok)).status, 400);
+    const bad = await call('POST', '/v1/games/GTODAY1/chat', { text: '씨1발 뭐하냐' }, users[1].tok);
+    assert.deepEqual([bad.status, bad.json.error], [400, '욕설이나 비하 표현은 보낼 수 없어요'], '자동 검열');
+    t += 3000;
+    assert.equal((await call('POST', '/v1/games/GTODAY1/chat', { text: '디아즈!' }, users[0].tok)).status, 429, '같은 말 연달아');
     assert.equal((await call('POST', '/v1/games/GOLD01/chat', { text: '늦었다' }, users[1].tok)).status, 409, '지난 경기');
     assert.equal((await call('POST', '/v1/games/GRAIN1/chat', { text: '비' }, users[1].tok)).status, 409, '취소 경기');
 
@@ -68,4 +73,19 @@ test('HTTP: 응원톡 — 누구나 읽고, 로그인해야 쓰고, 경기 당�
     await call('DELETE', '/v1/me', null, users[0].tok);
     assert.deepEqual((await call('GET', '/v1/games/GTODAY1/chat')).json.messages, []);
   } finally { server.close(); }
+});
+
+test('자동 검열: 욕설·우회 표기·비하·광고·도배는 막고, 멀쩡한 말과 응원은 통과', () => {
+  for (const bad of ['씨발', '씨1발', 'ㅅ ㅂ 진짜', '시.발 뭐하냐', '병 신', 'ㅂㅅ같이', '개새끼야', '존나 못하네', '느금마', '홍어 팀',
+    'tlqkf', 'f u c k', '꺼져라', '미친놈아']) {
+    assert.equal(screen(bad), '욕설이나 비하 표현은 보낼 수 없어요', bad);
+  }
+  assert.equal(screen('여기로 와 https://x.y/z'), '링크·연락처·광고는 보낼 수 없어요');
+  assert.equal(screen('문의 010-1234-5678'), '링크·연락처·광고는 보낼 수 없어요');
+  assert.equal(screen('오픈채팅 들어와'), '링크·연락처·광고는 보낼 수 없어요');
+  assert.equal(screen('먹튀 없는 토토'), '링크·연락처·광고는 보낼 수 없어요');
+  assert.equal(screen('ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ'), '같은 글자를 너무 많이 반복했어요');
+  for (const ok of ['삼성 가자!', '오늘 시발점이 좋다', '디아즈 홈런 ㅋㅋㅋ', '구자욱 3할 5푼!', '1루수 수비 미쳤다', '7회말 역전 가즈아', '십자가 모양 응원봉', '이번에라도 이기자', '보지 마 그냥', '자지 말고 9회까지 봐']) {
+    assert.equal(screen(ok), null, ok);
+  }
 });

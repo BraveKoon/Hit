@@ -177,6 +177,7 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
     chatAfter: db.prepare(`SELECT * FROM chat WHERE game_id = ? AND id > ? AND reports < ${CHAT_HIDE_REPORTS} ORDER BY id LIMIT ?`),
     chatLatest: db.prepare(`SELECT * FROM (SELECT * FROM chat WHERE game_id = ? AND reports < ${CHAT_HIDE_REPORTS} ORDER BY id DESC LIMIT ?) ORDER BY id`),
     lastChat: db.prepare('SELECT MAX(created_at) AS at FROM chat WHERE user_id = ?'),
+    lastChatText: db.prepare('SELECT text FROM chat WHERE user_id = ? AND game_id = ? AND created_at >= ? ORDER BY id DESC LIMIT 1'),
     getChat: db.prepare('SELECT * FROM chat WHERE id = ?'),
     reportChat: db.prepare('INSERT OR IGNORE INTO chat_reports (message_id, user_id) VALUES (?, ?)'),
     bumpReports: db.prepare('UPDATE chat SET reports = reports + 1 WHERE id = ?'),
@@ -290,6 +291,7 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
     },
     chat: (gameId, after = 0, limit = 50) => (after > 0 ? q.chatAfter.all(gameId, after, limit) : q.chatLatest.all(gameId, limit)),
     lastChatAt: (userId) => q.lastChat.get(userId)?.at ?? null,
+    lastChatText: (userId, gameId, since) => q.lastChatText.get(userId, gameId, since)?.text ?? null,
     getChat: (id) => q.getChat.get(id) ?? null,
     reportChat(id, userId) {
       if (q.reportChat.run(id, userId).changes === 0) return false;

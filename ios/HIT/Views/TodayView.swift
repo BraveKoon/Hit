@@ -229,7 +229,8 @@ struct MyTeamHero: View {
             HStack {
                 LivePill(game: game)
                 Spacer()
-                Text([game.clockText, game.stadium].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "  "))
+                // 경기 전엔 왼쪽 알약이 이미 시각이라 구장만
+                Text((game.hasScore ? [game.clockText, game.stadium] : [game.stadium]).compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "  "))
                     .font(Typo.style(.subheadline, .medium))
                     .foregroundStyle(.white.opacity(0.8))
             }
@@ -237,14 +238,19 @@ struct MyTeamHero: View {
                 side(game.away)
                 Spacer(minLength: 0)
                 VStack(spacing: 10) {
-                    Text(game.status == .live ? game.inningText : game.status == .final ? "경기 종료" : "경기 전")
-                        .font(Typo.style(.footnote, .bold))
-                        .padding(.horizontal, 12).padding(.vertical, 5)
-                        .glassCapsule()
-                    HStack(alignment: .firstTextBaseline, spacing: 14) {
-                        score(game.away.score, dim: game.winner == "home")
-                        Text("VS").font(Typo.font(14, .semibold)).foregroundStyle(.white.opacity(0.45))
-                        score(game.home.score, dim: game.winner == "away")
+                    if game.hasScore {
+                        Text(game.status == .live ? game.inningText : game.status == .final ? "경기 종료" : game.statusLabel)
+                            .font(Typo.style(.footnote, .bold))
+                            .padding(.horizontal, 12).padding(.vertical, 5)
+                            .glassCapsule()
+                        HStack(alignment: .firstTextBaseline, spacing: 14) {
+                            score(game.away.score, dim: game.winner == "home")
+                            Text(":").font(Typo.font(24, .medium)).foregroundStyle(.white.opacity(0.45))
+                            score(game.home.score, dim: game.winner == "away")
+                        }
+                    } else {
+                        // 경기 전: 점수 자리에 "-" 두 개 대신 VS 하나
+                        Text("VS").font(Typo.font(26, .semibold)).foregroundStyle(.white.opacity(0.55))
                     }
                 }
                 Spacer(minLength: 0)

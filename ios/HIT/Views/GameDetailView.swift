@@ -50,8 +50,11 @@ struct GameDetailView: View {
                             StaleBanner(text: note)
                         }
                         ScoreHero(game: detail.game)
-                        activityButton(detail)
-                        chatButton(detail.game)
+                        // 응원톡 · 잠금화면 버튼을 한 줄에 반씩
+                        HStack(alignment: .top, spacing: 10) {
+                            chatButton(detail.game)
+                            activityButton(detail)
+                        }
                         DetailTabs(selection: $tab, status: detail.game.status)
                         switch tab {
                         case .preview: PreviewTab(game: detail.game)
@@ -221,7 +224,7 @@ struct GameDetailView: View {
                         }
                     }
                 } label: {
-                    Label(activityOn ? "잠금화면에서 내리기" : "잠금화면에 실시간 점수 띄우기",
+                    Label(activityOn ? "잠금화면에서 내리기" : "잠금화면에 띄우기",
                           systemImage: activityOn ? "lock.open.fill" : "lock.iphone")
                         .font(Typo.style(.subheadline, .semibold))
                         .frame(maxWidth: .infinity)

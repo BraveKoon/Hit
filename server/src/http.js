@@ -33,6 +33,7 @@ import { ballot, candidatesOf } from './mvp.js';
 import { gamePreview } from './preview.js';
 import { postseason } from './postseason.js';
 import { CHAT_GAP_MS, chatMessage, chatOpen, cleanText, ticketHash } from './chat.js';
+import { screen } from './moderation.js';
 
 const TOKEN = /^[0-9a-fA-F]{32,256}$/;
 const ENVS = new Set(['sandbox', 'production']);
@@ -251,10 +252,13 @@ export function createApi({ provider, store, auth = null, roster = null, info = 
       const u = me(req);
       const text = cleanText(body.text);
       if (!text) throw new HttpError(400, '내용을 입력해 주세요');
+      const blocked = screen(text);
+      if (blocked) throw new HttpError(400, blocked);
       const { game } = await provider.detail(m[1]);
       if (!chatOpen(game, now())) throw new HttpError(409, '응원톡은 경기 당일에만 열려요');
       const last = store.lastChatAt(u.id);
       if (last && now() - last < CHAT_GAP_MS) throw new HttpError(429, '조금만 천천히 보내 주세요');
+      if (store.lastChatText(u.id, m[1], now() - 30_000) === text) throw new HttpError(429, '같은 메시지를 연달아 보낼 수 없어요');
       return chatMessage(store.addChat(m[1], u, text), u.id);
     }],
     ['POST', /^\/v1\/chat\/(\d{1,12})\/report$/, async (m, _u, _b, req) => {

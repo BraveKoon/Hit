@@ -255,7 +255,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .vok{padding:13px;border-radius:16px;background:rgba(255,138,76,.12);color:var(--am);font-weight:700;font-size:14px;text-align:center;margin-bottom:12px}
 .vbtn{width:100%;height:48px;border-radius:16px;border:1.5px solid rgba(255,138,76,.6);background:none;color:var(--am);font:inherit;font-size:14.5px;font-weight:700;opacity:.6}
 .vnote{margin:8px 2px 14px;font-size:12px;color:var(--mu);line-height:1.5}
-.chatbtn{width:100%;height:44px;border-radius:99px;border:0;margin:12px 0 0;background:var(--sf);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.14);color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.actrow{display:flex;gap:10px;margin:12px 0 4px}.actrow .lapill,.actrow .chatbtn{flex:1;margin:0;font-size:13.5px}
+.vbtn{display:flex;align-items:center;justify-content:center;gap:6px}
+.chatbtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;height:44px;border-radius:99px;border:0;margin:12px 0 0;background:var(--sf);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.14);color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.chat .cerr{margin:0 0 8px;font-size:12px;color:#ff6b61}
 .sheet.chat{display:flex;flex-direction:column;padding-bottom:16px}
 .chat .ch{display:flex;align-items:center;gap:10px;padding:4px 0 12px;border-bottom:1px solid rgba(255,255,255,.08)}.chat .ch b{font-size:16px}.chat .ch span{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
 .chat .cl2{min-height:220px;display:flex;flex-direction:column;gap:8px;padding:14px 0}
@@ -290,7 +293,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .rtbl .hd span:not(:first-child),.rtbl .rr span.n{text-align:center}
 .rr{display:grid;grid-template-columns:1fr 38px 38px 30px 56px 52px;align-items:center;height:62px;padding-right:10px;background:var(--sf);border-bottom:1px solid #000;font-size:16px;position:relative}
 .rr.first{background:#121214}
-.rr .tm{display:flex;align-items:center;gap:10px;padding-left:10px;font-size:16.5px;font-weight:600;border-right:1px solid rgba(255,255,255,.05);height:100%}
+.rr .tm{display:flex;align-items:center;gap:10px;padding-left:10px;font-size:16.5px;font-weight:600;white-space:nowrap;min-width:0;border-right:1px solid rgba(255,255,255,.05);height:100%}
 .rr .tm b{width:20px;text-align:center;font-weight:500;font-size:15px}
 .rr.mine{background:rgba(255,138,76,.14)}.rr.mine::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--am)}
 .rr.mine .tm{font-weight:900}
@@ -358,6 +361,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .inn2{font-size:12.5px;font-weight:800;padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18)}
 .vs2{display:flex;align-items:baseline;gap:14px;font-family:var(--round);font-size:44px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
 .vs2 .lose,.gc2 .s.lose{opacity:.35}
+.vs0{font-size:26px;font-weight:600;color:rgba(255,255,255,.55)}
 .vs2 small{font-family:var(--ios);font-size:15px;font-weight:900;color:rgba(255,255,255,.45)}
 .btn2{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:14px;margin-top:4px;font-size:14px;font-weight:700;
   background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
@@ -881,7 +885,9 @@ var ICON = {
   search:'<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="6"/><path d="m13 13 5 5"/></svg>',
   bell:'<svg width="19" height="20" viewBox="0 0 19 20" fill="currentColor" aria-hidden="true"><path d="M9.5 1a6 6 0 0 0-6 6v3.6L1.6 14c-.4.7.1 1.5.9 1.5h14c.8 0 1.3-.8.9-1.5l-1.9-3.4V7a6 6 0 0 0-6-6zM7 17a2.5 2.5 0 0 0 5 0z"/></svg>',
   chev:'<svg width="10" height="16" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M8 2 2 8l6 6"/></svg>',
-  lock:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="10" height="7.5" rx="2"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>'
+  lock:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="10" height="7.5" rx="2"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>',
+  tv:'<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="1.5" y="3" width="13" height="9" rx="2"/><path d="M5 14.5h6"/></svg>',
+  chat:'<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2 3.5A2.5 2.5 0 0 1 4.5 1h7A2.5 2.5 0 0 1 14 3.5v4A2.5 2.5 0 0 1 11.5 10H7l-3.2 2.6c-.3.3-.8 0-.8-.4V10A2.5 2.5 0 0 1 2 7.5z"/></svg>'
 };
 
 /* ── 화면: 로그인 ── */
@@ -1026,9 +1032,10 @@ function hero(g){
   function side(code){ return '<div class="side">'+emb(code,76)+esc(T[code].n)+'</div>'; }
   return '<button class="hero2" data-act="game" data-v="'+g.id+'" style="background:linear-gradient(135deg,'+rgba(c,.88)+','+rgba(c,.38)+' 55%,rgba(0,0,0,.3));box-shadow:0 16px 36px -14px '+rgba(c,.7)+',inset 0 1px 0 rgba(255,255,255,.2)">'+
     (seriesOf(g)?'<div class="ser"><b>'+seriesOf(g).t+'</b><b>'+seriesOf(g).s+'</b></div>':'')+
-    '<div class="t">'+livePill(g)+'<span>'+g.time+'&nbsp;&nbsp;'+esc(g.park)+'</span></div>'+
-    '<div class="m">'+side(g.a)+'<div class="c"><span class="inn2">'+(live?innText(g):g.status==='final'?'경기 종료':'경기 전')+'</span>'+
-    '<div class="vs2"><span data-score="ha-'+g.id+'"'+(g.status==='final'&&as<hs?' class="lose"':'')+'>'+(has?as:'-')+'</span><small>VS</small><span data-score="hh-'+g.id+'"'+(g.status==='final'&&hs<as?' class="lose"':'')+'>'+(has?hs:'-')+'</span></div></div>'+side(g.h)+'</div>'+
+    '<div class="t">'+livePill(g)+'<span>'+(has?g.time+'&nbsp;&nbsp;':'')+esc(g.park)+'</span></div>'+
+    '<div class="m">'+side(g.a)+'<div class="c">'+(has?'<span class="inn2">'+(live?innText(g):'경기 종료')+'</span>':'')+
+    (has?'<div class="vs2"><span data-score="ha-'+g.id+'"'+(g.status==='final'&&as<hs?' class="lose"':'')+'>'+as+'</span><small>:</small><span data-score="hh-'+g.id+'"'+(g.status==='final'&&hs<as?' class="lose"':'')+'>'+hs+'</span></div>'
+      :'<div class="vs0">VS</div>')+'</div>'+side(g.h)+'</div>'+
     '<hr><div class="btn2">'+(live?'<i></i>실시간 중계 보기':g.status==='final'?'경기 결과 보기':'선발 '+esc(g.sp.a)+' vs '+esc(g.sp.h))+'</div></button>';
 }
 function gcard(g){
@@ -1051,8 +1058,10 @@ function vGame(){
     '<div class="mid">'+side(g.a,g.status==='final'&&as>hs)+
     (has?'<div class="bigscore" style="font-size:48px"><span data-score="d-'+g.id+'"><span class="'+(g.status==='final'&&as<hs?'lose':'')+'">'+as+'</span><span class="c">&nbsp;:&nbsp;</span><span class="'+(g.status==='final'&&hs<as?'lose':'')+'">'+hs+'</span></span></div>':'<div class="bigtime" style="font-size:34px;font-weight:700">'+g.time+'<small>'+esc(g.park)+'</small></div>')+
     side(g.h,g.status==='final'&&hs>as)+'</div></div>';
-  if (g.status==='live' || g.date===TODAY) h+='<button class="chatbtn" data-act="chat">💬 응원톡</button>';
-  if (g.status!=='final') h+='<button class="lapill'+(S.la?' on':'')+'" data-act="la">'+ICON.lock+(S.la?'잠금화면에서 내리기':'잠금화면에 실시간 점수 띄우기')+'</button>';
+  // 응원톡 · 잠금화면 버튼을 한 줄에 반씩
+  var chatOn=g.status==='live'||g.date===TODAY, laOn=g.status!=='final';
+  if (chatOn||laOn) h+='<div class="actrow">'+(chatOn?'<button class="chatbtn" data-act="chat">'+ICON.chat+'응원톡</button>':'')+
+    (laOn?'<button class="lapill'+(S.la?' on':'')+'" data-act="la">'+ICON.lock+(S.la?'잠금화면에서 내리기':'잠금화면에 띄우기')+'</button>':'')+'</div>';
   // 다른 야구 앱처럼 경기 전엔 프리뷰, 경기 중엔 중계, 끝나면 요약부터. 경기 전엔 요약·중계·기록을 흐리게
   var tab=S.dtab||(g.status==='scheduled'?'preview':g.status==='live'?'live':'summary');
   if (g.status==='scheduled' && ['summary','live','record'].indexOf(tab)>=0) tab='preview';
@@ -1291,7 +1300,7 @@ function ticket(e){
     '<div class="tt"><span class="dt"><b>'+md+'</b><small>'+'일월화수목금토'.charAt(d.getUTCDay())+'요일 · '+esc(g.park)+'</small></span>'+
     '<span class="vs">'+emb(g.a,34)+'<b>'+(g.status==='final'?as+' : '+hs:'vs')+'</b>'+emb(g.h,34)+'</span>'+
     '<span class="stamp '+(r||'')+'">'+(r==='win'?'승':r==='lose'?'패':r==='draw'?'무':'–')+'</span></div>'+
-    '<div class="tb"><span class="md '+e.mode+'">'+(e.mode==='stadium'?ICON.ticket+' 직관':'📺 집관')+'</span>'+(e.mode==='stadium'?'<span class="vf'+(e.verified?' on':'')+'">'+(e.verified?'✓ 인증':'미인증')+'</span>':'')+(e.seat?'<b>'+esc(e.seat)+'</b>':'')+(e.memo?'<span class="memo">'+esc(e.memo)+'</span>':'')+'</div></button>';
+    '<div class="tb"><span class="md '+e.mode+'">'+(e.mode==='stadium'?ICON.ticket+' 직관':ICON.tv+' 집관')+'</span>'+(e.mode==='stadium'?'<span class="vf'+(e.verified?' on':'')+'">'+(e.verified?'✓ 인증':'미인증')+'</span>':'')+(e.seat?'<b>'+esc(e.seat)+'</b>':'')+(e.memo?'<span class="memo">'+esc(e.memo)+'</span>':'')+'</div></button>';
 }
 function calendar(){
   var ym=S.cal.split('-').map(Number), first=new Date(Date.UTC(ym[0],ym[1]-1,1)).getUTCDay(), days=new Date(Date.UTC(ym[0],ym[1],0)).getUTCDate();
@@ -1319,7 +1328,7 @@ function vDiarySheet(){
     return '<button data-act="dmode" data-v="'+m[0]+'" aria-pressed="'+(S.dmode===m[0])+'">'+m[1]+'</button>'; }).join('')+'</div>'+
     '<div class="dfields"><input id="d-seat" placeholder="'+(S.dmode==='stadium'?'좌석 (예: 1루 응원석 12열)':'어디서 봤나요 (예: 집, 친구네)')+'" value="'+esc(ex?ex.seat:'')+'" maxlength="40"><textarea id="d-memo" rows="2" placeholder="한 줄 메모" maxlength="500">'+esc(ex?ex.memo:'')+'</textarea></div>'+
     (S.dmode==='stadium'?(ex&&ex.verified?'<div class="vok">✓ 티켓 인증 완료 · 직관 승률에 들어가요</div>'
-      :'<button class="vbtn" disabled>🎫 티켓 사진으로 인증하기</button><p class="vnote">앱에서는 종이 티켓 사진이나 예매 앱 캡처를 휴대폰 안에서 읽어 날짜·구장·예매번호를 확인해요. 이 미리보기 페이지는 사진을 읽을 수 없어요. 인증한 직관만 승률에 들어가요.</p>'):'')+
+      :'<button class="vbtn" disabled>'+ICON.ticket+' 티켓 사진으로 인증하기</button><p class="vnote">앱에서는 종이 티켓 사진이나 예매 앱 캡처를 휴대폰 안에서 읽어 날짜·구장·예매번호를 확인해요. 이 미리보기 페이지는 사진을 읽을 수 없어요. 인증한 직관만 승률에 들어가요.</p>'):'')+
     '<button class="btn amber" data-act="dsave">'+(ex?'고쳐서 저장':'티켓 남기기')+'</button>'+(ex?'<button class="ddel" data-act="ddel">이 기록 지우기</button>':'');
   return h+'</div></div>';
 }
@@ -1418,6 +1427,16 @@ function mini(b){
 }
 
 /* ── 덮개 ── */
+// 응원톡 자동 검열 (서버 moderation.js 와 같은 규칙을 줄여 옮김)
+var CHAT_ALLOW=['시발점','시발역','십자가','새끼손가락','새끼발가락','개나리'];
+var CHAT_BLOCK=/씨발|씨빨|씨바|시발|쓰발|씹|ㅅㅂ|ㅆㅂ|tlqkf|sibal|병신|븅신|ㅂㅅ|좆|존나|졸라|ㅈㄴ|개새|개색|새끼야|ㅅㄲ|지랄|ㅈㄹ|염병|엠창|애미|느금|니미|썅|미친놈|미친년|닥쳐|꺼져|fuck|shit|bitch|홍어|전라디언|김치녀|한남충|맘충|틀딱|섹스|야동/;
+function screenChat(t){
+  if (/https?:\/\/|www\.|\.(com|net|kr|co|io)(\/|\b)|open\.kakao|오픈채팅|텔레그램|01[016789][-.\s]?\d{3,4}[-.\s]?\d{4}|토토|먹튀|카지노|바카라/i.test(t)) return '링크·연락처·광고는 보낼 수 없어요';
+  if (/(.)\1{9,}/.test(t.replace(/\s/g,''))) return '같은 글자를 너무 많이 반복했어요';
+  var n=t.toLowerCase().replace(/[0-9]/g,'').replace(/[\s\p{P}\p{S}_]/gu,'');
+  CHAT_ALLOW.forEach(function(w){ n=n.split(w).join(''); });
+  return CHAT_BLOCK.test(n)?'욕설이나 비하 표현은 보낼 수 없어요':null;
+}
 // 응원톡 (앱 ChatSheet 와 같은 배치). 미리보기는 다른 사람과 메시지를 나눌 수 없어 내 메시지만 보인다
 function vChat(){
   var g=gameById(S.seg);
@@ -1425,6 +1444,7 @@ function vChat(){
   return '<div class="overlay" data-act="close"><div class="sheet chat" data-stop="1"><div class="grab"></div>'+
     '<div class="ch">'+emb(g.a,24)+'<b>응원톡</b>'+emb(g.h,24)+'<span>'+(g.status!=='scheduled'?score(g,'a')+' : '+score(g,'h'):'')+'</span></div>'+
     '<div class="cl2">'+(list.length?list.map(function(m){ return '<div class="me"><span>'+esc(m)+'</span></div>'; }).join(''):'<p class="mnone" style="text-align:center;padding:30px 0">첫 응원을 남겨 보세요<br><small>미리보기는 내 메시지만 보여요</small></p>')+'</div>'+
+    (S.chatErr?'<p class="cerr">'+esc(S.chatErr)+'</p>':'')+
     (S.user?'<div class="cin"><input id="chat-in" maxlength="200" placeholder="응원 한마디 (200자)" autocomplete="off"><button data-act="chatsend" aria-label="보내기">↑</button></div>'
       :'<p class="mnone" style="text-align:center;padding:12px 0">로그인하면 응원톡에 참여할 수 있어요</p>')+'</div></div>';
 }
@@ -1652,7 +1672,9 @@ document.getElementById('screen').addEventListener('click',function(e){
     case 'pvs': S.pvs=v; render(); break;
     case 'chat': S.overlay='chat'; render(); break;
     case 'chatsend': var ci=document.getElementById('chat-in'), cv=(ci.value||'').replace(/\s+/g,' ').trim();
-      if (cv){ var gid=gameById(S.seg).id; (S.chat[gid]=S.chat[gid]||[]).push(cv.slice(0,200)); render(); var ni=document.getElementById('chat-in'); if (ni) ni.focus(); } break;
+      if (cv){ var why=screenChat(cv), gid=gameById(S.seg).id; S.chatErr=why;
+        if (!why) (S.chat[gid]=S.chat[gid]||[]).push(cv.slice(0,200));
+        render(); var ni=document.getElementById('chat-in'); if (ni){ if (why) ni.value=cv; ni.focus(); } } break;
     case 'la': S.la=!S.la; render(); break;
     case 'mvp': var mv=v.split('|'); S.mvp[mv[0]]=[mv[1],mv[2]]; S.mvpRe=null; render(); break;
     case 'mvpre': S.mvpRe=v; render(); break;
