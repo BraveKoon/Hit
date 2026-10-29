@@ -20,6 +20,16 @@ jobs:
 
       - name: 설정 확인
         run: |
+          # 서버 주소 변수가 비어 있으면 server/fly.toml 의 Fly 앱 주소를 쓴다
+          case "$HIT_API_BASE_URL" in
+            ""|"https://"|"https:///")
+              FLY_APP=$(sed -n "s/^app = '\(.*\)'/\1/p" server/fly.toml)
+              if [ -n "$FLY_APP" ]; then
+                HIT_API_BASE_URL="https://${FLY_APP}.fly.dev"
+                echo "HIT_API_BASE_URL=$HIT_API_BASE_URL" >> "$GITHUB_ENV"
+                echo "서버 주소 변수가 비어 있어 Fly 주소를 씁니다: $HIT_API_BASE_URL"
+              fi ;;
+          esac
           for v in APP_BUNDLE_ID APP_GROUP_ID DEVELOPMENT_TEAM HIT_API_BASE_URL ASC_KEY_ID ASC_ISSUER_ID; do
             [ -n "${!v}" ] || { echo "::error::$v 값이 비어 있습니다 (ios/TESTFLIGHT.md 참고)"; exit 1; }
           done
