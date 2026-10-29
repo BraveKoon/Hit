@@ -58,6 +58,14 @@ CREATE TABLE IF NOT EXISTS diary (
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (user_id, game_id)
 );
+CREATE TABLE IF NOT EXISTS mvp_votes (
+  game_id    TEXT NOT NULL,
+  user_id    INTEGER NOT NULL,
+  team       TEXT NOT NULL,
+  name       TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (game_id, user_id)
+);
 CREATE TABLE IF NOT EXISTS sent (
   key TEXT PRIMARY KEY,
   at  INTEGER NOT NULL
@@ -145,6 +153,11 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
     getDiary: db.prepare('SELECT * FROM diary WHERE user_id = ? AND game_id = ?'),
     deleteDiary: db.prepare('DELETE FROM diary WHERE user_id = ? AND game_id = ?'),
     deleteUserDiary: db.prepare('DELETE FROM diary WHERE user_id = ?'),
+    voteMvp: db.prepare(`INSERT INTO mvp_votes (game_id, user_id, team, name, updated_at) VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(game_id, user_id) DO UPDATE SET team = excluded.team, name = excluded.name, updated_at = excluded.updated_at`),
+    mvpTally: db.prepare('SELECT team, name, COUNT(*) AS votes FROM mvp_votes WHERE game_id = ? GROUP BY team, name ORDER BY votes DESC, MIN(updated_at)'),
+    myMvp: db.prepare('SELECT team, name FROM mvp_votes WHERE game_id = ? AND user_id = ?'),
+    deleteUserMvp: db.prepare('DELETE FROM mvp_votes WHERE user_id = ?'),
     pruneSent: db.prepare('DELETE FROM sent WHERE at < ?'),
     pruneSnapshots: db.prepare('DELETE FROM snapshots WHERE updated_at < ?'),
   };
@@ -212,6 +225,7 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
       }
       q.deleteUserSessions.run(id);
       q.deleteUserDiary.run(id);
+      q.deleteUserMvp.run(id);
       return q.deleteUser.run(id).changes > 0;
     },
     // 직관 다이어리
@@ -219,6 +233,13 @@ export function openStore(path = ':memory:', { now = () => Date.now() } = {}) {
     putDiary(userId, { gameId, date, mode, seat, memo }) {
       q.putDiary.run(userId, gameId, date, mode, seat ?? null, memo ?? null, now(), now());
       return parseDiary(q.getDiary.get(userId, gameId));
+    },
+    // 오늘의 MVP 투표 (경기당 한 사람 한 표, 다시 고르면 바뀐다)
+    voteMvp: (gameId, userId, { team, name }) => q.voteMvp.run(gameId, userId, team, name, now()),
+    mvpTally: (gameId) => q.mvpTally.all(gameId).map((r) => ({ team: r.team, name: r.name, votes: Number(r.votes) })),
+    myMvp(gameId, userId) {
+      const r = q.myMvp.get(gameId, userId);
+      return r ? { team: r.team, name: r.name } : null;
     },
     deleteDiary: (userId, gameId) => q.deleteDiary.run(userId, gameId).changes > 0,
     createSession: (hash, userId) => q.createSession.run(hash, userId, now(), now()),

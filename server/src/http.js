@@ -16,6 +16,7 @@
 //   GET    /v1/leaders?type=pitcher|hitter  투수·타자 TOP20 (WAR)
 //   GET    /v1/games/:id/relay?inning=N     그 이닝의 문자중계 전체
 //   GET    /v1/games/:id/winrate            타석별 홈팀 승리 확률 흐름 (그래프)
+//   GET    /v1/games/:id/mvp · PUT { team, name }  오늘의 MVP 후보·집계·내 표 (투표는 로그인 필요, 끝난 경기만)
 //   GET    /v1/calendar?month=YYYY-MM&team=SS  한 달 경기 (달력)
 //   GET    /v1/me/diary · PUT·DELETE /v1/me/diary/:gameId { date, mode, seat, memo }  직관 다이어리와 승률
 import http from 'node:http';
@@ -23,6 +24,7 @@ import { TEAM_CODES, shortName } from './teams.js';
 import { DEFAULT_PREFS } from './messages.js';
 import { isValidDate, kstDate } from './time.js';
 import { MODES, diaryEntries, diaryStats, monthRange } from './diary.js';
+import { ballot, candidatesOf } from './mvp.js';
 
 const TOKEN = /^[0-9a-fA-F]{32,256}$/;
 const ENVS = new Set(['sandbox', 'production']);
@@ -118,6 +120,19 @@ export function createApi({ provider, store, auth = null, roster = null, info = 
       return rest;
     }],
     ['GET', /^\/v1\/games\/([\w-]{6,40})\/winrate$/, async (m) => provider.winTrend(m[1])],
+    ['GET', /^\/v1\/games\/([\w-]{6,40})\/mvp$/, async (m, _u, _b, req) =>
+      ballot(await provider.detail(m[1]), store, auth?.userFrom(req)?.id, roster ? (t, n) => roster.photo(t, n) : undefined)],
+    ['PUT', /^\/v1\/games\/([\w-]{6,40})\/mvp$/, async (m, _u, body, req) => {
+      const u = me(req);
+      const detail = await provider.detail(m[1]);
+      const photo = roster ? (t, n) => roster.photo(t, n) : undefined;
+      const candidates = candidatesOf(detail, photo);
+      if (!candidates.length) throw new HttpError(409, '경기가 끝나야 투표할 수 있어요');
+      const pick = candidates.find((c) => c.team === body.team && c.name === body.name);
+      if (!pick) throw new HttpError(400, '후보에 없는 선수예요');
+      store.voteMvp(detail.game.id, u.id, pick);
+      return ballot(detail, store, u.id, photo);
+    }],
     ['GET', /^\/v1\/calendar$/, async (_m, url) => {
       const month = url.searchParams.get('month') ?? kstDate(now()).slice(0, 7);
       if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new HttpError(400, 'month must be YYYY-MM');

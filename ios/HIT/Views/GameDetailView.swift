@@ -305,6 +305,7 @@ struct LiveTab: View {
                 StartersCard(game: detail.game)
             default:
                 if let p = detail.pitchers, p.win != nil { DecisionCard(game: detail.game, pitchers: p) }
+                if detail.game.status == .final { MvpCard(game: detail.game) }
             }
             if detail.plays.isEmpty && detail.game.status == .scheduled {
                 Card { Label("경기가 시작하면 문자중계가 여기에 나와요", systemImage: "text.bubble").foregroundStyle(Palette.muted) }
@@ -1001,5 +1002,133 @@ struct WinTrendChart: View {
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(.black.opacity(0.35), in: Capsule())
+    }
+}
+
+/// 오늘의 MVP: 끝난 경기에서 수훈 선수를 한 명 고른다 (로그인한 사람 한 표, 다시 고를 수 있음).
+/// 고르기 전엔 후보, 고른 뒤엔 집계 막대.
+struct MvpCard: View {
+    let game: Game
+    @State private var ballot: MvpResponse?
+    @State private var choosing = false
+    @State private var sending = false
+    @State private var failed: String?
+    @Environment(AppModel.self) private var model
+
+    private var canVote: Bool { AuthManager.shared.state == .signedIn }
+
+    var body: some View {
+        Group {
+            if let ballot, ballot.open {
+                Card {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("오늘의 MVP").font(.headline)
+                            Spacer()
+                            Text(ballot.total > 0 ? "\(ballot.total)명 참여" : "첫 표를 던져 보세요")
+                                .font(.caption).foregroundStyle(Palette.muted)
+                        }
+                        if canVote && (choosing || ballot.myVote == nil) {
+                            candidates(ballot)
+                        } else {
+                            results(ballot)
+                        }
+                        if let failed {
+                            Text(failed).font(.caption).foregroundStyle(Palette.red)
+                        }
+                    }
+                }
+                .transition(.opacity)
+            }
+        }
+        .task(id: game.id) {
+            if let r = try? await APIClient().mvp(id: game.id) { withAnimation(.snappy) { ballot = r } }
+        }
+    }
+
+    /// 팀별 가로 목록. 내 팀이 먼저.
+    @ViewBuilder
+    private func candidates(_ b: MvpResponse) -> some View {
+        let teams = b.candidates.map(\.team).reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
+        let ordered = teams.filter { $0 == model.myTeam } + teams.filter { $0 != model.myTeam }
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(ordered, id: \.self) { team in
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        TeamBadge(code: team, size: 18)
+                        Text(Team.find(team)?.name ?? team).font(.caption.weight(.bold)).foregroundStyle(Palette.muted)
+                    }
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 12) {
+                            ForEach(b.candidates.filter { $0.team == team }) { c in
+                                Button { vote(c) } label: {
+                                    VStack(spacing: 5) {
+                                        PlayerAvatar(url: c.photo, name: c.name, team: c.team, size: 52)
+                                            .overlay(Circle().strokeBorder(b.myVote?.name == c.name && b.myVote?.team == c.team ? Palette.accent : .clear, lineWidth: 2))
+                                        Text(c.name).font(.caption.weight(.semibold)).lineLimit(1)
+                                        Text(c.role).font(.caption2).foregroundStyle(Palette.muted).lineLimit(1)
+                                    }
+                                    .frame(width: 66)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(sending)
+                            }
+                        }
+                    }
+                    .scrollIndicators(.hidden)
+                }
+            }
+        }
+    }
+
+    /// 상위 5명 막대. 내가 고른 선수는 강조색.
+    @ViewBuilder
+    private func results(_ b: MvpResponse) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if b.tally.isEmpty {
+                Text("아직 투표가 없어요").font(.subheadline).foregroundStyle(Palette.muted)
+            }
+            ForEach(b.tally.prefix(5), id: \.self) { t in
+                let mine = b.myVote?.team == t.team && b.myVote?.name == t.name
+                let share = b.total > 0 ? Double(t.votes) / Double(b.total) : 0
+                let photo = b.candidates.first { $0.team == t.team && $0.name == t.name }?.photo
+                HStack(spacing: 10) {
+                    PlayerAvatar(url: photo, name: t.name, team: t.team, size: 32)
+                    Text(t.name).font(.subheadline.weight(mine ? .heavy : .semibold)).frame(width: 64, alignment: .leading).lineLimit(1)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(.white.opacity(0.08))
+                            Capsule().fill(mine ? Palette.accent : (Team.find(t.team)?.color ?? Palette.muted).opacity(0.8))
+                                .frame(width: max(6, geo.size.width * share))
+                        }
+                    }
+                    .frame(height: 8)
+                    Text("\(Int((share * 100).rounded()))%")
+                        .font(.footnote.weight(.bold)).monospacedDigit().frame(width: 40, alignment: .trailing)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(t.name) \(t.votes)표" + (mine ? ", 내가 고른 선수" : ""))
+            }
+            if canVote {
+                Button("다시 고르기") { withAnimation(.snappy) { choosing = true } }
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Palette.accent)
+            } else {
+                Text("로그인하면 투표할 수 있어요").font(.footnote).foregroundStyle(Palette.muted)
+            }
+        }
+    }
+
+    private func vote(_ c: MvpCandidate) {
+        sending = true
+        Task {
+            defer { sending = false }
+            do {
+                let r = try await APIClient().voteMvp(id: game.id, team: c.team, name: c.name)
+                withAnimation(.snappy) { ballot = r; choosing = false; failed = nil }
+            } catch {
+                failed = error.localizedDescription
+            }
+        }
     }
 }

@@ -169,6 +169,36 @@ struct WinTrendResponse: Codable, Hashable {
     let points: [WinPoint]
 }
 
+// MARK: - 오늘의 MVP
+
+struct MvpCandidate: Codable, Hashable, Identifiable {
+    let name: String
+    let team: String
+    let role: String
+    let photo: String?
+    var id: String { "\(team):\(name)" }
+}
+
+struct MvpVote: Codable, Hashable {
+    let team: String
+    let name: String
+}
+
+struct MvpTally: Codable, Hashable {
+    let team: String
+    let name: String
+    let votes: Int
+}
+
+struct MvpResponse: Codable, Hashable {
+    let gameId: String
+    let open: Bool
+    let candidates: [MvpCandidate]
+    let tally: [MvpTally]
+    let total: Int
+    let myVote: MvpVote?
+}
+
 struct Standing: Codable, Hashable, Identifiable {
     let rank: Int
     let code: String

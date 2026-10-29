@@ -440,6 +440,19 @@ table.ls td.sc{color:var(--tx);font-weight:900}table.ls td.r{color:var(--am);fon
 table.ls tbody tr{border-top:1px solid var(--ln)}
 .info{display:flex;gap:10px;align-items:center;color:var(--mu);font-size:14px}
 
+/* 오늘의 MVP */
+.mvp{display:flex;flex-direction:column;gap:12px}
+.mvp .mh{display:flex;justify-content:space-between;align-items:baseline}.mvp .mh b{font-size:16px}.mvp .mh small{font-size:11.5px;color:var(--mu)}
+.mvp .mt{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--mu)}
+.mvp .mrow{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;margin-top:-4px}.mvp .mrow::-webkit-scrollbar{height:0}
+.mvp .mc{flex:none;width:66px;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;color:var(--tx);cursor:pointer;padding:0}
+.mvp .mc b{font-size:12px;white-space:nowrap}.mvp .mc small{font-size:10.5px;color:var(--mu);white-space:nowrap}
+.mvp .mbar{display:flex;align-items:center;gap:10px}.mvp .mbar b{width:64px;font-size:14px}
+.mvp .mbar .bar{flex:1;height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}.mvp .mbar .bar i{display:block;height:100%;border-radius:99px;background:var(--am)}
+.mvp .mbar em{font-style:normal;font-size:12.5px;font-weight:800;width:40px;text-align:right}
+.mvp .mnone{margin:0;font-size:13px;color:var(--mu)}
+.mvp .mre{align-self:flex-start;border:0;background:none;color:var(--am);font:inherit;font-size:13px;font-weight:700;padding:0;cursor:pointer}
+
 /* ── 순위 ── */
 .ttl{font-size:30px;font-weight:900;letter-spacing:-.02em;margin:6px 0 12px}
 .rank{display:flex;align-items:center;gap:14px;border-radius:24px;padding:18px;margin-bottom:14px}
@@ -769,7 +782,7 @@ var S = {screen:'auth', back:'auth', tab:'home', sub:null, hist:[], anim:'screen
   day:TODAY, seg:'po3', dtab:'live', pitches:false, la:false,
   on:{pregame:true,starters:true,lineup:true,start:true,score:true,homerun:true,lead:true,extra:true,end:true,cancel:true,liveActivity:true,players:true,hit:false,walk:false},
   diary:[{id:'po2',mode:'stadium',seat:'1루 블루존',memo:'디아즈 투런 직관!'},{id:'po1',mode:'home',seat:'집',memo:''}], cal:'2026-10', bk:'stadium', dgame:null, dmode:'stadium',
-  notifs:[], replay:'idle', po2:null, cur:0, timer:null, overlay:null};
+  mvp:{}, mvpRe:null, notifs:[], replay:'idle', po2:null, cur:0, timer:null, overlay:null};
 
 /* ── 도우미 ── */
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -955,6 +968,7 @@ function liveTab(g){
   } else if (g.win){
     h+=decision(g);
   }
+  if (g.status==='final') h+=mvpCard(g);
   if (g.plays.length){
     // 이닝 알약: 안 고르면 지금 이닝을 따라간다
     var n=g.plays.reduce(function(m,p){ return Math.max(m,p.i||0); },g.inn||1);
@@ -979,6 +993,30 @@ function liveTab(g){
     h+='</div>';
   }
   return h;
+}
+/* 오늘의 MVP (앱 MvpCard 와 같은 배치). 후보는 기사로 확인된 그 경기 출전 선수만.
+   미리보기는 다른 사람과 표를 나눌 수 없어서 내 표만 센다. */
+var MVP_CANDS = {
+  po2:[['SS','후라도','승리 투수'],['SS','디아즈','타자'],['SS','구자욱','타자'],['SS','최형우','타자'],['SS','김지찬','타자'],['SS','박승규','타자'],
+       ['HT','올러','선발 투수'],['HT','이호연','타자'],['HT','하주석','타자'],['HT','박재현','타자']],
+  po1:[['HT','카스트로','타자'],['HT','한준수','타자'],['HT','네일','선발 투수'],['SS','페덱','선발 투수'],['SS','박승규','타자']]
+};
+function mvpCard(g){
+  var cands=MVP_CANDS[g.id]; if (!cands) return '';
+  var mine=S.mvp[g.id], choosing=S.user && (!mine || S.mvpRe===g.id);
+  var h='<div class="card mvp"><div class="mh"><b>오늘의 MVP</b><small>'+(mine?'미리보기는 내 표만 세요':'첫 표를 던져 보세요')+'</small></div>';
+  if (choosing){
+    var teams=[S.my].concat([g.a,g.h].filter(function(t){ return t!==S.my; })).filter(function(t){ return cands.some(function(c){ return c[0]===t; }); });
+    teams.forEach(function(t){
+      h+='<div class="mt">'+emb(t,18)+esc(T[t].n)+'</div><div class="mrow">'+cands.filter(function(c){ return c[0]===t; }).map(function(c){
+        return '<button class="mc" data-act="mvp" data-v="'+g.id+'|'+c[0]+'|'+c[1]+'">'+ava(c[1],c[0],52)+'<b>'+esc(c[1])+'</b><small>'+esc(c[2])+'</small></button>'; }).join('')+'</div>';
+    });
+  } else {
+    if (!mine) h+='<p class="mnone">아직 투표가 없어요</p>';
+    else h+='<div class="mbar">'+ava(mine[1],mine[0],32)+'<b>'+esc(mine[1])+'</b><span class="bar"><i style="width:100%"></i></span><em>100%</em></div>';
+    h+=S.user?'<button class="mre" data-act="mvpre" data-v="'+g.id+'">다시 고르기</button>':'<p class="mnone">로그인하면 투표할 수 있어요</p>';
+  }
+  return h+'</div>';
 }
 function decision(g){ return '<div class="card dec"><div><small style="color:var(--am)">승리 투수</small><b>'+esc(g.win||'-')+'</b></div><i></i><div><small style="color:var(--mu)">패전 투수</small><b>'+esc(g.lose||'-')+'</b></div></div>'; }
 function recordTab(g){
@@ -1410,6 +1448,8 @@ document.getElementById('screen').addEventListener('click',function(e){
     case 'back': S.sub=S.hist.length?S.hist.pop():null; S.anim='pop'; render(); break;
     case 'dtab': S.dtab=v; render(); break;
     case 'la': S.la=!S.la; render(); break;
+    case 'mvp': var mv=v.split('|'); S.mvp[mv[0]]=[mv[1],mv[2]]; S.mvpRe=null; render(); break;
+    case 'mvpre': S.mvpRe=v; render(); break;
     case 'sheet': S.overlay='sheet'; render(); break;
     case 'setteam': S.my=v; S.overlay=null; render(); break;
     case 'close': S.overlay=null; render(); break;

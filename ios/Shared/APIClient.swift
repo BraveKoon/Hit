@@ -75,6 +75,14 @@ struct APIClient {
         try await send("GET", "v1/games/\(id)/winrate")
     }
 
+    func mvp(id: String) async throws -> MvpResponse {
+        try await send("GET", "v1/games/\(id)/mvp")
+    }
+
+    func voteMvp(id: String, team: String, name: String) async throws -> MvpResponse {
+        try await send("PUT", "v1/games/\(id)/mvp", body: MvpVote(team: team, name: name))
+    }
+
     func calendar(month: String, team: String?) async throws -> CalendarResponse {
         var q = [URLQueryItem(name: "month", value: month)]
         if let team { q.append(URLQueryItem(name: "team", value: team)) }

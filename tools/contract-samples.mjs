@@ -9,6 +9,7 @@ import { createRoster as createPhotoIndex, withPhotos } from '../server/src/rost
 import { openStore } from '../server/src/store.js';
 import { publicUser } from '../server/src/http.js';
 import { diaryEntries, diaryStats } from '../server/src/diary.js';
+import { ballot } from '../server/src/mvp.js';
 
 const fx = (n) => JSON.parse(readFileSync(new URL(`../server/test/fixtures/${n}`, import.meta.url))).result;
 const live = { ...normalizeDetail(fx('naver-game-live.json').game, fx('naver-relay-live.json').textRelayData), fetchedAt: new Date().toISOString() };
@@ -43,6 +44,11 @@ store.putDiary(configured.id, { gameId: 'GONE-GAME-1', date: '2026-10-01', mode:
 const entries = await diaryEntries({ schedule: async () => [...sched, (await replay.schedule())[0]] }, store.diaryOf(configured.id), 'SS');
 const finalEntry = { ...entries[0], result: 'win', game: { ...sched[0], status: 'final', winner: 'home' } };
 const stats = diaryStats([finalEntry, entries[1]], 'SS');
+// MVP: 끝난 경기 + 라인업 (실제 라인업은 진행 중 픽스처에서 빌려 온다)
+const finalWithLineups = { ...final, lineups: live.lineups, pitchers: { ...final.pitchers, win: final.pitchers.win ?? '후라도' } };
+const mvpEmpty = ballot(finalWithLineups, store, null);
+store.voteMvp(final.game.id, configured.id, mvpEmpty.candidates[0]);
+const mvpVoted = ballot(finalWithLineups, store, configured.id, () => 'https://img/x.png');
 const start = activityStartPayload(live.game, state, { title: 't', body: 'b' });
 
 console.log(JSON.stringify({
@@ -61,5 +67,6 @@ console.log(JSON.stringify({
   DiaryEntry: [finalEntry, entries[1]],
   CalendarResponse: [{ month: '2026-10', team: 'SS', games: sched }, { month: '2026-10', team: null, games: [] }],
   Player: [photos.get('1'), photos.get('2'), photos.get('4')],
+  MvpResponse: [mvpEmpty, mvpVoted, ballot(before, store, null)],
   WinTrendResponse: [{ gameId: live.game.id, points: winPointsOf(fx('naver-relay-live.json').textRelayData, 3) }, await replay.winTrend(rgame.id)],
 }));
