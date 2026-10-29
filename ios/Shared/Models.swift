@@ -61,6 +61,8 @@ struct PlayerLine: Codable, Hashable {
     let name: String
     let line: String?
     let photo: String?
+    var avg: String? = nil      // 타자: 시즌 타율 ".356"
+    var pitches: Int? = nil     // 투수: 이 경기 투구 수
 }
 
 struct Situation: Codable, Hashable {

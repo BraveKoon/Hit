@@ -95,11 +95,18 @@ test('헤드라인은 주자 이동보다 타격 결과를 고른다', () => {
   assert.equal(headlineOf([{ seq: 1, text: '1구 볼', type: 1 }]), null);
 });
 
-test('라이브 액티비티는 볼카운트만 바뀌면 갱신하지 않는다', () => {
-  const a = activityState(snap({ balls: 1 }), 'x');
-  assert.equal(activityChanged(a, activityState(snap({ balls: 3, strikes: 2 }), 'x')), false);
-  assert.equal(activityChanged(a, activityState(snap({ outs: 1 }), 'x')), true);
-  assert.deepEqual(Object.keys(a), ['awayScore', 'homeScore', 'inning', 'half', 'outs', 'balls', 'strikes', 'bases', 'status', 'headline']);
+test('라이브 액티비티는 볼카운트·투구 수만 바뀌면 갱신하지 않는다', () => {
+  const pitcher = { name: '올러', pitches: 10 };
+  const batter = { name: '구자욱', avg: '.371' };
+  const a = activityState(snap({ balls: 1, pitcher, batter }), 'x');
+  assert.equal(activityChanged(a, activityState(snap({ balls: 3, strikes: 2, pitcher: { ...pitcher, pitches: 14 }, batter }), 'x')), false);
+  assert.equal(activityChanged(a, activityState(snap({ outs: 1, pitcher, batter }), 'x')), true);
+  assert.equal(activityChanged(a, activityState(snap({ balls: 1, pitcher, batter: { name: '디아즈', avg: '.314' } }), 'x')), true, '타자가 바뀌면 갱신');
+  assert.deepEqual(Object.keys(a), ['awayScore', 'homeScore', 'inning', 'half', 'outs', 'balls', 'strikes', 'bases', 'status', 'headline',
+    'pitcherName', 'pitchCount', 'batterName', 'batterAvg']);
+  assert.deepEqual([a.pitcherName, a.pitchCount, a.batterName, a.batterAvg], ['올러', 10, '구자욱', '.371']);
+  const empty = activityState(snap(), 'x');
+  assert.deepEqual([empty.pitcherName, empty.pitchCount, empty.batterName, empty.batterAvg], [null, null, null, null]);
 });
 
 test('문구: 응원 팀 기준 득점/실점, 역전 홈런은 시간 민감 알림', () => {

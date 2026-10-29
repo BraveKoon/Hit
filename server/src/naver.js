@@ -195,7 +195,7 @@ function batterLine(p) {
   if (num(p.rbi) > 0) parts.push(`${p.rbi}타점`);
   const season = avg(p.seasonHra);
   if (season) parts.push(`시즌 ${season}`);
-  return { name: p.name, line: parts.join(' · ') || null, photo: null };
+  return { name: p.name, line: parts.join(' · ') || null, photo: null, avg: season };
 }
 
 function pitcherLine(p) {
@@ -205,7 +205,7 @@ function pitcherLine(p) {
   if (num(p.ballCount) > 0) parts.push(`${p.ballCount}구`);
   if (num(p.kk) > 0) parts.push(`${p.kk}K`);
   if (num(p.er) !== null) parts.push(`${p.er}자책`);
-  return { name: p.name, line: parts.join(' · ') || null, photo: null };
+  return { name: p.name, line: parts.join(' · ') || null, photo: null, pitches: num(p.ballCount) };
 }
 
 function lineupOf(batters) {
