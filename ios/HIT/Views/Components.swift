@@ -171,10 +171,6 @@ struct TeamPicker: View {
                         TeamBadge(code: team.code, size: 36)
                         Text(team.name).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.8)
                         Spacer(minLength: 0)
-                        if on {
-                            Image(systemName: "checkmark.circle.fill").foregroundStyle(team.color, .white)
-                                .transition(.scale.combined(with: .opacity))
-                        }
                     }
                     .padding(.horizontal, 12)
                     .frame(height: 58)

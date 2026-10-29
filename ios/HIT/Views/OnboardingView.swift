@@ -62,8 +62,8 @@ struct OnboardingView: View {
                 .lineSpacing(2)
                 .padding(.top, 8)
 
-            Spacer()
             SampleNotification(title: "역전! KIA 1 : 2 삼성", subtitle: "삼성 득점", text: "3회말 · 구자욱 : 중견수 앞 1루타", ago: "지금")
+                .padding(.top, 28)
             Spacer()
             Button("알림 받기") {
                 Task {

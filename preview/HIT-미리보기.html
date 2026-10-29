@@ -64,6 +64,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 /* ── 기기 ── */
 .device{width:min(390px,100%);border:10px solid var(--frame);border-radius:54px;background:var(--frame);box-shadow:0 1px 0 var(--frame-edge) inset,0 26px 60px -28px rgba(0,0,0,.55);position:relative}
 .screen{position:relative;border-radius:44px;overflow:hidden;background:var(--bg);color:var(--tx);height:760px;display:flex;flex-direction:column;font-family:var(--ios);font-size:14px;line-height:1.4}
+@media (max-width:520px){
+  .device{border-width:6px;border-radius:46px}
+  .screen{height:min(760px,calc(100svh - 24px));min-height:540px;border-radius:40px}
+}
 .island{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:106px;height:26px;border-radius:999px;background:#000;z-index:40;overflow:hidden;color:#fff;
   transition:width .5s cubic-bezier(.32,1.35,.5,1),height .5s cubic-bezier(.32,1.35,.5,1),border-radius .5s,top .5s;box-shadow:0 0 0 .5px rgba(255,255,255,.06)}
 .island.compact,.island.expanded{cursor:pointer}
@@ -151,8 +155,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .ob p.sub{margin:8px 0 18px;color:var(--mu);font-size:14px}
 .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}
 .tcard{display:flex;align-items:center;gap:10px;padding:11px;border-radius:16px;background:var(--sf);border:1px solid var(--ln);cursor:pointer;text-align:left}
-.tcard b{display:block;font-size:13.5px;font-weight:700;white-space:nowrap}.tcard span{flex:1;min-width:0}
-.tcard .ok{width:20px;height:20px;border-radius:50%;background:#fff;color:var(--tc);font-style:normal;font-weight:900;font-size:12px;display:grid;place-items:center;flex:none}.tcard small{color:var(--mu);font-size:11.5px}
+.tcard b{display:block;font-size:13.5px;font-weight:700;white-space:nowrap}.tcard span{flex:1;min-width:0}.tcard b{overflow:hidden;text-overflow:ellipsis}.tcard small{color:var(--mu);font-size:11.5px}
 .tcard[aria-pressed="true"]{border:2px solid var(--tc);padding:10px}
 .ob .cta{margin-top:auto}
 .sample{display:grid;grid-template-columns:36px 1fr;gap:10px;padding:12px;border-radius:20px;background:rgba(45,55,70,.65);border:1px solid rgba(255,255,255,.06)}
@@ -830,12 +833,12 @@ function vOnboard(){
 
       '<div class="tgrid">'+PICK.map(function(k){
         return '<button class="tcard" data-act="pick" data-v="'+k+'" aria-pressed="'+(o.pick===k)+'" style="--tc:'+T[k].c+(o.pick===k?';background:linear-gradient(90deg,'+rgba(T[k].c,.45)+',#1d2531)':'')+'">'+emb(k,40)+
-          '<span><b>'+esc(T[k].n)+'</b></span>'+(o.pick===k?'<i class="ok" style="--tc:'+T[k].c+'">✓</i>':'')+'</button>';
+          '<span><b>'+esc(T[k].n)+'</b></span></button>';
       }).join('')+'</div>'+
       '<button class="btn cta" data-act="obnext" '+(t?'style="background:'+t.c+';color:#fff"':'style="background:var(--am);color:#000" disabled')+'>'+(t?esc(t.n)+' 응원하기':'팀을 골라 주세요')+'</button></div>';
   }
   return '<div class="ob">'+prog+'<h2>중요한 순간을<br>놓치지 않게</h2><p class="sub">득점·홈런·경기 결과를 잠금화면으로 알려드려요.<br>알림 종류는 MY에서 언제든 바꿀 수 있어요.</p>'+
-    '<div style="margin:auto 0">'+sample('역전! KIA 1 : 2 삼성','삼성 득점','3회말 · 구자욱 : 중견수 앞 1루타','지금','')+'</div>'+
+    '<div style="margin-top:28px">'+sample('역전! KIA 1 : 2 삼성','삼성 득점','3회말 · 구자욱 : 중견수 앞 1루타','지금','')+'</div>'+
     '<div class="cta" style="padding-top:20px"><button class="btn amber" data-act="obdone">알림 받기</button>'+
     '<button class="btn ghost" data-act="obdone">나중에</button></div></div>';
 }
