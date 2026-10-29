@@ -42,20 +42,35 @@ jobs:
           APP=$(sed -n "s/^app = '\(.*\)'/\1/p" server/fly.toml)
           flyctl logs -a "$APP" --no-tail 2>&1 | tail -n 60 | sed -E 's/[0-9a-fA-F]{32,}/<hex>/g'
           echo "---"; flyctl status -a "$APP" 2>&1 | head -20
-      - name: 네이버 접속 비교 (GitHub 서버 vs Fly 서버)
+      - name: 접속 가능한 주소 찾기 (GitHub 미국 서버 / Fly 도쿄 서버)
         run: |
-          URL="https://api-gw.sports.naver.com/schedule/games?fields=basic&upperCategoryId=kbaseball&categoryId=kbo&fromDate=2026-10-27&toDate=2026-10-27&size=5"
-          UA="Mozilla/5.0 (compatible; HIT/0.1)"
-          echo "=== GitHub 러너에서 (미국) — 네이버"
-          curl -sS -m 15 -o /tmp/n.txt -w 'HTTP %{http_code} %{time_total}s\n' -H "Referer: https://m.sports.naver.com/" -H "User-Agent: $UA" "$URL" 2>&1 | tail -2; head -c 200 /tmp/n.txt; echo
-          echo "=== GitHub 러너에서 — naver.com 메인"
-          curl -sS -m 15 -o /dev/null -w 'HTTP %{http_code} %{time_total}s\n' https://www.naver.com 2>&1 | tail -1
+          set +e
           APP=$(sed -n "s/^app = '\(.*\)'/\1/p" server/fly.toml)
-          T='const t=Date.now();const u=process.argv[1];fetch(u,{headers:{Referer:"https://m.sports.naver.com/","User-Agent":"Mozilla/5.0 (compatible; HIT/0.1)"},signal:AbortSignal.timeout(12000)}).then(async r=>{const b=await r.text();console.log(u.slice(0,45),"→",r.status,(Date.now()-t)+"ms",b.slice(0,120).replace(/\n/g," "))}).catch(e=>console.log(u.slice(0,45),"→ 실패",e.name,e.cause&&(e.cause.code||e.cause.message),(Date.now()-t)+"ms"))'
-          for U in "$URL" "https://www.naver.com" "https://m.sports.naver.com" "https://example.com" "https://api.open-meteo.com/v1/forecast?latitude=35&longitude=128&hourly=temperature_2m&forecast_days=1"; do
-            echo "=== Fly(도쿄)에서: ${U:0:60}"
-            flyctl ssh console -a "$APP" -C "node -e '$T' '$U'" 2>&1 | tail -2
+          UA="Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148"
+          NAVER_API="https://api-gw.sports.naver.com/schedule/games?upperCategoryId=kbaseball&fromDate=2026-10-27&toDate=2026-10-27&size=5"
+          URLS=(
+            "$NAVER_API"
+            "https://api-gw.sports.naver.com"
+            "https://m.sports.naver.com/kbaseball/index"
+            "https://sports.naver.com/kbaseball/index"
+            "https://www.naver.com"
+            "https://sports.daum.net/baseball"
+            "https://www.koreabaseball.com/Schedule/ScoreBoard.aspx"
+            "https://www.koreabaseball.com/ws/Schedule.asmx/GetScheduleList"
+            "https://www.statiz.co.kr"
+            "https://example.com"
+          )
+          echo "### GitHub 러너(미국)에서 — 연결/TLS/첫 응답 시간"
+          for U in "${URLS[@]}"; do
+            R=$(curl -sS -m 12 -o /tmp/b.txt -A "$UA" -e "https://m.sports.naver.com/" -w 'HTTP %{http_code} 연결 %{time_connect}s TLS %{time_appconnect}s 첫응답 %{time_starttransfer}s' "$U" 2>&1 | tail -1)
+            echo "${U:0:70}  →  ${R:0:140}"
           done
-          echo "=== Fly 서버의 공개 IP"
-          flyctl ssh console -a "$APP" -C "node -e 'fetch(\"https://api.ipify.org\").then(r=>r.text()).then(console.log).catch(e=>console.log(\"ipify 실패\",e.cause&&e.cause.code))'" 2>&1 | tail -1
-
+          echo; echo "### DNS (GitHub 러너)"
+          getent hosts api-gw.sports.naver.com | head -3
+          echo; echo "### Fly(도쿄)에서"
+          T='const t=Date.now(),u=process.argv[1];fetch(u,{headers:{"User-Agent":"Mozilla/5.0 (iPhone)","Referer":"https://m.sports.naver.com/"},signal:AbortSignal.timeout(10000)}).then(r=>console.log(u.slice(0,70),"→",r.status,(Date.now()-t)+"ms")).catch(e=>console.log(u.slice(0,70),"→ 실패",e.name,(e.cause&&(e.cause.code||e.cause.message))||"",(Date.now()-t)+"ms"))'
+          for U in "${URLS[@]}"; do
+            flyctl ssh console -a "$APP" -C "node -e '$T' '$U'" 2>&1 | tail -1
+          done
+          echo "Fly 공개 IP:"; flyctl ssh console -a "$APP" -C "node -e 'fetch(\"https://api.ipify.org\").then(r=>r.text()).then(console.log).catch(e=>console.log(\"실패\"))'" 2>&1 | tail -1
+          exit 0
