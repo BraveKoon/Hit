@@ -13,7 +13,7 @@ export function loadConfig(env = process.env) {
     provider: env.HIT_PROVIDER === 'replay' ? 'replay' : 'naver',
     pollMs: Math.max(5000, Number(env.POLL_MS ?? 10000)), // 비공식 API라 5초보다 자주 묻지 않는다
     replayStepMs: Math.max(2000, Number(env.REPLAY_STEP_MS ?? 15000)),
-    pregameMinutes: Number(env.PREGAME_MINUTES ?? 10),
+    pregameMinutes: Number(env.PREGAME_MINUTES ?? 30),
     apns,
     // 로그인. Apple 의 aud 는 앱 번들 ID, 카카오는 REST API 키와 이 서버의 공개 주소가 필요하다.
     apple: { clientId: env.APPLE_CLIENT_ID ?? env.APNS_BUNDLE_ID ?? null },

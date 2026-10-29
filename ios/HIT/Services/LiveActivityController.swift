@@ -79,6 +79,25 @@ final class LiveActivityController {
         observe(activity)
     }
 
+    /// 앱이 직접 켜고 갱신한다 (앱이 열려 있는 동안). 서버 푸시가 되면 서버가 갱신하므로 두 곳이 같은 상태를 쓴다.
+    func startOrUpdate(detail: GameDetail) {
+        let state = GameActivityAttributes.ContentState(detail: detail)
+        if let activity = activity(for: detail.game.id) {
+            let content = ActivityContent(state: state, staleDate: Date().addingTimeInterval(15 * 60))
+            Task { await activity.update(content) }
+        } else {
+            try? start(detail: detail)
+        }
+    }
+
+    /// 경기가 끝나면 마지막 점수로 바꾸고 30분 뒤 잠금화면에서 내린다
+    func finish(detail: GameDetail) async {
+        let content = ActivityContent(state: GameActivityAttributes.ContentState(detail: detail), staleDate: nil)
+        for activity in Activity<GameActivityAttributes>.activities where activity.attributes.gameId == detail.game.id {
+            await activity.end(content, dismissalPolicy: .after(Date().addingTimeInterval(30 * 60)))
+        }
+    }
+
     func end(gameId: String) async {
         for activity in Activity<GameActivityAttributes>.activities where activity.attributes.gameId == gameId {
             await activity.end(nil, dismissalPolicy: .immediate)

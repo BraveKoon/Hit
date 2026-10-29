@@ -943,7 +943,7 @@ var SEED = [
   {k:'hr',t:'홈런! KIA 2 : 8 삼성',s:{SS:'삼성 득점',HT:'KIA 실점'},b:'7회말 · 최형우 : 우측 담장 넘어가는 홈런',tm:'어제'},
   {k:'end',t:'경기 종료 · KIA 5 : 1 삼성',s:{SS:'삼성 패배',HT:'KIA 승리'},b:'데일리 MVP 카스트로 · 3타점',tm:'10.26'}
 ];
-var PREFS = [['pregame','경기 시작 10분 전','선발 투수와 중계 채널'],['starters','선발 투수 발표','경기 당일 선발이 정해지면'],['lineup','라인업 발표','경기 전에 타순이 나오면 (늦게 나오는 날은 생략)'],
+var PREFS = [['pregame','경기 시작 30분 전','알림과 선발 투수·중계 채널'],['starters','선발 투수 발표','경기 당일 선발이 정해지면'],['lineup','라인업 발표','경기 전에 타순이 나오면 (늦게 나오는 날은 생략)'],
   ['start','경기 시작',null],['score','득점','점수가 날 때마다 (실점 포함)'],['homerun','홈런','득점을 꺼도 홈런은 받기'],
   ['lead','역전·동점','득점을 꺼도 역전·동점은 받기'],['extra','연장 돌입',null],['end','경기 종료','결과와 승리·패전 투수'],
   ['cancel','취소·중단','우천 취소, 서스펜디드'],['hit','안타','내 팀 타자가 안타를 칠 때마다'],['walk','볼넷·사구','내 팀 타자가 걸어 나갈 때']];
@@ -1170,8 +1170,8 @@ function vGame(){
   h+=infoCard(g);
   // 응원톡 · 잠금화면 버튼을 한 줄에 반씩
   var chatOn=g.status==='live'||g.date===TODAY, laOn=g.status!=='final';
-  if (chatOn||laOn) h+='<div class="actrow">'+(chatOn?'<button class="chatbtn" data-act="chat">'+ICON.chat+'응원톡</button>':'')+
-    (laOn?'<button class="lapill'+(S.la?' on':'')+'" data-act="la">'+ICON.lock+(S.la?'잠금화면에서 내리기':'잠금화면에 띄우기')+'</button>':'')+'</div>';
+  // 잠금화면 카드는 버튼 없이 앱이 경기 30분 전부터 알아서 띄운다 (MY > 알림 설정에서 끌 수 있음)
+  if (chatOn) h+='<div class="actrow"><button class="chatbtn" data-act="chat">'+ICON.chat+'응원톡</button></div>';
   // 다른 야구 앱처럼 경기 전엔 프리뷰, 경기 중엔 중계, 끝나면 요약부터. 경기 전엔 요약·중계·기록을 흐리게
   var tab=S.dtab||(g.status==='scheduled'?'preview':g.status==='live'?'live':'summary');
   if (g.status==='scheduled' && ['summary','live','record'].indexOf(tab)>=0) tab='preview';
@@ -1770,7 +1770,7 @@ function vOverlay(){
     '<div class="glabel">내 팀 경기</div><div class="grp">'+PREFS.map(function(p){ return toggle(p[0],p[1],p[2]); }).join('')+'</div>'+
     '<div class="glabel">관심 선수</div><div class="grp">'+toggle('players','관심 선수 알림','타자는 타석 결과마다, 투수는 등판·강판 때')+'</div>'+
     '<div class="glabel">커뮤니티</div><div class="grp">'+toggle('comments','내 글에 댓글','누가 내 글에 댓글을 달면')+'</div>'+
-    '<div class="glabel">실시간 현황</div><div class="grp">'+toggle('liveActivity','경기 시작 때 잠금화면에 자동으로','실시간 점수판이 잠금화면과 다이내믹 아일랜드에 떠요')+'</div>'+
+    '<div class="glabel">실시간 현황</div><div class="grp">'+toggle('liveActivity','경기 30분 전부터 잠금화면에 자동으로','내 팀 경기 점수판이 잠금화면과 다이내믹 아일랜드에 자동으로 떠요')+'</div>'+
     '<button class="btn amber" style="margin-top:16px" data-act="close" data-done="1">완료</button></div></div>';
   if (S.overlay==='delete') return '<div class="overlay" data-act="close"><div class="dialog" data-stop="1"><div class="box"><div class="msg"><b>정말 탈퇴할까요?</b>계정과 응원 팀·알림 설정이 모두 지워지고 알림도 더 이상 오지 않아요.</div>'+
     '<button class="del" data-act="deleteok">탈퇴하기</button></div><button class="cancel" data-act="close">취소</button></div></div>';
