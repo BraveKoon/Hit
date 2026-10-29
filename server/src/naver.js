@@ -243,6 +243,15 @@ function lineupOf(batters) {
     .map(([order, p]) => ({ order, pos: str(p.posName) ?? '', name: p.name, photo: null }));
 }
 
+export function entryOf(entry, lineup) {
+  const inLineup = new Set((lineup ?? []).map((p) => p.name));
+  const seen = new Set();
+  const take = (list, pos) => (list ?? [])
+    .filter((p) => str(p?.name) && !inLineup.has(p.name) && !seen.has(`${pos}:${p.name}`) && seen.add(`${pos}:${p.name}`))
+    .map((p) => ({ name: p.name, pos: pos ?? str(p.posName) ?? '', photo: null }));
+  return { batters: take(entry?.batter, null), pitchers: take(entry?.pitcher, '투수') };
+}
+
 // 대기 타석: 지금 타자 다음 두 타순 (9번 다음은 1번)
 function nextBatters(batter, lineup) {
   const order = num(batter?.batOrder);
@@ -348,6 +357,7 @@ export function normalizeDetail(basic, relay) {
     plays: [],
     atBat: [],
     lineups: null,
+    entries: null,
     pitchers: {
       win: str(basic.winPitcherName),
       lose: str(basic.losePitcherName),
@@ -399,6 +409,10 @@ export function normalizeDetail(basic, relay) {
   const away = lineupOf(relay.awayLineup?.batter);
   const home = lineupOf(relay.homeLineup?.batter);
   detail.lineups = away.length || home.length ? { away, home } : null;
+  // 경기 엔트리(벤치·불펜): 네이버 문자중계의 homeEntry/awayEntry. 선발 라인업에 없는 선수만. 둘 다 비면 null
+  const entries = { away: entryOf(relay.awayEntry, away), home: entryOf(relay.homeEntry, home) };
+  const any = (e) => e.batters.length || e.pitchers.length;
+  detail.entries = any(entries.away) || any(entries.home) ? entries : null;
   detail.winRate = winRateOf(relay);
   return detail;
 }

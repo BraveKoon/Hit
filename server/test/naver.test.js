@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNaverProvider, parseInning, plateHeight, UpstreamError, winPointsOf } from '../src/naver.js';
+import { createNaverProvider, entryOf, normalizeDetail, parseInning, plateHeight, UpstreamError, winPointsOf } from '../src/naver.js';
 import { fakeFetch, fixture } from './helpers.js';
 
 test('일정: KBO 경기만 남기고 정규화한다', async () => {
@@ -168,4 +168,23 @@ test('진행 중 상황: 베이스의 주자 이름과 대기 타석 두 명', a
     '/schedule/games/20261027HTSS02026/relay': fixture('naver-relay-live.json'),
   }) }).detail('20261027HTSS02026');
   assert.deepEqual(base.situation.runners, [null, null, null]);
+});
+
+test('엔트리: 선발 라인업에 없는 벤치·불펜만, 중복 없이. 둘 다 비면 null', () => {
+  const lineup = [{ order: 1, pos: '중견수', name: '김지찬', photo: null }];
+  const e = entryOf({
+    batter: [{ name: '김지찬', posName: '중견수' }, { name: '이재현', posName: '유격수' }, { name: '이재현', posName: '유격수' }, { name: '', posName: '대타' }],
+    pitcher: [{ name: '원태인' }, { name: '원태인' }, { name: '김재윤' }],
+  }, lineup);
+  assert.deepEqual(e.batters, [{ name: '이재현', pos: '유격수', photo: null }], '라인업에 있는 김지찬·중복·이름 없는 선수는 뺀다');
+  assert.deepEqual(e.pitchers.map((p) => [p.name, p.pos]), [['원태인', '투수'], ['김재윤', '투수']]);
+  assert.deepEqual(entryOf(null, []), { batters: [], pitchers: [] });
+
+  const raw = fixture('naver-relay-live.json').result.textRelayData;
+  const basic = fixture('naver-game-live.json').result.game;
+  assert.equal(normalizeDetail(basic, raw).entries, null, '시험 자료는 엔트리가 비어 있다');
+  const filled = { ...raw, homeEntry: { batter: [{ name: '이재현', posName: '유격수' }], pitcher: [{ name: '김재윤' }] }, awayEntry: { batter: [], pitcher: [] } };
+  const d = normalizeDetail(basic, filled);
+  assert.deepEqual(d.entries.home.batters.map((p) => p.name), ['이재현']);
+  assert.deepEqual(d.entries.away, { batters: [], pitchers: [] });
 });

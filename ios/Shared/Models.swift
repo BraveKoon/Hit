@@ -122,6 +122,24 @@ struct Lineups: Codable, Hashable {
     let home: [LineupEntry]
 }
 
+struct EntryPlayer: Codable, Hashable, Identifiable {
+    let name: String
+    let pos: String
+    let photo: String?
+    var id: String { "\(pos)\(name)" }
+}
+
+struct TeamEntry: Codable, Hashable {
+    let batters: [EntryPlayer]
+    let pitchers: [EntryPlayer]
+    var isEmpty: Bool { batters.isEmpty && pitchers.isEmpty }
+}
+
+struct Entries: Codable, Hashable {
+    let away: TeamEntry
+    let home: TeamEntry
+}
+
 struct Pitchers: Codable, Hashable {
     let win: String?
     let lose: String?
@@ -142,6 +160,7 @@ struct GameDetail: Codable, Hashable {
     let plays: [Play]
     let atBat: [Pitch]
     let lineups: Lineups?
+    var entries: Entries? = nil      // 벤치·불펜 엔트리 (선발 라인업에 없는 선수). 없으면 nil
     let pitchers: Pitchers?
     let winRate: WinRate?
     let fetchedAt: String?   // 서버가 네이버에서 받은 시각. 오래됐으면 "데이터 지연"

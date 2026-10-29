@@ -703,6 +703,19 @@ ol.steps{margin:0;padding-left:1.3em;font-size:13.5px;color:var(--ink-2);line-he
 .fbar .srch svg{width:14px;height:14px}.fbar .srch input{flex:1;min-width:0;border:0;background:none;color:#fff;font:inherit;font-size:13.5px;outline:none}
 .blist{background:var(--sf);border-radius:20px;overflow:hidden}.brow{display:flex;align-items:center;justify-content:space-between;height:54px;padding:0 16px;border-bottom:1px solid var(--sf2)}.brow:last-child{border-bottom:0}
 .brow button{border:0;background:none;color:var(--am);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+
+/* 경기 정보 한눈에 · 시리즈 */
+.gicard{margin:12px 0 4px;padding:14px;border-radius:18px;background:var(--sf);border:1px solid var(--ln);display:flex;flex-direction:column;gap:12px}
+.gsr{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.gsr b{font-size:14.5px}.gsr em{font-style:normal;font-size:12.5px;font-weight:700;color:var(--am)}
+.gch{display:flex;gap:7px;flex-wrap:wrap}.gch span{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border-radius:99px;background:rgba(255,255,255,.07);font-size:12.5px;font-weight:600}.gch svg{color:var(--am)}
+.gsp{display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}.gsp>span{flex:1;display:flex;align-items:center;gap:8px;min-width:0}.gsp>span.r{justify-content:flex-end}.gsp .ava{flex:none}
+.gsp b{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gsp small{font-size:11px;font-weight:700;color:var(--mu)}
+.srs .hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}.srs .hd b{font-size:17px;font-weight:800}.srs .hd small{font-size:12px;color:var(--mu)}
+.tally{display:flex;align-items:center;justify-content:center;gap:18px}.tally i{font-style:normal;font-size:22px;color:var(--mu)}
+.tally .sd{display:flex;align-items:center;gap:9px}.tally .sd b{font-family:var(--round);font-size:34px}.tally .sd b.win{color:var(--am)}.tally .sd small{font-size:12px;color:var(--mu)}
+.gcs{display:flex;gap:8px;margin-top:14px;overflow-x:auto}.gc{flex:none;width:64px;padding:10px 0;border-radius:12px;background:rgba(255,255,255,.05);display:flex;flex-direction:column;align-items:center;gap:5px;border:1.2px solid transparent}
+.gc.cur{background:rgba(255,138,76,.14);border-color:var(--am)}.gc small{font-size:11px;font-weight:700;color:var(--mu)}.gc.cur small{color:var(--am)}.gc i{font-style:normal;height:24px;line-height:24px;color:var(--mu)}.gc b{font-size:12.5px;font-weight:600}
+.entnote{margin:14px 2px 0;font-size:12px;color:var(--mu);line-height:1.5}
 </style>
 
 <div class="wrap">
@@ -1154,6 +1167,7 @@ function vGame(){
     '<div class="mid">'+side(g.a,g.status==='final'&&as>hs)+
     (has?'<div class="bigscore" style="font-size:48px"><span data-score="d-'+g.id+'"><span class="'+(g.status==='final'&&as<hs?'lose':'')+'">'+as+'</span><span class="c">&nbsp;:&nbsp;</span><span class="'+(g.status==='final'&&hs<as?'lose':'')+'">'+hs+'</span></span></div>':'<div class="bigtime" style="font-size:34px;font-weight:700">'+g.time+'<small>'+esc(g.park)+'</small></div>')+
     side(g.h,g.status==='final'&&hs>as)+'</div></div>';
+  h+=infoCard(g);
   // 응원톡 · 잠금화면 버튼을 한 줄에 반씩
   var chatOn=g.status==='live'||g.date===TODAY, laOn=g.status!=='final';
   if (chatOn||laOn) h+='<div class="actrow">'+(chatOn?'<button class="chatbtn" data-act="chat">'+ICON.chat+'응원톡</button>':'')+
@@ -1168,7 +1182,7 @@ function vGame(){
   if (tab==='preview') h+=previewTab(g);
   else if (tab==='summary') h+=summaryTab(g);
   else if (tab==='live') h+=liveTab(g);
-  else if (tab==='lineup') h+='<div class="card info">'+(g.status==='scheduled'?'라인업은 경기가 시작하면 나와요.':'이 미리보기에는 라인업 기록이 없어요. 앱에서는 선수 사진과 함께 타순이 나옵니다.')+'</div>';
+  else if (tab==='lineup') h+='<div class="card info">'+(g.status==='scheduled'?'라인업은 경기가 시작하면 나와요.':'이 미리보기에는 라인업 기록이 없어요. 앱에서는 선수 사진과 함께 타순이 나옵니다.')+'</div>'+(g.status==='scheduled'?'':entryNote());
   else h+=recordTab(g);
   return h+'</div></div>';
 }
@@ -1193,7 +1207,7 @@ function previewTab(g){
   var cal='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 7h12M5 1.5v3M11 1.5v3"/></svg>';
   var pin='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 15s5-4.5 5-8.5A5 5 0 0 0 3 6.5C3 10.5 8 15 8 15z"/><circle cx="8" cy="6.5" r="1.8"/></svg>';
   var tv='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1.5" y="3" width="13" height="9" rx="2"/><path d="M5 14.5h6"/></svg>';
-  var h='<div class="ichips"><span>'+cal+g.date.slice(5).replace('-','.')+' ('+wd+') '+g.time+'</span><span>'+pin+esc(g.park)+'</span>'+(BROADCAST[g.id]?'<span>'+tv+BROADCAST[g.id]+'</span>':'')+'</div>';
+  var h=seriesCard(g);
   h+=predCard(g);
   if (g.status!=='final') h+=weatherCard(g);
   h+=keyPlayersCard(g);
@@ -1223,6 +1237,7 @@ function previewTab(g){
     '<div class="bar"><i style="width:'+(w+l?w/tot*100:50)+'%;background:'+ac+'"></i><i style="background:'+hc+'"></i></div>'+
     (past.length?'<div class="rc">'+past.slice().reverse().map(function(z){ var win=score(z,'a')>score(z,'h')?z.a:z.h; return '<div><small>'+z.date.slice(5).replace('-','.')+'</small>'+emb(win,26)+'<b>'+score(z,'a')+':'+score(z,'h')+'</b></div>'; }).join('')+'</div>':'<p class="mnone">아직 맞대결이 없어요</p>')+
     '</div></div>';
+  if (['po1','po2','po3'].indexOf(g.id)>=0) h+='<div class="sh"><h3>2026 포스트시즌 대진표</h3></div>'+bracket();
   return h;
 }
 /* 요약 탭: 이닝별 점수 → 승패 투수 → 오늘의 MVP */
@@ -1692,6 +1707,34 @@ function vBlocks(){
       :'<p class="mnone" style="text-align:center;padding:20px 0">차단한 사용자가 없어요</p>')+
     '<p class="vnote">차단한 사람의 글·댓글·응원톡은 보이지 않아요.</p><button class="btn amber" style="margin-top:12px" data-act="close" data-done="1">완료</button></div></div>';
 }
+
+
+/* 경기 정보 한눈에 (앱 GameInfoCard): 모든 탭 위에 일시 · 구장 · 중계 · 시리즈 · 선발 */
+function infoCard(g){
+  var dt=new Date(g.date+'T12:00:00+09:00'), wd='일월화수목금토'.charAt(dt.getUTCDay()), se=seriesOf(g);
+  function chip(ic,t){ return '<span>'+ic+t+'</span>'; }
+  var cal='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 7h12M5 1.5v3M11 1.5v3"/></svg>';
+  var pin='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 15s5-4.5 5-8.5A5 5 0 0 0 3 6.5C3 10.5 8 15 8 15z"/><circle cx="8" cy="6.5" r="1.8"/></svg>';
+  var tv='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1.5" y="3" width="13" height="9" rx="2"/><path d="M5 14.5h6"/></svg>';
+  var h='<div class="gicard">';
+  if (se) h+='<div class="gsr"><b>🏆 '+esc(se.t)+'</b><em>'+esc(se.s)+'</em></div>';
+  h+='<div class="gch">'+chip(cal,g.date.slice(5).replace('-','.')+' ('+wd+') '+g.time)+chip(pin,esc(g.park))+(BROADCAST[g.id]?chip(tv,BROADCAST[g.id]):'')+'</div>';
+  if (g.sp&&(g.sp.a||g.sp.h)) h+='<div class="gsp"><span>'+ava(g.sp.a||'?',g.a,30)+'<b>'+esc(g.sp.a||'미정')+'</b></span><small>선발</small><span class="r"><b>'+esc(g.sp.h||'미정')+'</b>'+ava(g.sp.h||'?',g.h,30)+'</span></div>';
+  return h+'</div>';
+}
+/* 포스트시즌 시리즈 현황 (앱 SeriesCard) */
+function seriesCard(g){
+  var rs=rounds(), r=rs[2]; if (['po1','po2','po3'].indexOf(g.id)<0) return '';
+  function side(code,w,win){ return '<span class="sd">'+emb(code,34)+'<b class="'+(win?'win':'')+'">'+w+'</b><small>승</small></span>'; }
+  return '<div class="card srs"><div class="hd"><b>'+esc(r.label)+' 시리즈</b><small>5전 3선승제</small></div>'+
+    '<div class="tally">'+side(r.low,r.win[0],r.winner===r.low)+'<i>:</i>'+side(r.high,r.win[1],r.winner===r.high)+'</div>'+
+    '<div class="gcs">'+r.games.concat(r.games.length<3?[{no:r.games.length+1,st:'scheduled'}]:[]).map(function(x,i){
+      var cur=['po1','po2','po3'][i]===g.id, done=x.st==='final', win=done?(x.low>x.high?r.low:x.high>x.low?r.high:null):null;
+      return '<div class="gc'+(cur?' cur':'')+'"><small>'+x.no+'차전</small>'+(win?emb(win,24):'<i>'+(x.st==='live'?'●':'◷')+'</i>')+'<b>'+(done?x.low+':'+x.high:x.st==='live'?'경기 중':'예정')+'</b></div>';
+    }).join('')+'</div></div>';
+}
+/* 엔트리: 앱은 네이버 문자중계의 벤치·불펜 명단. 미리보기엔 명단이 없어 안내만 */
+function entryNote(){ return '<p class="entnote">앱에서는 라인업 아래에 <b>엔트리(벤치·불펜)</b>가 사진과 함께 나와요. 네이버가 명단을 공개하면 채워지고, 아직이면 안내만 보여요. 이 미리보기엔 명단 자료가 없어요.</p>'; }
 
 /* ── 덮개 ── */
 // 응원톡 자동 검열 (서버 moderation.js 와 같은 규칙을 줄여 옮김)

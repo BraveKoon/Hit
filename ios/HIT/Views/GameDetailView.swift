@@ -28,6 +28,7 @@ enum DetailTab: String, CaseIterable, Identifiable {
 struct GameDetailView: View {
     let gameId: String
     @State private var detail: GameDetail?
+    @State private var postseason: PostseasonResponse?      // 포스트시즌 경기면 시리즈·대진표에 쓴다
     @State private var error: String?
     @State private var tab: DetailTab = .live
     @State private var tabChosen = false                   // 처음 받은 경기 상태로 첫 탭을 고른 뒤엔 그대로
@@ -50,6 +51,7 @@ struct GameDetailView: View {
                             StaleBanner(text: note)
                         }
                         ScoreHero(game: detail.game)
+                        GameInfoCard(game: detail.game, series: postseason?.series(for: detail.game))
                         // 응원톡 · 잠금화면 버튼을 한 줄에 반씩
                         HStack(alignment: .top, spacing: 10) {
                             chatButton(detail.game)
@@ -57,7 +59,7 @@ struct GameDetailView: View {
                         }
                         DetailTabs(selection: $tab, status: detail.game.status)
                         switch tab {
-                        case .preview: PreviewTab(game: detail.game)
+                        case .preview: PreviewTab(game: detail.game, postseason: postseason)
                         case .lineup: LineupTab(detail: detail)
                         case .summary: SummaryTab(detail: detail)
                         case .live: LiveTab(detail: detail, focusInning: focusInning)
@@ -130,6 +132,11 @@ struct GameDetailView: View {
             }
         }
         .refreshable { await load() }
+        .task(id: detail?.game.date ?? "") {
+            // 시즌 대진표 (포스트시즌 기간이 아니면 해당 경기가 없어 카드가 안 나온다)
+            guard let date = detail?.game.date, date.count >= 4 else { return }
+            if let p = try? await APIClient().postseason(season: String(date.prefix(4))) { postseason = p }
+        }
         .task(id: gameId) {
             await load()
             while !Task.isCancelled {
@@ -930,15 +937,63 @@ struct LineupTab: View {
     let detail: GameDetail
 
     var body: some View {
-        if let lineups = detail.lineups {
-            HStack(alignment: .top, spacing: 10) {
-                column(detail.game.away, lineups.away)
-                column(detail.game.home, lineups.home)
+        VStack(alignment: .leading, spacing: 14) {
+            if let lineups = detail.lineups {
+                HStack(alignment: .top, spacing: 10) {
+                    column(detail.game.away, lineups.away)
+                    column(detail.game.home, lineups.home)
+                }
+            } else {
+                Card {
+                    Label(detail.game.status == .scheduled ? "라인업은 경기가 시작하면 나와요" : "라인업 정보가 없어요", systemImage: "person.3")
+                        .foregroundStyle(Palette.muted)
+                }
             }
-        } else {
-            Card {
-                Label(detail.game.status == .scheduled ? "라인업은 경기가 시작하면 나와요" : "라인업 정보가 없어요", systemImage: "person.3")
-                    .foregroundStyle(Palette.muted)
+            entrySection
+        }
+    }
+
+    /// 벤치·불펜 엔트리 (선발 라인업에 없는 선수). 네이버가 아직 안 줬으면 안내만
+    @ViewBuilder
+    private var entrySection: some View {
+        if let e = detail.entries, !(e.away.isEmpty && e.home.isEmpty) {
+            SectionHeader(title: "엔트리", detail: "벤치 · 불펜")
+            HStack(alignment: .top, spacing: 10) {
+                entryColumn(detail.game.away, e.away)
+                entryColumn(detail.game.home, e.home)
+            }
+        } else if detail.lineups != nil {
+            Text("벤치·불펜 엔트리는 네이버가 공개하면 나와요").font(Typo.style(.caption)).foregroundStyle(Palette.muted)
+        }
+    }
+
+    private func entryColumn(_ side: GameSide, _ team: TeamEntry) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                TeamBadge(code: side.code, size: 22)
+                Text(side.name).font(Typo.style(.subheadline, .bold))
+            }
+            .padding(12)
+            entryGroup("야수 \(team.batters.count)", team.batters, side.code)
+            entryGroup("투수 \(team.pitchers.count)", team.pitchers, side.code)
+        }
+        .padding(.bottom, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(18)
+    }
+
+    @ViewBuilder
+    private func entryGroup(_ title: String, _ players: [EntryPlayer], _ code: String) -> some View {
+        if !players.isEmpty {
+            Text(title).font(Typo.font(11, .bold)).foregroundStyle(Palette.muted).padding(.horizontal, 12).padding(.top, 4)
+            ForEach(players) { p in
+                HStack(spacing: 8) {
+                    PlayerAvatar(url: p.photo, name: p.name, team: code, size: 26)
+                    Text(p.name).font(Typo.style(.subheadline, .semibold)).lineLimit(1)
+                    Spacer(minLength: 0)
+                    if p.pos != "투수" { Text(p.pos).font(Typo.style(.caption2)).foregroundStyle(Palette.muted) }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 5)
             }
         }
     }
@@ -1359,12 +1414,15 @@ struct MvpCard: View {
 
 struct PreviewTab: View {
     let game: Game
+    var postseason: PostseasonResponse? = nil
     @State private var preview: GamePreview?
     @State private var failed = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            infoChips
+            if let ps = postseason, ps.rounds.contains(where: { $0.games.contains { $0.id == game.id } }) {
+                SeriesCard(data: ps, game: game)
+            }
             if game.status != .canceled { PredictionCard(game: game) }
             WeatherCard(game: game)
             if let p = preview {
@@ -1374,6 +1432,10 @@ struct PreviewTab: View {
                 StarterMatchup(game: game, starters: p.starters)
                 TeamCompare(game: game, teams: p.teams)
                 HeadToHeadCard(game: game, h2h: p.headToHead)
+                if let ps = postseason, ps.rounds.contains(where: { $0.games.contains { $0.id == game.id } }) {
+                    SectionHeader(title: "\(ps.season) 포스트시즌 대진표")
+                    PostseasonBracket(data: ps)
+                }
             } else if failed {
                 Card { Label("프리뷰를 불러오지 못했어요", systemImage: "wifi.exclamationmark").foregroundStyle(Palette.muted) }
             } else {
@@ -1385,28 +1447,6 @@ struct PreviewTab: View {
             catch is CancellationError {}
             catch { failed = true }
         }
-    }
-
-    /// 날짜 · 경기장 · 방송사를 아이콘 칩으로
-    private var infoChips: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 8) {
-                if let d = game.startDate { chip("calendar", "\(KST.short.string(from: d)) \(KST.clock.string(from: d))") }
-                if let s = game.stadium { chip("mappin.and.ellipse", s) }
-                if let b = game.broadcast { chip("tv", b) }
-            }
-        }
-        .scrollIndicators(.hidden)
-    }
-
-    private func chip(_ icon: String, _ text: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon).font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.accent)
-            Text(text).font(Typo.style(.footnote, .semibold))
-        }
-        .padding(.horizontal, 12)
-        .frame(height: 34)
-        .glassCapsule()
     }
 }
 
