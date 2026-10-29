@@ -171,6 +171,74 @@ struct WinTrendResponse: Codable, Hashable {
     let points: [WinPoint]
 }
 
+// MARK: - 포스트시즌 대진표
+
+struct PostseasonResponse: Codable, Hashable {
+    let season: String
+    let active: Bool
+    let champion: String?
+    let teams: [PostseasonTeam]      // 5위부터 1위 순서 (그림 왼쪽부터)
+    let rounds: [PostseasonRound]    // WC · 준PO · PO · KS
+}
+
+struct PostseasonTeam: Codable, Hashable, Identifiable {
+    let code: String
+    let name: String
+    let seed: Int
+    let alive: Bool
+    var id: String { code }
+}
+
+/// low = 아래 시드(도전자), high = 위 시드. 점수도 이 순서
+struct PostseasonRound: Codable, Hashable, Identifiable {
+    let key: String
+    let name: String
+    let label: String
+    let format: String
+    let low: String?
+    let high: String
+    let games: [SeriesGame]
+    let wins: SeriesWins
+    let winner: String?
+    var id: String { key }
+}
+
+struct SeriesGame: Codable, Hashable, Identifiable {
+    let id: String
+    let no: Int
+    let date: String?
+    let status: GameStatus
+    let low: Int?
+    let high: Int?
+}
+
+struct SeriesWins: Codable, Hashable {
+    let low: Int
+    let high: Int
+}
+
+extension PostseasonResponse {
+    /// 지금 치르는 라운드: 도전자가 정해졌고 승자가 아직 없는 첫 라운드
+    var current: PostseasonRound? { rounds.first { $0.low != nil && $0.winner == nil } }
+
+    /// 경기 카드 머리말: ("플레이오프 3차전", "1승 1패 동률" 또는 "삼성 2승 1패 우세")
+    func series(for game: Game) -> (title: String, status: String)? {
+        for r in rounds {
+            guard let g = r.games.first(where: { $0.id == game.id }), let low = r.low else { continue }
+            let status: String
+            if r.wins.low == r.wins.high {
+                status = "\(r.wins.low)승 \(r.wins.high)패 동률"
+            } else {
+                let lead = r.wins.low > r.wins.high ? low : r.high
+                let (w, l) = r.wins.low > r.wins.high ? (r.wins.low, r.wins.high) : (r.wins.high, r.wins.low)
+                status = "\(Team.find(lead)?.short ?? lead) \(w)승 \(l)패" + (r.winner == nil ? " 우세" : " 통과")
+            }
+            return ("\(r.label) \(g.no)차전", status)
+        }
+        return nil
+    }
+}
+
 // MARK: - 경기 프리뷰
 
 struct GamePreview: Codable, Hashable {

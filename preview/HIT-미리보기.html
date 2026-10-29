@@ -234,6 +234,23 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .h2h .big{display:flex;align-items:center;gap:14px}.h2h .big b{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums}.h2h .big i{font-style:normal;font-size:24px;color:var(--mu)}.h2h .big .lose{opacity:.35}
 .h2h .hr2{width:100%;display:grid;grid-template-columns:48px 1fr auto 1fr 48px;align-items:center;justify-items:center;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);font-size:13px}
 .h2h .hr2 span:first-child{justify-self:start;color:var(--mu)}.h2h .hr2 b{padding:0 12px;font-variant-numeric:tabular-nums}.h2h .hr2 img:first-of-type{justify-self:end}.h2h .hr2 img:last-of-type{justify-self:start}
+.ichips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}.ichips::-webkit-scrollbar{height:0}
+.ichips span{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:99px;background:var(--sf);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12);font-size:13px;font-weight:600}
+.ichips svg{color:var(--am)}
+.psec{display:flex;flex-direction:column;gap:12px;margin-top:10px}.ph2{display:flex;align-items:baseline;justify-content:space-between}.ph2 h3{margin:0;font-size:19px;font-weight:700}.ph2 small{font-size:12px;color:var(--mu)}
+.smu{padding:0;overflow:hidden}.smu .top{display:flex;align-items:flex-end;justify-content:space-between;padding:18px 18px 14px}
+.smu .top>i{font-style:normal;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.35);display:grid;place-items:center;font-size:14px;font-weight:700;color:rgba(255,255,255,.75);margin-bottom:44px}
+.smu .fc{display:flex;flex-direction:column;align-items:center;gap:4px}.smu .fc strong{font-size:16px;margin-top:8px}.smu .fc small{font-size:12px;color:var(--mu)}
+.smu .ph{position:relative;width:96px;height:116px;border-radius:18px;display:grid;place-items:center}.smu .ph>b{font-size:34px;color:rgba(255,255,255,.85)}
+.smu .eb{position:absolute;right:-8px;bottom:-8px;padding:4px;border-radius:50%;background:rgba(0,0,0,.55);display:grid}
+.smu .rows{padding:18px;display:flex;flex-direction:column;gap:14px}
+.ds{display:flex;flex-direction:column;gap:7px}.ds .v{display:flex;align-items:center;font-size:14.5px;font-variant-numeric:tabular-nums}.ds .v span{flex:1}.ds .v span:last-child{text-align:right}
+.ds .v em{font-style:normal;font-size:12px;font-weight:500;color:var(--mu)}.ds .v .b{font-weight:700}
+.ds .bar,.hh .bar{display:flex;gap:3px;height:6px}.ds .bar i,.hh .bar i{display:block;border-radius:99px}.ds .bar i:last-child,.hh .bar i:last-child{flex:1}
+.tcmp{display:flex;flex-direction:column;gap:16px}.tcmp .rk{display:flex;justify-content:space-between}.tcmp .rk span{display:flex;align-items:center;gap:10px}.tcmp .rk b{font-size:28px;font-weight:700}
+.hh{display:flex;flex-direction:column;gap:14px}.hh .v{display:flex;justify-content:space-between}.hh .v span{display:flex;align-items:center;gap:8px}.hh .v b{font-size:22px;font-weight:700}.hh .bar{height:10px}
+.hh .rc{display:flex;gap:8px;overflow-x:auto}.hh .rc div{flex:none;width:64px;padding:10px 0;border-radius:14px;background:rgba(255,255,255,.05);display:flex;flex-direction:column;align-items:center;gap:6px}
+.hh .rc small{font-size:11px;color:var(--mu)}.hh .rc b{font-size:14px;font-variant-numeric:tabular-nums}
 .gd{padding:0;overflow:hidden}
 .gd .top{display:flex;align-items:center;gap:8px;padding:12px 16px}.gd .top b{font-size:14.5px}.gd .top span{color:var(--mu);font-size:14px}
 .gd .cl{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--mu)}
@@ -318,6 +335,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .greet2{margin:6px 0 0;color:rgba(255,255,255,.75);font-size:13.5px;font-weight:600}
 .hero2{display:block;width:100%;text-align:left;border:1px solid rgba(255,255,255,.14);border-radius:26px;padding:18px;margin-top:14px;cursor:pointer;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.2);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.brkc{margin-top:6px}.brkc h3{margin:0 0 6px;font-size:19px;font-weight:800}.brk{display:block;width:100%;height:auto;font-family:Pretendard,sans-serif}
+.ser{display:flex;justify-content:space-between;align-items:center;height:36px;padding:0 13px;border-radius:12px;background:rgba(255,255,255,.12);margin-bottom:14px;font-size:13.5px}
 .hero2 .t{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;color:rgba(255,255,255,.82)}
 .livep{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:800;padding:5px 11px;border-radius:99px;background:rgba(255,59,48,.28);color:#fff}
 .livep i{width:8px;height:8px;border-radius:50%;background:#ff453a;animation:breathe 1.6s ease-in-out infinite}
@@ -911,7 +930,7 @@ function vHome(){
   else if (next) greet=name()+'님, 다음 경기는 '+(next.date==='2026-10-29'?'내일 '+next.time:dayLabel(next.date));
   else greet=name()+'님, 오늘은 쉬는 날';
 
-  var h='<div class="pad">'+appHeader()+
+  var h='<div class="pad">'+appHeader()+(isToday?bracket():'')+
     '<div class="dayhead"><div><small>'+shortDate(S.day)+'</small><b>'+(isToday?'오늘의 경기':'이날의 경기')+'</b></div>'+
     '<button data-act="dates">'+(S.dates?'접기 ⌃':'더보기 ›')+'</button></div><p class="greet2">'+esc(greet)+'</p>';
   h+='<div class="dstrip" id="dstrip"'+(S.dates?'':' hidden')+'>';
@@ -942,10 +961,60 @@ function favStrip(){
 }
 function shortDate(d){ var dt=new Date(d+'T12:00:00+09:00'); var m=dt.getUTCMonth()+1, day=dt.getUTCDate(); return (m<10?'0':'')+m+'.'+(day<10?'0':'')+day+' ('+'일월화수목금토'.charAt(dt.getUTCDay())+')'; }
 function livePill(g){ return g.status==='live'?'<span class="livep"><i></i>Live</span>':'<span class="livep off">'+(g.status==='final'?'종료':g.time)+'</span>'; }
+/* 포스트시즌 대진표 (앱 PostseasonBracket 과 같은 그림). 5위→1위 왼쪽부터.
+   WC·준PO 점수는 사용자가 보내 준 루타 화면 기준, PO 는 이 페이지의 실제 경기 기록 */
+var SEEDS=['OB','LG','HT','SS','KT'];
+function poGames(){ return [PO1,curPO2(),PO3]; }
+function rounds(){
+  var po=poGames().map(function(g,i){ return {no:i+1,st:g.status,low:g.status==='final'?score(g,g.a==='HT'?'a':'h'):null,high:g.status==='final'?score(g,g.a==='SS'?'a':'h'):null}; });
+  var w=function(list){ var lw=0,hw=0; list.forEach(function(x){ if (x.st==='final'){ if (x.low>x.high) lw++; else if (x.high>x.low) hw++; } }); return [lw,hw]; };
+  var poW=w(po);
+  return [
+    {name:'WC',label:'와일드카드',low:'OB',high:'LG',games:[{no:1,st:'final',low:1,high:4}],win:[0,1],winner:'LG'},
+    {name:'준PO',label:'준플레이오프',low:'LG',high:'HT',games:[{no:1,st:'final',low:1,high:5},{no:2,st:'final',low:3,high:6},{no:3,st:'final',low:1,high:13}],win:[0,3],winner:'HT'},
+    {name:'PO',label:'플레이오프',low:'HT',high:'SS',games:po,win:poW,winner:poW[0]>=3?'HT':poW[1]>=3?'SS':null},
+    {name:'KS',label:'한국시리즈',low:null,high:'KT',games:[],win:[0,0],winner:null,fmt:'7전 4선승제'}
+  ];
+}
+function seriesOf(g){
+  var rs=rounds(), r=rs[2], i=['po1','po2','po3'].indexOf(g.id); if (i<0) return null;
+  var st=r.win[0]===r.win[1]?r.win[0]+'승 '+r.win[1]+'패 동률':(r.win[0]>r.win[1]?'KIA ':'삼성 ')+Math.max(r.win[0],r.win[1])+'승 '+Math.min(r.win[0],r.win[1])+'패 '+(r.winner?'통과':'우세');
+  return {t:r.label+' '+(i+1)+'차전', s:st};
+}
+function bracket(){
+  var rs=rounds(), W=340, xs=[30,100,170,240,310], base=344, step=82, lv=[0,1,2,3].map(function(k){ return base-step*(k+1)+10; });
+  var lefts=[], l=xs[0]; for (var k=0;k<4;k++){ lefts.push(l); l=(l+xs[k+1])/2; }
+  var cur=-1; for (var k2=0;k2<4;k2++) if (rs[k2].low && !rs[k2].winner){ cur=k2; break; }
+  var svg='<svg class="brk" viewBox="0 0 '+W+' 426" role="img" aria-label="포스트시즌 대진표">';
+  rs.forEach(function(r,k){
+    var L=lefts[k], R=xs[k+1], y=lv[k], y0=k===0?base:lv[k-1];
+    svg+='<path d="M'+L+' '+y0+' V'+(y+10)+' Q'+L+' '+y+' '+(L+10)+' '+y+' H'+(R-10)+' Q'+R+' '+y+' '+R+' '+(y+10)+' V'+base+'" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.5"/>';
+  });
+  rs.forEach(function(r,k){
+    var mid=(lefts[k]+xs[k+1])/2, y=lv[k], st=r.winner?0:k===cur?1:2, w=r.name.length*13+30;
+    svg+='<rect x="'+(mid-w/2)+'" y="'+(y-14)+'" width="'+w+'" height="28" rx="14" fill="'+(st===0?'#6b6b70':st===1?'#000':'#fff')+'" stroke="'+(st===1?'#ff8a4c':'none')+'" stroke-width="2"/>'+
+      '<text x="'+mid+'" y="'+(y+5)+'" text-anchor="middle" font-size="14" font-weight="600" fill="'+(st===2?'#000':'#fff')+'">'+r.name+'</text>';
+    var done=r.games.filter(function(g){ return g.st==='final'; });
+    if (!done.length) svg+='<text x="'+mid+'" y="'+(y+36)+'" text-anchor="middle" font-size="13" fill="rgba(255,255,255,.85)">'+(r.fmt||'5전 3선승제')+'</text>';
+    done.forEach(function(g,j){
+      svg+='<text x="'+mid+'" y="'+(y+36+j*19)+'" text-anchor="middle" font-size="13" fill="#fff" style="font-variant-numeric:tabular-nums">'+g.no+'차전 '+
+        '<tspan fill="'+(g.low>g.high?'#ff8a4c':'#fff')+'">'+g.low+'</tspan><tspan fill="#8e8e93">:</tspan><tspan fill="'+(g.high>g.low?'#ff8a4c':'#fff')+'">'+g.high+'</tspan></text>';
+    });
+  });
+  var out=['OB','LG'], playing=cur>=0?[rs[cur].low,rs[cur].high]:[];
+  SEEDS.forEach(function(c,i){
+    var x=xs[i], dim=out.indexOf(c)>=0;
+    svg+='<g opacity="'+(dim?.35:1)+'"><image href="'+LOGO[c]+'" x="'+(x-17)+'" y="'+(base+6)+'" width="34" height="34"/>'+
+      '<text x="'+x+'" y="'+(base+58)+'" text-anchor="middle" font-size="13" font-weight="500" fill="#fff">'+T[c].s+'</text>'+
+      (playing.indexOf(c)>=0?'<circle cx="'+x+'" cy="'+(base+70)+'" r="3" fill="#ff8a4c"/>':'')+'</g>';
+  });
+  return '<div class="card brkc"><h3>포스트시즌 대진표</h3>'+svg+'</svg></div>';
+}
 function hero(g){
   var c=T[S.my].c, has=g.status!=='scheduled', live=g.status==='live', as=score(g,'a'), hs=score(g,'h');
   function side(code){ return '<div class="side">'+emb(code,76)+esc(T[code].n)+'</div>'; }
   return '<button class="hero2" data-act="game" data-v="'+g.id+'" style="background:linear-gradient(135deg,'+rgba(c,.88)+','+rgba(c,.38)+' 55%,rgba(0,0,0,.3));box-shadow:0 16px 36px -14px '+rgba(c,.7)+',inset 0 1px 0 rgba(255,255,255,.2)">'+
+    (seriesOf(g)?'<div class="ser"><b>'+seriesOf(g).t+'</b><b>'+seriesOf(g).s+'</b></div>':'')+
     '<div class="t">'+livePill(g)+'<span>'+g.time+'&nbsp;&nbsp;'+esc(g.park)+'</span></div>'+
     '<div class="m">'+side(g.a)+'<div class="c"><span class="inn2">'+(live?innText(g):g.status==='final'?'경기 종료':'경기 전')+'</span>'+
     '<div class="vs2"><span data-score="ha-'+g.id+'"'+(g.status==='final'&&as<hs?' class="lose"':'')+'>'+(has?as:'-')+'</span><small>VS</small><span data-score="hh-'+g.id+'"'+(g.status==='final'&&hs<as?' class="lose"':'')+'>'+(has?hs:'-')+'</span></div></div>'+side(g.h)+'</div>'+
@@ -994,39 +1063,46 @@ function cmpRow(label,l,r,better){
   return '<div class="cr"><span class="'+(better<0?'b':'')+'">'+l+'</span><em>'+label+'</em><span class="'+(better>0?'b':'')+'">'+r+'</span></div>';
 }
 function pick(a,b,lower){ if (a==null||b==null||a===b) return 0; return (a<b)===!!lower?-1:1; }
+function tint(code){ return {KT:'#7d7d85',OB:'#5a5a9a',LT:'#3d6bb5',NC:'#5f86c9'}[code]||T[code].c; }
+function dual(label,l,r,lv,rv,lower,ac,hc){
+  var better=(lv==null||rv==null||lv===rv)?0:((lv<rv)===!!lower?-1:1);
+  var share=0.5; if (lv!=null&&rv!=null&&(lv>0||rv>0)) share=lower?(lv>0&&rv>0?(1/lv)/(1/lv+1/rv):.5):lv/(lv+rv);
+  return '<div class="ds"><div class="v"><span class="'+(better<0?'b':'')+'">'+l+'</span><em>'+label+'</em><span class="'+(better>0?'b':'')+'">'+r+'</span></div>'+
+    (lv!=null||rv!=null?'<div class="bar"><i style="width:'+(share*100).toFixed(1)+'%;background:'+ac+';opacity:'+(better<0?1:.4)+'"></i><i style="background:'+hc+';opacity:'+(better>0?1:.4)+'"></i></div>':'')+'</div>';
+}
 function previewTab(g){
+  var ac=tint(g.a), hc=tint(g.h);
   var dt=new Date(g.date+'T12:00:00+09:00'), wd='일월화수목금토'.charAt(dt.getUTCDay());
-  var h='<div class="card pinfo"><b class="t">경기정보</b>'+
-    '<div><span>날짜</span>'+g.date.replace(/-/g,'.')+' ('+wd+') '+g.time+'</div><div><span>경기장</span>'+esc(g.park)+'</div>'+
-    (BROADCAST[g.id]?'<div><span>방송사</span>'+BROADCAST[g.id]+'</div>':'')+'</div>';
-  var sec=S.pvs||'sp';
-  h+='<div class="chips" role="tablist">'+[['sp','선발 비교'],['team','팀 비교'],['h2h','맞대결']].map(function(c){
-    return '<button class="pchip" data-act="pvs" data-v="'+c[0]+'" aria-pressed="'+(sec===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>';
-  if (sec==='sp'){
-    var a=SP_STATS[g.sp.a], b=SP_STATS[g.sp.h];
-    function face(name,team){ return '<div class="face"><span class="ph" style="--tc:'+T[team].c+'">'+emb(team,40)+'</span><b>'+esc(name||'미정')+'</b><small>'+esc(T[team].n)+'</small></div>'; }
-    h+='<div class="card spc"><div class="faces">'+face(g.sp.a,g.a)+'<small>정규시즌</small>'+face(g.sp.h,g.h)+'</div>';
-    if (a||b){
-      h+=cmpRow('경기',a?a.g:'-',b?b.g:'-',pick(a&&a.g,b&&b.g))+
-        cmpRow('승-패',a?a.w+'승 '+a.l+'패':'-',b?b.w+'승 '+b.l+'패':'-',pick(a&&a.w,b&&b.w))+
-        cmpRow('평균자책',a?a.era.toFixed(2):'-',b?b.era.toFixed(2):'-',pick(a&&a.era,b&&b.era,true));
-    } else h+='<p class="mnone">이 미리보기에는 이 경기 선발의 시즌 기록이 없어요. 앱에서는 네이버 시즌 기록이 나와요.</p>';
-    h+='</div>';
-  } else if (sec==='team'){
-    function st(code){ for (var i=0;i<STAND.length;i++) if (STAND[i][0]===code) return {rank:i+1,w:STAND[i][1],l:STAND[i][2],d:STAND[i][3],gb:STAND[i][4]}; return null; }
-    var x=st(g.a), y=st(g.h);
-    h+='<div class="card spc"><div class="th"><span>'+emb(g.a,24)+esc(T[g.a].s)+'</span><span>'+esc(T[g.h].s)+emb(g.h,24)+'</span></div>'+
-      cmpRow('순위',x.rank+'위',y.rank+'위',pick(x.rank,y.rank,true))+
-      cmpRow('승-패-무',x.w+'-'+x.l+'-'+x.d,y.w+'-'+y.l+'-'+y.d,0)+
-      cmpRow('승률',(x.w/(x.w+x.l)).toFixed(3),(y.w/(y.w+y.l)).toFixed(3),pick(x.w/(x.w+x.l),y.w/(y.w+y.l)))+
-      cmpRow('게임차',x.gb?x.gb.toFixed(1):'-',y.gb?y.gb.toFixed(1):'-',0)+'<p class="mnone" style="text-align:center">2026 정규시즌 최종</p></div>';
-  } else {
-    var past=[PO1,po2Final()].filter(function(x){ return x.date<g.date && x.status==='final' && involves(x,g.a) && involves(x,g.h); });
-    var w=past.filter(function(x){ var aw=score(x,'a')>score(x,'h'); return (aw?x.a:x.h)===g.a; }).length, l=past.length-w;
-    h+='<div class="card h2h"><small>플레이오프 맞대결</small><div class="big">'+emb(g.a,36)+'<b'+(w<l?' class="lose"':'')+'>'+w+'</b><i>:</i><b'+(l<w?' class="lose"':'')+'>'+l+'</b>'+emb(g.h,36)+'</div>'+
-      (past.length?past.slice().reverse().map(function(x){ return '<div class="hr2"><span>'+x.date.slice(5).replace('-','.')+'</span>'+emb(x.a,20)+'<b>'+score(x,'a')+' : '+score(x,'h')+'</b>'+emb(x.h,20)+'<span></span></div>'; }).join(''):'<p class="mnone">아직 맞대결이 없어요</p>')+
-      '</div>';
-  }
+  var cal='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 7h12M5 1.5v3M11 1.5v3"/></svg>';
+  var pin='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 15s5-4.5 5-8.5A5 5 0 0 0 3 6.5C3 10.5 8 15 8 15z"/><circle cx="8" cy="6.5" r="1.8"/></svg>';
+  var tv='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1.5" y="3" width="13" height="9" rx="2"/><path d="M5 14.5h6"/></svg>';
+  var h='<div class="ichips"><span>'+cal+g.date.slice(5).replace('-','.')+' ('+wd+') '+g.time+'</span><span>'+pin+esc(g.park)+'</span>'+(BROADCAST[g.id]?'<span>'+tv+BROADCAST[g.id]+'</span>':'')+'</div>';
+  // 선발 맞대결
+  var a=SP_STATS[g.sp.a], b=SP_STATS[g.sp.h];
+  function face(name,team,col){ return '<div class="fc"><div class="ph" style="background:'+rgba(col.length===7?col:'#888888',.25)+'"><b>'+esc((name||'?').charAt(0))+'</b><span class="eb">'+emb(team,30)+'</span></div><strong>'+esc(name||'미정')+'</strong><small>'+esc(T[team].s)+'</small></div>'; }
+  h+='<div class="psec"><div class="ph2"><h3>선발 맞대결</h3><small>정규시즌 기준</small></div><div class="card smu">'+
+    '<div class="top" style="background:linear-gradient(90deg,'+rgba(ac,.55)+','+rgba(ac,.08)+' 50%,'+rgba(hc,.08)+' 50%,'+rgba(hc,.55)+')">'+face(g.sp.a,g.a,ac)+'<i>VS</i>'+face(g.sp.h,g.h,hc)+'</div><div class="rows">';
+  if (a||b){
+    h+=dual('평균자책',a?a.era.toFixed(2):'-',b?b.era.toFixed(2):'-',a&&a.era,b&&b.era,true,ac,hc)+
+       dual('승',a?a.w:'-',b?b.w:'-',a&&a.w,b&&b.w,false,ac,hc)+
+       dual('패',a?a.l:'-',b?b.l:'-',a&&a.l,b&&b.l,true,ac,hc)+
+       dual('경기',a?a.g:'-',b?b.g:'-',null,null,false,ac,hc);
+  } else h+='<p class="mnone" style="text-align:center">이 미리보기에는 이 경기 선발의 시즌 기록이 없어요. 앱에서는 네이버 시즌 기록이 나와요.</p>';
+  h+='</div></div></div>';
+  // 팀 비교
+  function st(code){ for (var i=0;i<STAND.length;i++) if (STAND[i][0]===code) return {rank:i+1,w:STAND[i][1],l:STAND[i][2],d:STAND[i][3]}; return null; }
+  var x=st(g.a), y=st(g.h), xp=x.w/(x.w+x.l), yp=y.w/(y.w+y.l);
+  h+='<div class="psec"><div class="ph2"><h3>팀 비교</h3><small>정규시즌 최종</small></div><div class="card tcmp">'+
+    '<div class="rk"><span>'+emb(g.a,38)+'<b style="color:'+ac+'">'+x.rank+'위</b></span><span><b style="color:'+hc+'">'+y.rank+'위</b>'+emb(g.h,38)+'</span></div>'+
+    dual('승률',xp.toFixed(3),yp.toFixed(3),xp,yp,false,ac,hc)+dual('승-패-무',x.w+'-'+x.l+'-'+x.d,y.w+'-'+y.l+'-'+y.d,x.w,y.w,false,ac,hc)+'</div></div>';
+  // 시즌 맞대결
+  var past=[PO1,po2Final()].filter(function(z){ return z.date<g.date && z.status==='final' && involves(z,g.a) && involves(z,g.h); });
+  var w=past.filter(function(z){ return (score(z,'a')>score(z,'h')?z.a:z.h)===g.a; }).length, l=past.length-w, tot=Math.max(1,w+l);
+  h+='<div class="psec"><div class="ph2"><h3>시즌 맞대결</h3><small>플레이오프</small></div><div class="card hh">'+
+    '<div class="v"><span>'+emb(g.a,28)+'<b>'+w+'승</b></span><span><b>'+l+'승</b>'+emb(g.h,28)+'</span></div>'+
+    '<div class="bar"><i style="width:'+(w+l?w/tot*100:50)+'%;background:'+ac+'"></i><i style="background:'+hc+'"></i></div>'+
+    (past.length?'<div class="rc">'+past.slice().reverse().map(function(z){ var win=score(z,'a')>score(z,'h')?z.a:z.h; return '<div><small>'+z.date.slice(5).replace('-','.')+'</small>'+emb(win,26)+'<b>'+score(z,'a')+':'+score(z,'h')+'</b></div>'; }).join('')+'</div>':'<p class="mnone">아직 맞대결이 없어요</p>')+
+    '</div></div>';
   return h;
 }
 /* 요약 탭: 이닝별 점수 → 승패 투수 → 오늘의 MVP */

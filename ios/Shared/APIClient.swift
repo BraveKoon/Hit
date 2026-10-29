@@ -75,6 +75,10 @@ struct APIClient {
         try await send("GET", "v1/games/\(id)/winrate")
     }
 
+    func postseason(season: String) async throws -> PostseasonResponse {
+        try await send("GET", "v1/postseason", query: [URLQueryItem(name: "season", value: season)])
+    }
+
     func preview(id: String) async throws -> GamePreview {
         try await send("GET", "v1/games/\(id)/preview")
     }

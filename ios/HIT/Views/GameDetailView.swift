@@ -1260,25 +1260,22 @@ struct MvpCard: View {
     }
 }
 
-// MARK: - 프리뷰 탭 (경기정보 · 선발 비교 · 팀 비교 · 맞대결)
+// MARK: - 프리뷰 탭
+// ESPN·MLB 앱의 매치업 화면처럼: 정보 칩 → 선발 맞대결(양 팀 색 바탕, 큰 사진) → 기록을 양 팀 색 막대로 맞대기
+// → 팀 비교 → 시즌 맞대결 막대. 칩으로 넘기지 않고 한 화면에 차례로.
 
 struct PreviewTab: View {
     let game: Game
-    enum Section: Hashable { case starters, teams, h2h }
-    @State private var section: Section = .starters
     @State private var preview: GamePreview?
     @State private var failed = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            infoCard
+        VStack(alignment: .leading, spacing: 22) {
+            infoChips
             if let p = preview {
-                PillChips(items: [(Section.starters, "선발 비교"), (.teams, "팀 비교"), (.h2h, "맞대결")], selection: $section)
-                switch section {
-                case .starters: StarterCompare(game: game, starters: p.starters)
-                case .teams: TeamCompare(game: game, teams: p.teams)
-                case .h2h: HeadToHeadCard(game: game, h2h: p.headToHead)
-                }
+                StarterMatchup(game: game, starters: p.starters)
+                TeamCompare(game: game, teams: p.teams)
+                HeadToHeadCard(game: game, h2h: p.headToHead)
             } else if failed {
                 Card { Label("프리뷰를 불러오지 못했어요", systemImage: "wifi.exclamationmark").foregroundStyle(Palette.muted) }
             } else {
@@ -1292,156 +1289,233 @@ struct PreviewTab: View {
         }
     }
 
-    /// 날짜 · 경기장 · 방송사
-    private var infoCard: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("경기정보").font(Typo.style(.headline))
-                info("날짜", game.startDate.map { "\(KST.fullDate.string(from: $0)) \(KST.clock.string(from: $0))" })
-                info("경기장", game.stadium)
-                info("방송사", game.broadcast)
+    /// 날짜 · 경기장 · 방송사를 아이콘 칩으로
+    private var infoChips: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                if let d = game.startDate { chip("calendar", "\(KST.short.string(from: d)) \(KST.clock.string(from: d))") }
+                if let s = game.stadium { chip("mappin.and.ellipse", s) }
+                if let b = game.broadcast { chip("tv", b) }
             }
         }
+        .scrollIndicators(.hidden)
     }
 
-    @ViewBuilder
-    private func info(_ label: String, _ value: String?) -> some View {
-        if let value, !value.isEmpty {
-            HStack(spacing: 0) {
-                Text(label).font(Typo.style(.subheadline)).foregroundStyle(Palette.muted).frame(width: 72, alignment: .leading)
-                Text(value).font(Typo.style(.subheadline, .medium))
-            }
+    private func chip(_ icon: String, _ text: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon).font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.accent)
+            Text(text).font(Typo.style(.footnote, .semibold))
         }
+        .padding(.horizontal, 12)
+        .frame(height: 34)
+        .glassCapsule()
     }
 }
 
-/// 비교표 한 줄: 왼쪽 값 · 가운데 항목 · 오른쪽 값, 나은 쪽은 강조색
-struct CompareRow: View {
+/// 어두운 바탕에서도 보이게 구단 색을 조금 밝힌다 (KT·두산처럼 거의 검정인 색)
+func teamTint(_ code: String?) -> Color {
+    let c = UIColor(Team.color(for: code))
+    var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+    c.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+    return Color(hue: Double(h), saturation: Double(s), brightness: Double(max(b, 0.62)))
+}
+
+/// 기록 한 줄: 양쪽 숫자, 가운데 항목, 아래에 두 팀 색 막대 (앞선 쪽이 더 길고 진하게)
+struct DualStatRow: View {
     let label: String
     let left: String
     let right: String
-    var better: Int = 0   // -1 왼쪽, 1 오른쪽, 0 없음
+    var lv: Double? = nil
+    var rv: Double? = nil
+    var lower = false          // 평균자책·WHIP 처럼 낮을수록 좋은 기록
+    let leftColor: Color
+    let rightColor: Color
 
-    var body: some View {
-        HStack {
-            Text(left).font(Typo.style(.subheadline, better < 0 ? .bold : .regular))
-                .foregroundStyle(better < 0 ? Palette.accent : Palette.text)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Text(label).font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
-            Text(right).font(Typo.style(.subheadline, better > 0 ? .bold : .regular))
-                .foregroundStyle(better > 0 ? Palette.accent : Palette.text)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-        }
-        .monospacedDigit()
+    private var better: Int {
+        guard let lv, let rv, lv != rv else { return 0 }
+        return (lv < rv) == lower ? -1 : 1
     }
 
-    /// 숫자 둘을 비교해 나은 쪽 (낮을수록 좋은 기록이면 lower)
-    static func pick(_ a: Double?, _ b: Double?, lower: Bool = false) -> Int {
-        guard let a, let b, a != b else { return 0 }
-        return (a < b) == lower ? -1 : 1
+    private var share: Double {
+        guard let lv, let rv, lv > 0 || rv > 0 else { return 0.5 }
+        if lower { guard lv > 0, rv > 0 else { return 0.5 }; return (1 / lv) / (1 / lv + 1 / rv) }
+        return lv / (lv + rv)
+    }
+
+    var body: some View {
+        VStack(spacing: 7) {
+            HStack {
+                Text(left).font(Typo.style(.subheadline, better < 0 ? .bold : .regular))
+                Spacer()
+                Text(label).font(Typo.style(.caption, .medium)).foregroundStyle(Palette.muted)
+                Spacer()
+                Text(right).font(Typo.style(.subheadline, better > 0 ? .bold : .regular))
+            }
+            .monospacedDigit()
+            if lv != nil || rv != nil {
+                GeometryReader { geo in
+                    HStack(spacing: 3) {
+                        Capsule().fill(leftColor.opacity(better < 0 ? 1 : 0.4)).frame(width: max(4, (geo.size.width - 3) * share))
+                        Capsule().fill(rightColor.opacity(better > 0 ? 1 : 0.4))
+                    }
+                }
+                .frame(height: 6)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
-/// 선발투수 비교 (정규시즌 기록)
-struct StarterCompare: View {
+/// 섹션 제목
+private struct PreviewHeader: View {
+    let title: String
+    var detail: String? = nil
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title).font(Typo.style(.title3, .bold))
+            Spacer()
+            if let detail { Text(detail).font(Typo.style(.caption)).foregroundStyle(Palette.muted) }
+        }
+    }
+}
+
+/// 선발 맞대결: 양 팀 색이 갈라지는 바탕 위 큰 사진, 아래 정규시즌 기록 막대
+struct StarterMatchup: View {
     let game: Game
     let starters: PreviewStarters
 
     var body: some View {
         let a = starters.away.stats, h = starters.home.stats
-        Card {
-            VStack(spacing: 16) {
-                HStack(alignment: .top) {
-                    face(starters.away)
+        let ac = teamTint(game.away.code), hc = teamTint(game.home.code)
+        VStack(alignment: .leading, spacing: 12) {
+            PreviewHeader(title: "선발 맞대결", detail: "정규시즌 기준")
+            VStack(spacing: 0) {
+                HStack(alignment: .bottom) {
+                    face(starters.away, color: ac)
                     Spacer()
-                    Text("정규시즌").font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted).padding(.top, 40)
+                    Text("VS").font(Typo.font(15, .bold)).foregroundStyle(.white.opacity(0.7))
+                        .frame(width: 40, height: 40).background(.black.opacity(0.35), in: Circle())
+                        .padding(.bottom, 44)
                     Spacer()
-                    face(starters.home)
+                    face(starters.home, color: hc)
                 }
-                if a == nil && h == nil {
-                    Text(starters.away.name == nil && starters.home.name == nil ? "선발 투수가 아직 발표되지 않았어요" : "시즌 기록이 없어요")
-                        .font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
-                } else {
-                    VStack(spacing: 12) {
-                        row("경기", a?.games.map { "\($0)" }, h?.games.map { "\($0)" }, CompareRow.pick(a?.games.map { Double($0) }, h?.games.map { Double($0) }))
-                        row("승-패", record(a), record(h), CompareRow.pick(a?.wins.map { Double($0) }, h?.wins.map { Double($0) }))
-                        row("평균자책", a?.era.map { String(format: "%.2f", $0) }, h?.era.map { String(format: "%.2f", $0) }, CompareRow.pick(a?.era, h?.era, lower: true))
-                        row("이닝", a?.innings, h?.innings, 0)
-                        row("탈삼진", a?.so.map { "\($0)" }, h?.so.map { "\($0)" }, CompareRow.pick(a?.so.map { Double($0) }, h?.so.map { Double($0) }))
-                        row("WHIP", a?.whip.map { String(format: "%.2f", $0) }, h?.whip.map { String(format: "%.2f", $0) }, CompareRow.pick(a?.whip, h?.whip, lower: true))
-                        row("WAR", a?.war.map { String(format: "%.2f", $0) }, h?.war.map { String(format: "%.2f", $0) }, CompareRow.pick(a?.war, h?.war))
+                .padding(.horizontal, 18)
+                .padding(.top, 18)
+                .padding(.bottom, 14)
+                .background(
+                    LinearGradient(stops: [.init(color: ac.opacity(0.55), location: 0), .init(color: ac.opacity(0.08), location: 0.5),
+                                           .init(color: hc.opacity(0.08), location: 0.5), .init(color: hc.opacity(0.55), location: 1)],
+                                   startPoint: .leading, endPoint: .trailing)
+                )
+
+                VStack(spacing: 14) {
+                    if a == nil && h == nil {
+                        Text(starters.away.name == nil && starters.home.name == nil ? "선발 투수가 아직 발표되지 않았어요" : "시즌 기록이 없어요")
+                            .font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+                    } else {
+                        row("평균자책", a?.era.map { String(format: "%.2f", $0) }, h?.era.map { String(format: "%.2f", $0) }, a?.era, h?.era, lower: true)
+                        row("승", a?.wins.map { "\($0)" }, h?.wins.map { "\($0)" }, a?.wins.map { Double($0) }, h?.wins.map { Double($0) })
+                        row("패", a?.losses.map { "\($0)" }, h?.losses.map { "\($0)" }, a?.losses.map { Double($0) }, h?.losses.map { Double($0) }, lower: true)
+                        row("경기", a?.games.map { "\($0)" }, h?.games.map { "\($0)" }, nil, nil)
+                        row("이닝", a?.innings, h?.innings, nil, nil)
+                        row("탈삼진", a?.so.map { "\($0)" }, h?.so.map { "\($0)" }, a?.so.map { Double($0) }, h?.so.map { Double($0) })
+                        row("WHIP", a?.whip.map { String(format: "%.2f", $0) }, h?.whip.map { String(format: "%.2f", $0) }, a?.whip, h?.whip, lower: true)
+                        row("WAR", a?.war.map { String(format: "%.2f", $0) }, h?.war.map { String(format: "%.2f", $0) }, a?.war, h?.war)
                     }
                 }
+                .padding(18)
             }
+            .glassCard(24)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         }
-    }
-
-    private func record(_ s: PlayerStats?) -> String? {
-        guard let s, let w = s.wins, let l = s.losses else { return nil }
-        return "\(w)승 \(l)패"
     }
 
     @ViewBuilder
-    private func row(_ label: String, _ l: String?, _ r: String?, _ better: Int) -> some View {
-        if l != nil || r != nil { CompareRow(label: label, left: l ?? "-", right: r ?? "-", better: better) }
+    private func row(_ label: String, _ l: String?, _ r: String?, _ lv: Double?, _ rv: Double?, lower: Bool = false) -> some View {
+        if l != nil || r != nil {
+            DualStatRow(label: label, left: l ?? "-", right: r ?? "-", lv: lv, rv: rv, lower: lower,
+                        leftColor: teamTint(game.away.code), rightColor: teamTint(game.home.code))
+        }
     }
 
-    /// 사진은 다른 앱처럼 둥근 사각 카드에
-    private func face(_ s: PreviewStarter) -> some View {
+    private func face(_ s: PreviewStarter, color: Color) -> some View {
         VStack(spacing: 8) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Palette.surfaceHigh)
-                if let url = s.photo.flatMap(URL.init(string:)) {
-                    AsyncImage(url: url) { phase in
-                        if case .success(let img) = phase { img.resizable().scaledToFill() } else { Color.clear }
+            ZStack(alignment: .bottomTrailing) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous).fill(color.opacity(0.25))
+                    if let url = s.photo.flatMap(URL.init(string:)) {
+                        AsyncImage(url: url) { phase in
+                            if case .success(let img) = phase { img.resizable().scaledToFill() } else { Color.clear }
+                        }
+                    } else {
+                        Text(String((s.name ?? "?").prefix(1))).font(Typo.font(34, .bold)).foregroundStyle(.white.opacity(0.85))
                     }
-                } else {
-                    TeamBadge(code: s.team, size: 44).opacity(0.6)
                 }
+                .frame(width: 96, height: 116)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                TeamBadge(code: s.team, size: 30)
+                    .padding(4)
+                    .background(.black.opacity(0.55), in: Circle())
+                    .offset(x: 8, y: 8)
             }
-            .frame(width: 84, height: 100)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            Text(s.name ?? "미정").font(Typo.style(.headline))
-            Text(Team.find(s.team)?.name ?? s.team).font(Typo.style(.caption)).foregroundStyle(Palette.muted)
+            Text(s.name ?? "미정").font(Typo.style(.headline)).padding(.top, 6)
+            Text(Team.find(s.team)?.short ?? s.team).font(Typo.style(.caption)).foregroundStyle(Palette.muted)
         }
-        .frame(width: 110)
     }
 }
 
-/// 팀 비교 (순위표 기준)
+/// 팀 비교: 큰 순위 숫자, 승률·승 막대, 최근 5경기 점
 struct TeamCompare: View {
     let game: Game
     let teams: PreviewTeams
 
     var body: some View {
         let a = teams.away, h = teams.home
-        Card {
-            VStack(spacing: 12) {
-                HStack {
-                    HStack(spacing: 6) { TeamBadge(code: game.away.code, size: 24); Text(game.away.name).font(Typo.style(.subheadline, .bold)) }
-                    Spacer()
-                    HStack(spacing: 6) { Text(game.home.name).font(Typo.style(.subheadline, .bold)); TeamBadge(code: game.home.code, size: 24) }
-                }
+        let ac = teamTint(game.away.code), hc = teamTint(game.home.code)
+        VStack(alignment: .leading, spacing: 12) {
+            PreviewHeader(title: "팀 비교", detail: "정규시즌 최종")
+            Card {
                 if a == nil && h == nil {
                     Text("순위 정보가 없어요").font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
                 } else {
-                    CompareRow(label: "순위", left: a.map { "\($0.rank)위" } ?? "-", right: h.map { "\($0.rank)위" } ?? "-",
-                               better: CompareRow.pick(a.map { Double($0.rank) }, h.map { Double($0.rank) }, lower: true))
-                    CompareRow(label: "승-패-무", left: a.map { "\($0.wins)-\($0.losses)-\($0.draws)" } ?? "-", right: h.map { "\($0.wins)-\($0.losses)-\($0.draws)" } ?? "-")
-                    CompareRow(label: "승률", left: a?.pct.map { String(format: "%.3f", $0) } ?? "-", right: h?.pct.map { String(format: "%.3f", $0) } ?? "-",
-                               better: CompareRow.pick(a?.pct, h?.pct))
-                    CompareRow(label: "게임차", left: a?.gamesBehind.map { $0 == 0 ? "-" : String(format: "%g", $0) } ?? "-",
-                               right: h?.gamesBehind.map { $0 == 0 ? "-" : String(format: "%g", $0) } ?? "-")
-                    if a?.lastFive != nil || h?.lastFive != nil {
+                    VStack(spacing: 16) {
                         HStack {
-                            form(a?.lastFive).frame(maxWidth: .infinity, alignment: .leading)
-                            Text("최근 5경기").font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
-                            form(h?.lastFive).frame(maxWidth: .infinity, alignment: .trailing)
+                            rank(game.away, a, color: ac, trailing: false)
+                            Spacer()
+                            rank(game.home, h, color: hc, trailing: true)
+                        }
+                        DualStatRow(label: "승률", left: a?.pct.map { String(format: "%.3f", $0) } ?? "-", right: h?.pct.map { String(format: "%.3f", $0) } ?? "-",
+                                    lv: a?.pct, rv: h?.pct, leftColor: ac, rightColor: hc)
+                        DualStatRow(label: "승-패-무", left: a.map { "\($0.wins)-\($0.losses)-\($0.draws)" } ?? "-", right: h.map { "\($0.wins)-\($0.losses)-\($0.draws)" } ?? "-",
+                                    lv: a.map { Double($0.wins) }, rv: h.map { Double($0.wins) }, leftColor: ac, rightColor: hc)
+                        if a?.lastFive != nil || h?.lastFive != nil {
+                            HStack {
+                                form(a?.lastFive)
+                                Spacer()
+                                Text("최근 5경기").font(Typo.style(.caption, .medium)).foregroundStyle(Palette.muted)
+                                Spacer()
+                                form(h?.lastFive)
+                            }
+                        }
+                        if a?.streak != nil || h?.streak != nil {
+                            DualStatRow(label: "연속", left: a?.streak ?? "-", right: h?.streak ?? "-", leftColor: ac, rightColor: hc)
                         }
                     }
-                    CompareRow(label: "연속", left: a?.streak ?? "-", right: h?.streak ?? "-")
                 }
             }
+        }
+    }
+
+    private func rank(_ side: GameSide, _ s: Standing?, color: Color, trailing: Bool) -> some View {
+        HStack(spacing: 10) {
+            if trailing { Spacer(minLength: 0) }
+            if !trailing { TeamBadge(code: side.code, size: 38) }
+            VStack(alignment: trailing ? .trailing : .leading, spacing: 0) {
+                Text(s.map { "\($0.rank)위" } ?? "-").font(Typo.score(28)).foregroundStyle(color)
+                Text(side.name).font(Typo.style(.caption)).foregroundStyle(Palette.muted)
+            }
+            if trailing { TeamBadge(code: side.code, size: 38) }
+            if !trailing { Spacer(minLength: 0) }
         }
     }
 
@@ -1449,52 +1523,66 @@ struct TeamCompare: View {
     private func form(_ s: String?) -> some View {
         HStack(spacing: 4) {
             ForEach(Array((s ?? "").enumerated()), id: \.offset) { _, c in
-                Circle().fill(c == "W" ? Palette.accent : c == "L" ? Color.white.opacity(0.2) : Color.white.opacity(0.6))
-                    .frame(width: 9, height: 9)
+                Text(c == "W" ? "승" : c == "L" ? "패" : "무")
+                    .font(Typo.font(10, .bold))
+                    .frame(width: 18, height: 18)
+                    .foregroundStyle(c == "W" ? Color.black : Palette.text)
+                    .background(c == "W" ? Palette.accent : Color.white.opacity(c == "L" ? 0.12 : 0.4), in: Circle())
             }
         }
     }
 }
 
-/// 올 시즌 맞대결
+/// 시즌 맞대결: 전적을 팀 색 막대로, 아래 최근 경기 칩
 struct HeadToHeadCard: View {
     let game: Game
     let h2h: HeadToHead
 
     var body: some View {
-        Card {
-            VStack(spacing: 14) {
-                Text("올 시즌 맞대결").font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted)
-                HStack(spacing: 14) {
-                    TeamBadge(code: game.away.code, size: 36)
-                    Text("\(h2h.wins)").font(Typo.score(34)).foregroundStyle(Palette.text.opacity(h2h.wins < h2h.losses ? 0.35 : 1))
-                    Text(":").font(Typo.font(24, .medium)).foregroundStyle(Palette.muted)
-                    Text("\(h2h.losses)").font(Typo.score(34)).foregroundStyle(Palette.text.opacity(h2h.losses < h2h.wins ? 0.35 : 1))
-                    TeamBadge(code: game.home.code, size: 36)
-                }
-                if h2h.draws > 0 { Text("무승부 \(h2h.draws)").font(Typo.style(.caption)).foregroundStyle(Palette.muted) }
-                if h2h.recent.isEmpty {
-                    Text("올 시즌 맞대결이 아직 없어요").font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
-                } else {
-                    VStack(spacing: 0) {
-                        ForEach(h2h.recent) { g in
-                            HStack {
-                                Text(g.date.map { KST.ticketDate($0) } ?? "").font(Typo.style(.footnote)).foregroundStyle(Palette.muted).frame(width: 48, alignment: .leading)
-                                Spacer()
-                                TeamBadge(code: g.away, size: 20)
-                                Text("\(g.awayScore) : \(g.homeScore)").font(Typo.score(15)).frame(width: 64)
-                                TeamBadge(code: g.home, size: 20)
-                                Spacer()
-                                Color.clear.frame(width: 48, height: 1)
-                            }
-                            .padding(.vertical, 8)
-                            .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.06)).frame(height: 1) }
+        let ac = teamTint(game.away.code), hc = teamTint(game.home.code)
+        let total = max(1, h2h.wins + h2h.losses)
+        VStack(alignment: .leading, spacing: 12) {
+            PreviewHeader(title: "시즌 맞대결", detail: h2h.draws > 0 ? "무승부 \(h2h.draws)" : nil)
+            Card {
+                VStack(spacing: 14) {
+                    HStack {
+                        HStack(spacing: 8) { TeamBadge(code: game.away.code, size: 28); Text("\(h2h.wins)승").font(Typo.score(22)) }
+                        Spacer()
+                        HStack(spacing: 8) { Text("\(h2h.losses)승").font(Typo.score(22)); TeamBadge(code: game.home.code, size: 28) }
+                    }
+                    GeometryReader { geo in
+                        HStack(spacing: 3) {
+                            Capsule().fill(ac).frame(width: max(4, (geo.size.width - 3) * (h2h.wins + h2h.losses == 0 ? 0.5 : Double(h2h.wins) / Double(total))))
+                            Capsule().fill(hc)
                         }
+                    }
+                    .frame(height: 10)
+                    if h2h.recent.isEmpty {
+                        Text("올 시즌 맞대결이 아직 없어요").font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+                    } else {
+                        ScrollView(.horizontal) {
+                            HStack(spacing: 8) {
+                                ForEach(h2h.recent) { g in recent(g) }
+                            }
+                        }
+                        .scrollIndicators(.hidden)
                     }
                 }
             }
-            .frame(maxWidth: .infinity)
         }
+    }
+
+    /// 최근 경기 칩: 날짜, 이긴 팀 엠블럼, 점수
+    private func recent(_ g: HeadToHeadGame) -> some View {
+        let winner = g.awayScore > g.homeScore ? g.away : g.homeScore > g.awayScore ? g.home : nil
+        return VStack(spacing: 6) {
+            Text(g.date.map { KST.ticketDate($0) } ?? "").font(Typo.style(.caption2)).foregroundStyle(Palette.muted)
+            if let winner { TeamBadge(code: winner, size: 26) } else { Text("무").font(Typo.style(.caption, .bold)).frame(height: 26) }
+            Text("\(g.awayScore):\(g.homeScore)").font(Typo.score(14))
+        }
+        .frame(width: 64)
+        .padding(.vertical, 10)
+        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 

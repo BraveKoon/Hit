@@ -9,6 +9,7 @@ struct TodayView: View {
     @State private var loaded = false
     @State private var error: String?
     @State private var upcoming: Game?
+    @State private var postseason: PostseasonResponse?   // 포스트시즌 기간에만 대진표
     @State private var showDates = false   // 내 팀이 쉬는 날: 앞으로 7일 안의 다음 경기
 
     private var dayString: String { KST.dayString(date) }
@@ -23,6 +24,10 @@ struct TodayView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     AppHeader { model.todayPath.append(.search) }
+                    if let postseason, postseason.active, isToday {
+                        PostseasonBracket(data: postseason)
+                            .appearIn(0)
+                    }
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(KST.short.string(from: date)).font(Typo.style(.subheadline)).foregroundStyle(Palette.muted)
@@ -99,7 +104,7 @@ struct TodayView: View {
             if let team = model.team {
                 if myGames.isEmpty, let next = upcoming {
                     SectionHeader(title: "다음 경기", detail: next.startDate.map { KST.display.string(from: $0) })
-                    NavigationLink(value: Route.game(next.id)) { MyTeamHero(game: next, myTeam: team.code) }
+                    NavigationLink(value: Route.game(next.id)) { MyTeamHero(game: next, myTeam: team.code, series: postseason?.series(for: next)) }
                         .buttonStyle(.plain)
                         .appearIn(0)
                 } else if myGames.isEmpty {
@@ -113,7 +118,7 @@ struct TodayView: View {
                     }
                 }
                 ForEach(myGames) { game in
-                    NavigationLink(value: Route.game(game.id)) { MyTeamHero(game: game, myTeam: team.code) }
+                    NavigationLink(value: Route.game(game.id)) { MyTeamHero(game: game, myTeam: team.code, series: postseason?.series(for: game)) }
                         .buttonStyle(.plain)
                         .appearIn(0)
                 }
@@ -122,7 +127,7 @@ struct TodayView: View {
                 SectionHeader(title: "전체 경기", detail: "\(games.count)경기")
                 VStack(spacing: 10) {
                     ForEach(Array(otherGames.enumerated()), id: \.element.id) { i, game in
-                        NavigationLink(value: Route.game(game.id)) { GameCard(game: game) }
+                        NavigationLink(value: Route.game(game.id)) { GameCard(game: game, series: postseason?.series(for: game)) }
                             .buttonStyle(.plain)
                             .appearIn(i + 1)
                     }
@@ -143,6 +148,10 @@ struct TodayView: View {
     }
 
     private func load() async {
+        // 대진표는 실패해도 화면에 영향 없이 조용히 넘어간다
+        if let p = try? await APIClient().postseason(season: String(dayString.prefix(4))) {
+            withAnimation(.snappy) { postseason = p }
+        }
         do {
             let r = try await APIClient().games(date: dayString)
             if r.date == dayString { games = r.games }
@@ -200,11 +209,23 @@ struct DateStrip: View {
 struct MyTeamHero: View {
     let game: Game
     let myTeam: String
+    var series: (title: String, status: String)? = nil
 
     private var color: Color { Team.find(myTeam)?.color ?? Palette.accent }
 
     var body: some View {
         VStack(spacing: 18) {
+            // 포스트시즌: "플레이오프 3차전 · 1승 1패 동률"
+            if let series {
+                HStack {
+                    Text(series.title).font(Typo.style(.subheadline, .bold))
+                    Spacer()
+                    Text(series.status).font(Typo.style(.subheadline, .bold))
+                }
+                .padding(.horizontal, 14)
+                .frame(height: 38)
+                .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
             HStack {
                 LivePill(game: game)
                 Spacer()
@@ -302,8 +323,21 @@ struct LivePill: View {
 /// 다른 경기 한 줄: [Live · 시각 구장] 원정 엠블럼 · 점수 · 이닝 · 점수 · 홈 엠블럼
 struct GameCard: View {
     let game: Game
+    var series: (title: String, status: String)? = nil
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let series {
+                Text("\(series.title) · \(series.status)").font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted)
+            }
+            row
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
+        .glassCard(22)
+    }
+
+    private var row: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 8) {
                 if game.status == .live {
@@ -327,9 +361,6 @@ struct GameCard: View {
                 .foregroundStyle(Palette.text.opacity(game.winner == "away" ? 0.35 : 1))
             team(game.home)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
-        .glassCard(22)
     }
 
     private func team(_ s: GameSide) -> some View {
@@ -393,5 +424,115 @@ struct FavoritesStrip: View {
                 .scrollIndicators(.hidden)
             }
         }
+    }
+}
+
+// MARK: - 포스트시즌 대진표
+
+/// 아래에 5위→1위 팀, 위로 WC·준PO·PO·KS 연결선. 라운드 이름표 아래에 차전별 점수(이긴 쪽 강조색).
+/// 지금 치르는 라운드 이름표는 강조색 테두리, 끝난 라운드는 회색, 아직 안 한 라운드는 흰색.
+struct PostseasonBracket: View {
+    let data: PostseasonResponse
+
+    private let step: CGFloat = 86        // 라운드 사이 높이 (차전 점수 세 줄이 아래 이름표에 닿지 않게)
+    private let top: CGFloat = 26
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(data.champion != nil ? "\(data.season) 포스트시즌" : "포스트시즌 대진표").font(Typo.font(22, .bold))
+            GeometryReader { geo in
+                let w = geo.size.width
+                let xs = (0..<5).map { w * (0.1 + 0.2 * CGFloat($0)) }
+                let base = top + step * 4 + 8
+                let levels = (0..<4).map { base - step * CGFloat($0 + 1) + 12 }
+                // 라운드 k 연결선: 왼쪽 끝 = 이전 라운드 가운데(첫 라운드는 0번 팀), 오른쪽 끝 = k+1번 팀
+                let lefts: [CGFloat] = {
+                    var out: [CGFloat] = [], left = xs[0]
+                    for k in 0..<4 { out.append(left); left = (left + xs[k + 1]) / 2 }
+                    return out
+                }()
+                ZStack(alignment: .topLeading) {
+                    Canvas { ctx, _ in
+                        for k in 0..<4 {
+                            let l = lefts[k], r = xs[k + 1], y = levels[k]
+                            let startY = k == 0 ? base : levels[k - 1]
+                            var path = Path()
+                            path.move(to: CGPoint(x: l, y: startY))
+                            path.addLine(to: CGPoint(x: l, y: y + 12))
+                            path.addQuadCurve(to: CGPoint(x: l + 12, y: y), control: CGPoint(x: l, y: y))
+                            path.addLine(to: CGPoint(x: r - 12, y: y))
+                            path.addQuadCurve(to: CGPoint(x: r, y: y + 12), control: CGPoint(x: r, y: y))
+                            path.addLine(to: CGPoint(x: r, y: base))
+                            ctx.stroke(path, with: .color(.white.opacity(0.45)), lineWidth: 1.5)
+                        }
+                    }
+                    ForEach(Array(data.rounds.enumerated()), id: \.element.id) { k, r in
+                        let mid = (lefts[k] + xs[k + 1]) / 2
+                        badge(r).position(x: mid, y: levels[k])
+                        scores(r)
+                            .frame(width: max(110, xs[k + 1] - lefts[k] + 20))
+                            .position(x: mid, y: levels[k] + 20 + CGFloat(min(r.games.count, 3)) * 10)
+                    }
+                    ForEach(Array(data.teams.enumerated()), id: \.element.id) { i, t in
+                        team(t).position(x: xs[i], y: base + 34)
+                    }
+                }
+            }
+            .frame(height: top + step * 4 + 8 + 74)
+        }
+        .padding(18)
+        .glassCard(26)
+    }
+
+    private func state(_ r: PostseasonRound) -> Int {   // 0 끝남, 1 지금, 2 아직
+        r.winner != nil ? 0 : r.id == data.current?.id ? 1 : 2
+    }
+
+    private func badge(_ r: PostseasonRound) -> some View {
+        let s = state(r)
+        return Text(r.name)
+            .font(Typo.style(.subheadline, .semibold))
+            .foregroundStyle(s == 2 ? Color.black : Palette.text)
+            .padding(.horizontal, 18)
+            .frame(height: 30)
+            .background(s == 0 ? Color.white.opacity(0.35) : s == 1 ? Color.black : Color.white, in: Capsule())
+            .overlay(Capsule().strokeBorder(s == 1 ? Palette.accent : .clear, lineWidth: 2))
+    }
+
+    /// 차전별 점수. 네 경기 넘으면 시리즈 전적 한 줄로
+    @ViewBuilder
+    private func scores(_ r: PostseasonRound) -> some View {
+        VStack(alignment: .center, spacing: 2) {
+            let done = r.games.filter { $0.status == .final }
+            if done.isEmpty {
+                Text(r.format).font(Typo.style(.footnote)).foregroundStyle(Palette.text.opacity(0.8))
+            } else if done.count > 3 {
+                Text("\(r.wins.low)승 \(r.wins.high)패").font(Typo.style(.footnote, .semibold))
+            } else {
+                ForEach(done) { g in
+                    HStack(spacing: 4) {
+                        Text("\(g.no)차전").foregroundStyle(Palette.text)
+                        Text("\(g.low ?? 0)").foregroundStyle((g.low ?? 0) > (g.high ?? 0) ? Palette.accent : Palette.text)
+                        Text(":").foregroundStyle(Palette.muted)
+                        Text("\(g.high ?? 0)").foregroundStyle((g.high ?? 0) > (g.low ?? 0) ? Palette.accent : Palette.text)
+                    }
+                    .font(Typo.style(.footnote, .medium))
+                    .monospacedDigit()
+                }
+            }
+        }
+    }
+
+    /// 탈락 팀은 흐리게, 지금 경기 중인 두 팀은 아래 점
+    private func team(_ t: PostseasonTeam) -> some View {
+        let playing = data.current.map { $0.low == t.code || $0.high == t.code } ?? false
+        return VStack(spacing: 4) {
+            TeamBadge(code: t.code, size: 34)
+            Text(t.name).font(Typo.style(.footnote, .medium))
+            Circle().fill(playing ? Palette.accent : .clear).frame(width: 6, height: 6)
+        }
+        .opacity(t.alive ? 1 : 0.35)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(t.seed)위 \(t.name)" + (t.alive ? "" : ", 탈락"))
     }
 }

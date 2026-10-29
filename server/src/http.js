@@ -16,6 +16,7 @@
 //   GET    /v1/leaders?type=pitcher|hitter  투수·타자 TOP20 (WAR)
 //   GET    /v1/games/:id/relay?inning=N     그 이닝의 문자중계 전체
 //   GET    /v1/games/:id/winrate            타석별 홈팀 승리 확률 흐름 (그래프)
+//   GET    /v1/postseason?season=YYYY          포스트시즌 대진표 (WC·준PO·PO·KS, 시리즈 전적, 탈락 팀)
 //   GET    /v1/games/:id/preview            프리뷰: 경기 정보, 선발 투수 시즌 기록, 두 팀 순위, 시즌 맞대결
 //   GET    /v1/games/:id/mvp · PUT { team, name }  오늘의 MVP 후보·집계·내 표 (투표는 로그인 필요, 끝난 경기만)
 //   GET    /v1/calendar?month=YYYY-MM&team=SS  한 달 경기 (달력)
@@ -27,6 +28,7 @@ import { isValidDate, kstDate } from './time.js';
 import { MODES, diaryEntries, diaryStats, monthRange } from './diary.js';
 import { ballot, candidatesOf } from './mvp.js';
 import { gamePreview } from './preview.js';
+import { postseason } from './postseason.js';
 
 const TOKEN = /^[0-9a-fA-F]{32,256}$/;
 const ENVS = new Set(['sandbox', 'production']);
@@ -143,6 +145,11 @@ export function createApi({ provider, store, auth = null, roster = null, info = 
       if (team && !TEAM_CODES.includes(team)) throw new HttpError(400, 'unknown team');
       const all = await provider.range(...monthRange(month));
       return { month, team: team ?? null, games: team ? all.filter((g) => g.away.code === team || g.home.code === team) : all };
+    }],
+    ['GET', /^\/v1\/postseason$/, async (_m, url) => {
+      const season = url.searchParams.get('season') ?? kstDate(now()).slice(0, 4);
+      if (!/^\d{4}$/.test(season)) throw new HttpError(400, 'season must be YYYY');
+      return postseason({ provider, season, today: kstDate(now()) });
     }],
     ['GET', /^\/v1\/standings$/, async (_m, url) => {
       const season = url.searchParams.get('season') ?? kstDate(now()).slice(0, 4);

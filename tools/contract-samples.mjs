@@ -11,6 +11,7 @@ import { publicUser } from '../server/src/http.js';
 import { diaryEntries, diaryStats } from '../server/src/diary.js';
 import { ballot } from '../server/src/mvp.js';
 import { gamePreview } from '../server/src/preview.js';
+import { postseason } from '../server/src/postseason.js';
 
 const fx = (n) => JSON.parse(readFileSync(new URL(`../server/test/fixtures/${n}`, import.meta.url))).result;
 const live = { ...normalizeDetail(fx('naver-game-live.json').game, fx('naver-relay-live.json').textRelayData), fetchedAt: new Date().toISOString() };
@@ -54,6 +55,17 @@ const standingsRows = fx('naver-standings.json').seasonTeamStats.map(normalizeSt
 const previewProvider = { detail: async () => before, standings: async () => standingsRows, range: async () => [...sched, { ...sched[0], id: 'OLD', status: 'final', winner: 'away', away: { ...sched[0].away, score: 3 }, home: { ...sched[0].home, score: 1 } }] };
 const preview = await gamePreview({ provider: previewProvider, roster: photos, id: before.game.id });
 const previewBare = await gamePreview({ provider: { detail: async () => before, standings: async () => [], range: async () => [] }, roster: null, id: before.game.id });
+// 포스트시즌: 다섯 팀 정규시즌(팀당 4경기) + WC·준PO 끝, PO 진행 중
+const PS = ['KT', 'SS', 'HT', 'LG', 'OB'];
+let psn = 0;
+const psg = (date, a, h, as, hs, status = 'final') => ({ ...sched[0], id: `PS${++psn}`, date, status, winner: null, away: { ...sched[0].away, code: a, score: as }, home: { ...sched[0].home, code: h, score: hs } });
+const psGames = [];
+PS.forEach((a, i) => PS.slice(i + 1).forEach((b, j) => psGames.push(psg(`2026-09-${String(10 + i * 4 + j).padStart(2, '0')}`, a, b, 1, 0))));
+psGames.push(psg('2026-10-06', 'OB', 'LG', 1, 4), psg('2026-10-09', 'LG', 'HT', 1, 5), psg('2026-10-10', 'LG', 'HT', 3, 6), psg('2026-10-12', 'HT', 'LG', 13, 1),
+  psg('2026-10-26', 'HT', 'SS', 5, 1), psg('2026-10-29', 'SS', 'HT', null, null, 'scheduled'));
+const psProvider = { standings: async () => PS.map((code, i) => ({ ...standingsRows[0], code, name: code, rank: i + 1, games: 4 })), range: async () => psGames };
+const bracket = await postseason({ provider: psProvider, season: '2026', today: '2026-10-29' });
+const bracketOff = await postseason({ provider: { standings: async () => [], range: async () => [] }, season: '2026', today: '2026-10-29' });
 const start = activityStartPayload(live.game, state, { title: 't', body: 'b' });
 
 console.log(JSON.stringify({
@@ -72,6 +84,7 @@ console.log(JSON.stringify({
   DiaryEntry: [finalEntry, entries[1]],
   CalendarResponse: [{ month: '2026-10', team: 'SS', games: sched }, { month: '2026-10', team: null, games: [] }],
   Player: [photos.get('1'), photos.get('2'), photos.get('4')],
+  PostseasonResponse: [bracket, bracketOff],
   GamePreview: [preview, previewBare],
   MvpResponse: [mvpEmpty, mvpVoted, ballot(before, store, null)],
   WinTrendResponse: [{ gameId: live.game.id, points: winPointsOf(fx('naver-relay-live.json').textRelayData, 3) }, await replay.winTrend(rgame.id)],
