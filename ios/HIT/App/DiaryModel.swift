@@ -98,5 +98,4 @@ extension Game {
     }
 
     func opponent(of team: String?) -> GameSide { away.code == team ? home : away }
-    func involves(_ team: String?) -> Bool { away.code == team || home.code == team }
 }
