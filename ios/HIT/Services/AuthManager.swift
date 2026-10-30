@@ -1,4 +1,5 @@
 import AuthenticationServices
+import CryptoKit
 import SwiftUI
 
 enum AuthState: Equatable {
@@ -105,6 +106,46 @@ final class AuthManager {
         }
     }
 
+    // MARK: Google (PKCE — 앱이 code 를 받아 서버가 교환)
+
+    private static let googleClientID = "259513225241-se1scmqbdftml01khktdedg2kfklalkh.apps.googleusercontent.com"
+    private static let googleScheme = "com.googleusercontent.apps.259513225241-se1scmqbdftml01khktdedg2kfklalkh"
+
+    func signInWithGoogle(using session: WebAuthenticationSession) async {
+        await run {
+            let verifier = Self.randomURLSafe(48)
+            let challenge = Data(SHA256.hash(data: Data(verifier.utf8))).base64URL
+            let redirect = "\(Self.googleScheme):/oauth2redirect"
+            var c = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
+            c.queryItems = [
+                .init(name: "client_id", value: Self.googleClientID),
+                .init(name: "redirect_uri", value: redirect),
+                .init(name: "response_type", value: "code"),
+                .init(name: "scope", value: "openid email profile"),
+                .init(name: "code_challenge", value: challenge),
+                .init(name: "code_challenge_method", value: "S256"),
+            ]
+            let callback: URL
+            do {
+                callback = try await session.authenticate(using: c.url!, callbackURLScheme: Self.googleScheme, preferredBrowserSession: .shared)
+            } catch let e as ASWebAuthenticationSessionError where e.code == .canceledLogin {
+                return
+            }
+            let items = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            guard let code = items.first(where: { $0.name == "code" })?.value else {
+                self.error = "Google 로그인 결과를 받지 못했어요."
+                return
+            }
+            let r = try await APIClient().signInWithGoogle(code: code, verifier: verifier, redirectUri: redirect)
+            APIClient.sessionToken = r.token
+            self.complete(token: r.token, account: r.user)
+        }
+    }
+
+    private static func randomURLSafe(_ n: Int) -> String {
+        Data((0..<n).map { _ in UInt8.random(in: .min ... .max) }).base64URL
+    }
+
     func continueAsGuest() {
         UserDefaults.standard.set(true, forKey: "guest")
         state = .guest
@@ -168,5 +209,11 @@ final class AuthManager {
         } catch {
             self.error = (error as? APIError)?.message ?? "연결에 실패했어요. 잠시 후 다시 시도해 주세요."
         }
+    }
+}
+
+private extension Data {
+    var base64URL: String {
+        base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
     }
 }

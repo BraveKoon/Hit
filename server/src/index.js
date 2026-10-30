@@ -31,12 +31,12 @@ const weather = cfg.weather ? createWeather({ apiKey: cfg.weather.apiKey, log })
 const news = createNews({ ...cfg.news, log });
 const notifier = createNotifier({ store, apns, log });
 const watcher = createWatcher({ provider: raw, store, apns, photos: roster, weather, log, pregameMinutes: cfg.pregameMinutes });
-const auth = createAuth({ store, apple: cfg.apple, kakao: cfg.kakao, log });
+const auth = createAuth({ store, apple: cfg.apple, kakao: cfg.kakao, google: cfg.google, log });
 const api = createApi({
   provider, store, auth, roster, log,
   uploadsDir: join(dirname(cfg.dbPath), 'uploads'),
   weather, news, notifier,
-  info: { apns: cfg.apns ? 'live' : 'dry-run', weather: !!weather, news: !!news, login: { apple: !!cfg.apple.clientId, kakao: !!(cfg.kakao.restKey && cfg.kakao.redirectUri) } },
+  info: { apns: cfg.apns ? 'live' : 'dry-run', weather: !!weather, news: !!news, login: { apple: !!cfg.apple.clientId, google: !!cfg.google.clientId, kakao: !!(cfg.kakao.restKey && cfg.kakao.redirectUri) } },
 });
 
 let running = false;

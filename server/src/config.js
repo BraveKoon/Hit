@@ -20,6 +20,8 @@ export function loadConfig(env = process.env) {
     apns,
     // 로그인. Apple 의 aud 는 앱 번들 ID, 카카오는 REST API 키와 이 서버의 공개 주소가 필요하다.
     apple: { clientId: env.APPLE_CLIENT_ID ?? env.APNS_BUNDLE_ID ?? null },
+    // Google 클라이언트 ID 는 공개값(앱에도 들어간다). iOS 클라이언트는 비밀키가 없다.
+    google: { clientId: env.GOOGLE_CLIENT_ID ?? '259513225241-se1scmqbdftml01khktdedg2kfklalkh.apps.googleusercontent.com' },
     kakao: {
       restKey: env.KAKAO_REST_API_KEY ?? null,
       clientSecret: env.KAKAO_CLIENT_SECRET ?? null,

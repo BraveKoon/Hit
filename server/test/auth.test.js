@@ -36,6 +36,13 @@ function fakeNet() {
     if (u === 'https://kapi.kakao.com/v2/user/me') {
       return Response.json({ id: 4242, kakao_account: { profile: { nickname: '라팍직관러', profile_image_url: 'https://k.example/me.jpg' } } });
     }
+    if (u === 'https://oauth2.googleapis.com/token') {
+      const form = new URLSearchParams(String(init.body));
+      if (form.get('code') !== 'GOOD' || !form.get('code_verifier')) return Response.json({ error: 'invalid_grant' }, { status: 400 });
+      const enc = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+      const claims = { iss: 'https://accounts.google.com', aud: 'G-CLIENT', sub: 'g-1', exp: NOW / 1000 + 600, email: 'fan@gmail.com', name: '구글팬', picture: 'https://g.example/p.jpg' };
+      return Response.json({ id_token: `${enc({ alg: 'RS256' })}.${enc(claims)}.sig` });
+    }
     return new Response('no', { status: 404 });
   };
   fn.calls = calls;
@@ -48,6 +55,7 @@ async function setup() {
   const auth = createAuth({
     store, fetch: net, now: () => NOW,
     apple: { clientId: BUNDLE },
+    google: { clientId: 'G-CLIENT' },
     kakao: { restKey: 'REST', redirectUri: 'https://hit.example/v1/auth/kakao/callback' },
   });
   const provider = { name: 'test', schedule: async () => [], detail: async () => ({}), standings: async () => [] };
@@ -186,4 +194,19 @@ test('로그인 설정이 없으면 503, 기존 DB 에 계정 열을 추가한�
   assert.equal(migrated.getDevice('c'.repeat(64)).userId, null);
   assert.deepEqual(migrated.getDevice('c'.repeat(64)).prefs, DEFAULT_PREFS);
   migrated.close();
+});
+
+test('Google 로그인: PKCE code 를 서버가 교환해 세션을 만든다', async () => {
+  const t = await setup();
+  try {
+    const ok = await t.call('POST', '/v1/auth/google', { body: { code: 'GOOD', verifier: 'v'.repeat(43), redirectUri: 'x:/oauth2redirect' } });
+    assert.equal(ok.status, 200);
+    const me = await t.call('GET', '/v1/me', { token: ok.json.token });
+    assert.equal(me.json.provider, 'google');
+    assert.equal(me.json.nickname, '구글팬');
+    const bad = await t.call('POST', '/v1/auth/google', { body: { code: 'BAD', verifier: 'v', redirectUri: 'x:/o' } });
+    assert.equal(bad.status, 401);
+    const missing = await t.call('POST', '/v1/auth/google', { body: { code: 'GOOD' } });
+    assert.equal(missing.status, 400);
+  } finally { t.close(); }
 });

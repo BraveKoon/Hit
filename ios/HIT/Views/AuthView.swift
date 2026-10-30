@@ -53,6 +53,16 @@ struct AuthView: View {
                     }
                     .buttonStyle(PrimaryButtonStyle(fill: Color(hex: 0xFEE500), text: .black.opacity(0.85)))
 
+                    Button {
+                        Task { await auth.signInWithGoogle(using: webAuthenticationSession) }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "g.circle.fill")
+                            Text("Google로 계속하기")
+                        }
+                    }
+                    .buttonStyle(PrimaryButtonStyle(fill: .white, text: .black.opacity(0.85)))
+
                     Button("로그인 없이 둘러보기") { auth.continueAsGuest() }
                         .font(Typo.style(.subheadline, .medium))
                         .foregroundStyle(Palette.muted)

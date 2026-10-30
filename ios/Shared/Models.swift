@@ -564,7 +564,7 @@ struct Account: Codable, Hashable {
     let prefs: NotificationPrefs?
     let players: [FavoritePlayer]?
 
-    var providerLabel: String { provider == "kakao" ? "카카오" : provider == "apple" ? "Apple" : provider }
+    var providerLabel: String { provider == "kakao" ? "카카오" : provider == "apple" ? "Apple" : provider == "google" ? "Google" : provider }
 }
 
 struct AuthResponse: Codable {
