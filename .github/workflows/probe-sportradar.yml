@@ -50,3 +50,41 @@ jobs:
                   print('이벤트 종류:', sorted({e.get('type') for e in tl}))
                   for e in tl[-4:]: print(json.dumps(e,ensure_ascii=False)[:700])
           PY
+      - name: 한국어(ko) 지원 여부와 KBO 팀·선수 이름 형식
+        env:
+          SR_KEY: ${{ secrets.SPORTRADAR_KEY }}
+        run: |
+          set -u
+          day=$(date -u +%F)
+          for lang in ko en; do
+            code=$(curl -sS -m 30 -H "x-api-key: $SR_KEY" -o /tmp/d_$lang.json -w '%{http_code}' "https://api.sportradar.com/baseball/trial/v2/$lang/schedules/$day/summaries.json")
+            echo "언어 $lang -> HTTP $code"
+          done
+          python3 - <<'PY'
+          import json
+          for lang in ('ko','en'):
+              try:
+                  d=json.load(open(f'/tmp/d_{lang}.json'))
+              except Exception as e:
+                  print(lang,'읽기 실패',e); continue
+              for x in d.get('summaries',[]):
+                  se=x['sport_event']
+                  if 'KBO' in str(se.get('sport_event_context',{}).get('competition',{}).get('name')):
+                      print(lang,[ (c.get('id'),c.get('name'),c.get('abbreviation')) for c in se['competitors']])
+                      ids=[c['id'] for c in se['competitors']]
+                      json.dump(ids,open('/tmp/team_ids.json','w'))
+          PY
+          ids=$(python3 -c "import json;print(' '.join(json.load(open('/tmp/team_ids.json'))))")
+          for id in $ids; do
+            code=$(curl -sS -m 30 -H "x-api-key: $SR_KEY" -o /tmp/prof.json -w '%{http_code}' "https://api.sportradar.com/baseball/trial/v2/en/competitors/$id/profile.json")
+            echo "프로필 $id -> HTTP $code"
+            python3 - <<'PY'
+          import json
+          try:
+              d=json.load(open('/tmp/prof.json'))
+              ps=d.get('players',[])
+              print('선수 수:',len(ps))
+              for p in ps[:6]: print({k:p.get(k) for k in ('id','name','jersey_number','type','date_of_birth')})
+          except Exception as e: print('프로필 읽기 실패',e)
+          PY
+          done
