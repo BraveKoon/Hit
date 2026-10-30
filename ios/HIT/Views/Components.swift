@@ -252,13 +252,12 @@ struct TeamPicker: View {
 
 // MARK: - 루타 느낌의 조각들 (검정 바탕, 원형 버튼, 알약 칩, 떠 있는 탭바)
 
-/// 맨 위: 내 팀 엠블럼 + 로고, 오른쪽에 검색·알림 원형 버튼
+/// 맨 위: 내 팀 엠블럼 + 로고, 오른쪽에 알림센터 원형 버튼
 struct AppHeader: View {
     @Environment(AppModel.self) private var model
     /// nil 이면 홈처럼 엠블럼 + 로고, 있으면 큰 제목 (직관 · 커뮤니티 · 기록 · MY)
     var title: String? = nil
-    var onSearch: () -> Void
-    @State private var showSettings = false
+    @State private var showCenter = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -269,12 +268,11 @@ struct AppHeader: View {
                 LogoMark(height: 22, color: Palette.text)
             }
             Spacer()
-            CircleIconButton(systemImage: "magnifyingglass", label: "선수 검색", action: onSearch)
-            CircleIconButton(systemImage: "bell.fill", label: "알림 설정") { showSettings = true }
+            CircleIconButton(systemImage: "bell.fill", label: "알림센터") { showCenter = true }
         }
         .padding(.top, 6)
-        .sheet(isPresented: $showSettings) {
-            NavigationStack { NotificationSettingsView() }
+        .sheet(isPresented: $showCenter) {
+            NotificationCenterView()
                 .presentationDetents([.large])
         }
     }

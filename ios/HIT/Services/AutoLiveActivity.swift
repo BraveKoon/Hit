@@ -149,5 +149,6 @@ final class AutoLiveActivity {
         content.threadIdentifier = game.id
         content.userInfo = ["gameId": game.id, "type": "local"]
         try? await center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
+        AlertLog.add(id: id, title: title, body: body, gameId: game.id)
     }
 }

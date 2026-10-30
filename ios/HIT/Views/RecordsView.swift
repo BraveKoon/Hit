@@ -19,7 +19,7 @@ struct RecordsView: View {
         NavigationStack(path: $model.recordsPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    AppHeader(title: "기록") { model.recordsPath.append(.search) }
+                    AppHeader(title: "기록")
                     PillChips(items: [(RecordKind.team, "팀"), (.pitcher, "투수"), (.hitter, "타자")], selection: $kind)
                     if let error, standings.isEmpty && pitchers.isEmpty {
                         MessageView(title: "기록을 불러오지 못했어요", detail: error, systemImage: "wifi.exclamationmark")
