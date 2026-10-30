@@ -1,19 +1,39 @@
-# HIT 소개 웹을 Cloudflare에 배포합니다. web 폴더에서: powershell -ExecutionPolicy Bypass -File deploy.ps1
+﻿# HIT! 소개 웹을 Cloudflare에 배포합니다.
+# web 폴더에서: powershell -ExecutionPolicy Bypass -File deploy.ps1
+$ErrorActionPreference = 'Continue'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Set-Location $PSScriptRoot
-npm install
-npx wrangler login
 
-$toml = Get-Content wrangler.toml -Raw
-if ($toml -match 'REPLACE_WITH_DATABASE_ID') {
-  $out = npx wrangler d1 create hit-db 2>&1 | Out-String
-  Write-Host $out
-  if ($out -match 'database_id\s*=\s*"([0-9a-f-]{36})"') {
-    $toml -replace 'REPLACE_WITH_DATABASE_ID', $Matches[1] | Set-Content wrangler.toml -NoNewline
-  } else {
-    Write-Host "database_id를 찾지 못했어요. 위 출력의 database_id를 wrangler.toml에 직접 넣고 다시 실행하세요."
-    exit 1
-  }
+npm install
+npx wrangler whoami *> $null
+if ($LASTEXITCODE -ne 0) { npx wrangler login }
+
+# 이미 있는 hit-db 를 찾는다. 없으면 새로 만든다.
+function Get-DbId {
+  $raw = (npx wrangler d1 list --json 2>$null | Out-String)
+  $start = $raw.IndexOf('[')
+  if ($start -lt 0) { return $null }
+  $db = ($raw.Substring($start) | ConvertFrom-Json) | Where-Object { $_.name -eq 'hit-db' } | Select-Object -First 1
+  if ($db) { return $db.uuid } else { return $null }
 }
 
-npm run db:init:remote
-npm run deploy
+$id = Get-DbId
+if (-not $id) {
+  npx wrangler d1 create hit-db
+  $id = Get-DbId
+}
+if (-not $id) {
+  Write-Host "hit-db 데이터베이스 ID를 찾지 못했어요. 'npx wrangler d1 list' 결과를 알려주세요." -ForegroundColor Red
+  exit 1
+}
+Write-Host "D1 hit-db: $id" -ForegroundColor Green
+
+# wrangler.toml 의 database_id 를 이 ID로 맞춘다(처음이든 다시 실행이든).
+$toml = Get-Content wrangler.toml -Raw -Encoding UTF8
+$toml = $toml -replace 'database_id = "[^"]*"', ('database_id = "' + $id + '"')
+[System.IO.File]::WriteAllText((Join-Path $PSScriptRoot 'wrangler.toml'), $toml, (New-Object System.Text.UTF8Encoding $false))
+
+npx wrangler d1 execute hit-db --remote --file=schema.sql
+if ($LASTEXITCODE -ne 0) { Write-Host "테이블 만들기에 실패했어요." -ForegroundColor Red; exit 1 }
+
+npx wrangler deploy
