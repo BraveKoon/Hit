@@ -40,7 +40,7 @@ final class LocalCore: @unchecked Sendable {
         guard parts.count >= 2, parts[0] == "v1" else { return false }
         switch parts.count {
         case 2: return ["games", "calendar", "postseason", "standings", "players", "leaders"].contains(parts[1])
-        case 3: return parts[1] == "games" || parts[1] == "players"                  // games/:id · players/:id
+        case 3: return parts[1] == "games" || parts[1] == "players" || (parts[1] == "leaders" && parts[2] == "categories")   // games/:id · players/:id · leaders/categories
         case 4: return parts[1] == "games" && ["relay", "winrate", "preview"].contains(parts[3])
         default: return false
         }

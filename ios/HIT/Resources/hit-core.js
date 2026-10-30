@@ -703,7 +703,59 @@ function createRoster({ fetch = globalThis.fetch, base = NAVER_BASE, now = () =>
       refresh();
       return players.filter((p) => p.type === type && p.stats.war !== null).sort(byWar).slice(0, limit);
     },
+
+    /** 부문별 TOP N (다승·탈삼진·이닝·타율·홈런…). 앱이 부문마다 1등을 보여 주고, 누르면 TOP 20 을 연다 */
+    leaderCategories(type, limit = 20) {
+      refresh();
+      return leaderCategories(players.filter((p) => p.type === type), type, limit);
+    },
   };
+}
+
+// "142 2/3" · "142.2" · "142" → 142.667 처럼 숫자로
+function inningsValue(s) {
+  if (s === null || s === undefined || s === '') return null;
+  const m = /^(\d+)(?:[ .]+(\d)(?:\/3)?)?$/.exec(String(s).trim());
+  if (m) return Number(m[1]) + (m[2] ? Number(m[2]) / 3 : 0);
+  const n = Number.parseFloat(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+// [키, 이름, 값, 방향, 규정 필요(평균·비율 부문은 많이 뛴 선수만)]
+const CATEGORIES = {
+  pitcher: [
+    ['war', 'WAR', (p) => p.stats.war, 'desc'],
+    ['era', '평균자책점', (p) => p.stats.era, 'asc', true],
+    ['wins', '다승', (p) => p.stats.wins, 'desc'],
+    ['so', '탈삼진', (p) => p.stats.so, 'desc'],
+    ['innings', '이닝', (p) => inningsValue(p.stats.innings), 'desc'],
+    ['saves', '세이브', (p) => p.stats.saves, 'desc'],
+    ['holds', '홀드', (p) => p.stats.holds, 'desc'],
+    ['whip', 'WHIP', (p) => p.stats.whip, 'asc', true],
+  ],
+  hitter: [
+    ['war', 'WAR', (p) => p.stats.war, 'desc'],
+    ['avg', '타율', (p) => p.stats.avg, 'desc', true],
+    ['hr', '홈런', (p) => p.stats.hr, 'desc'],
+    ['rbi', '타점', (p) => p.stats.rbi, 'desc'],
+    ['hits', '안타', (p) => p.stats.hits, 'desc'],
+    ['sb', '도루', (p) => p.stats.sb, 'desc'],
+    ['ops', 'OPS', (p) => p.stats.ops, 'desc', true],
+    ['runs', '득점', (p) => p.stats.runs, 'desc'],
+  ],
+};
+
+function leaderCategories(list, type, limit = 20) {
+  const maxGames = Math.max(0, ...list.map((p) => p.stats.games ?? 0));
+  const maxInnings = Math.max(0, ...list.map((p) => inningsValue(p.stats.innings) ?? 0));
+  const qualifies = (p) => (type === 'pitcher' ? (inningsValue(p.stats.innings) ?? 0) >= maxInnings * 0.5 : (p.stats.games ?? 0) >= maxGames * 0.6);
+  return (CATEGORIES[type] ?? []).map(([stat, label, value, dir, needsQualify]) => {
+    const rows = list
+      .map((p) => [p, value(p)])
+      .filter(([p, v]) => v !== null && v !== undefined && (needsQualify ? qualifies(p) : dir === 'asc' || v > 0 || stat === 'war'))
+      .sort((a, b) => (dir === 'asc' ? a[1] - b[1] : b[1] - a[1]) || (b[0].stats.war ?? -99) - (a[0].stats.war ?? -99));
+    return { stat, label, players: rows.slice(0, limit).map(([p]) => p) };
+  });
 }
 
 // 문자중계 한 줄의 타자 이름 ("디아즈 : 우중간 … 홈런" → 디아즈). 투구·주자 이동·안내 문구는 null.
@@ -774,6 +826,8 @@ function withPhotos(provider, roster) {
 
 __exports.chosung = chosung;
 __exports.createRoster = createRoster;
+__exports.inningsValue = inningsValue;
+__exports.leaderCategories = leaderCategories;
 __exports.batterOf = batterOf;
 __exports.withPhotos = withPhotos;
 });
@@ -1101,6 +1155,11 @@ function readRoutes({ provider, roster = null, now = () => Date.now() }) {
       const p = needRoster().get(decodeURIComponent(m[1]));
       if (!p) throw new HttpError(404, '선수를 찾을 수 없습니다');
       return p;
+    }],
+    ['GET', /^\/v1\/leaders\/categories$/, async (_m, url) => {
+      const type = url.searchParams.get('type');
+      if (type !== 'pitcher' && type !== 'hitter') throw new HttpError(400, 'type: pitcher | hitter');
+      return { type, categories: needRoster().leaderCategories(type, 20) };
     }],
     ['GET', /^\/v1\/leaders$/, async (_m, url) => {
       const type = url.searchParams.get('type');

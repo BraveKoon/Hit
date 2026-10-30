@@ -56,6 +56,11 @@ export function readRoutes({ provider, roster = null, now = () => Date.now() }) 
       if (!p) throw new HttpError(404, '선수를 찾을 수 없습니다');
       return p;
     }],
+    ['GET', /^\/v1\/leaders\/categories$/, async (_m, url) => {
+      const type = url.searchParams.get('type');
+      if (type !== 'pitcher' && type !== 'hitter') throw new HttpError(400, 'type: pitcher | hitter');
+      return { type, categories: needRoster().leaderCategories(type, 20) };
+    }],
     ['GET', /^\/v1\/leaders$/, async (_m, url) => {
       const type = url.searchParams.get('type');
       if (type !== 'pitcher' && type !== 'hitter') throw new HttpError(400, 'type: pitcher | hitter');

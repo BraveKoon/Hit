@@ -114,3 +114,25 @@ test('TOP20: WAR 순, 기록 없는 선수 제외', async () => {
   assert.deepEqual(r.leaders('pitcher').map((p) => p.name), ['후라도', '양현종']);
   assert.deepEqual(r.leaders('hitter').map((p) => p.name), ['김도영', '구자욱', '김지찬', '나성범']);
 });
+
+test('부문별 TOP20: 다승·홈런 순, 평균·비율은 많이 뛴 선수만', async () => {
+  const r = createPhotoIndex({ fetch: rosterFetch() });
+  r.refresh();
+  await r.ready();
+  const pitchers = r.leaderCategories('pitcher');
+  assert.deepEqual(pitchers.map((c) => c.stat), ['war', 'era', 'wins', 'so', 'innings', 'saves', 'holds', 'whip']);
+  const wins = pitchers.find((c) => c.stat === 'wins').players;
+  assert.ok(wins.every((p, i) => i === 0 || (wins[i - 1].stats.wins ?? 0) >= (p.stats.wins ?? 0)), '다승은 많은 순');
+  const hitters = r.leaderCategories('hitter');
+  const hr = hitters.find((c) => c.stat === 'hr').players;
+  assert.equal(hr[0].name, '김도영', '홈런 1등');
+  assert.ok(hr.every((p) => p.stats.hr > 0), '0개는 빼고');
+});
+
+test('이닝 문자열을 숫자로', async () => {
+  const { inningsValue } = await import('../src/roster.js');
+  assert.equal(inningsValue('171 1/3').toFixed(2), '171.33');
+  assert.equal(inningsValue('12'), 12);
+  assert.equal(inningsValue('5 2/3').toFixed(2), '5.67');
+  assert.equal(inningsValue(null), null);
+});

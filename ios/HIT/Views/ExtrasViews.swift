@@ -310,10 +310,11 @@ struct GameInfoCard: View {
                     Text(series.status).font(Typo.style(.footnote, .semibold)).foregroundStyle(Palette.accent)
                 }
             }
-            HStack(spacing: 8) {
-                if let d = game.startDate { chip("calendar", "\(KST.short.string(from: d)) \(KST.clock.string(from: d))") }
-                if let s = game.stadium { chip("mappin.and.ellipse", s) }
-                if let b = game.broadcast { chip("tv", b) }
+            // 일시·장소·중계는 한 줄에 칩으로 욱여넣으면 잘려서, 줄마다 하나씩 전부 보여 준다
+            VStack(alignment: .leading, spacing: 8) {
+                if let d = game.startDate { infoRow("calendar", "일시", "\(KST.display.string(from: d)) \(KST.clock.string(from: d))") }
+                if let s = game.stadium, !s.isEmpty { infoRow("mappin.and.ellipse", "장소", s) }
+                if let b = game.broadcast, !b.isEmpty { infoRow("tv", "중계", b) }
             }
             if game.away.starter != nil || game.home.starter != nil {
                 Divider().overlay(.white.opacity(0.08))
@@ -330,13 +331,16 @@ struct GameInfoCard: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func chip(_ icon: String, _ text: String) -> some View {
-        HStack(spacing: 5) {
-            Image(systemName: icon).font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.accent)
-            Text(text).font(Typo.style(.footnote, .semibold)).lineLimit(1)
+    private func infoRow(_ icon: String, _ label: String, _ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Palette.accent)
+                .frame(width: 16)
+            Text(label).font(Typo.style(.footnote, .semibold)).foregroundStyle(Palette.muted).frame(width: 30, alignment: .leading)
+            Text(text).font(Typo.style(.subheadline, .semibold)).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 10).frame(height: 30)
-        .background(.white.opacity(0.07), in: Capsule())
     }
 
     private func starter(_ side: GameSide, trailing: Bool) -> some View {

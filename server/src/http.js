@@ -14,6 +14,7 @@
 //   GET    /v1/me · PUT /v1/me { nickname, team, prefs, players } · DELETE /v1/me (탈퇴)
 //   GET    /v1/players?q=김도영 | ㄱㄷㅇ | KIA   선수 검색 · GET /v1/players/:id 선수 상세
 //   GET    /v1/leaders?type=pitcher|hitter  투수·타자 TOP20 (WAR)
+//   GET    /v1/leaders/categories?type=…    부문별 TOP20 (다승·탈삼진·이닝·타율·홈런…)
 //   GET    /v1/games/:id/relay?inning=N     그 이닝의 문자중계 전체
 //   GET    /v1/games/:id/winrate            타석별 홈팀 승리 확률 흐름 (그래프)
 //   GET    /v1/postseason?season=YYYY          포스트시즌 대진표 (WC·준PO·PO·KS, 시리즈 전적, 탈락 팀)
