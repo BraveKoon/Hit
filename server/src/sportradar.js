@@ -4,6 +4,7 @@
 import { TEAMS, teamCode, shortName, logoUrl } from './teams.js';
 import { kstDate } from './time.js';
 import { UpstreamError } from './naver.js';
+import { liveFrom, lineupsOf } from './sportradar-live.js';
 
 export const SPORTRADAR_BASE = 'https://api.sportradar.com/baseball/trial/v2';
 
@@ -127,37 +128,7 @@ function withDoubleheaders(summaries) {
   return out.filter(Boolean);
 }
 
-// 타임라인 이벤트 → 앱에 보여줄 한 줄. 알려진 종류만 만든다 (모르는 건 건너뜀).
-const EVENT_TEXT = {
-  score_change: '득점',
-  home_run: '홈런',
-  strikeout: '삼진',
-  walk: '볼넷',
-  hit_by_pitch: '몸에 맞는 공',
-  stolen_base: '도루',
-  double_play: '병살타',
-  period_start: '이닝 시작',
-  period_end: '이닝 종료',
-  match_ended: '경기 종료',
-};
-
-export function playsOf(events = [], limit = 40) {
-  const out = [];
-  events.forEach((ev, i) => {
-    const text = EVENT_TEXT[ev.type];
-    if (!text) return;
-    const desc = ev.description ?? ev.commentary ?? null;
-    out.push({
-      seq: num(ev.id) ?? i + 1,
-      text: desc ? String(desc) : text,
-      type: null,
-      inning: num(ev.period) ?? num(ev.inning),
-      half: /top/i.test(ev.period_type ?? ev.half ?? '') ? 'top' : /bottom/i.test(ev.period_type ?? ev.half ?? '') ? 'bottom' : null,
-    });
-  });
-  out.sort((a, b) => b.seq - a.seq);
-  return out.slice(0, limit);
-}
+export const playsOf = (events) => liveFrom(events).plays.reverse();
 
 export function createSportradarProvider({ apiKey, lang = 'ko', fetch = globalThis.fetch, base = SPORTRADAR_BASE, timeoutMs = 10_000, now = () => Date.now(), log = () => {} } = {}) {
   if (!apiKey) throw new Error('SPORTRADAR_KEY 가 필요합니다');
@@ -201,6 +172,22 @@ export function createSportradarProvider({ apiKey, lang = 'ko', fetch = globalTh
   }
 
   const byId = new Map(); // 우리 경기 번호 → Sportradar 번호
+  const lineupCache = new Map(); // Sportradar 번호 → { at, value }
+
+  // 라인업이 비어 있으면(경기 전) 1분마다, 나왔으면 5분마다 다시 받는다
+  async function lineupsFor(srId) {
+    const hit = lineupCache.get(srId);
+    const ttl = hit && hit.value.away.length && hit.value.home.length ? 300_000 : 60_000;
+    if (hit && now() - hit.at < ttl) return hit.value;
+    try {
+      const value = lineupsOf(await get(`sport_events/${encodeURIComponent(srId)}/lineups.json`));
+      lineupCache.set(srId, { at: now(), value });
+      return value;
+    } catch (err) {
+      if (hit) return hit.value;
+      throw err;
+    }
+  }
 
   function remember(games) {
     for (const g of games) byId.set(g.id, g.srId);
@@ -230,31 +217,41 @@ export function createSportradarProvider({ apiKey, lang = 'ko', fetch = globalTh
       }
       if (!srId) throw new UpstreamError(404, gameId, 'no game');
       const id = encodeURIComponent(srId);
-      const [summary, timeline] = await Promise.all([
-        get(`sport_events/${id}/summary.json`),
-        get(`sport_events/${id}/timeline.json`).catch(() => null),
-      ]);
-      const game = normalizeEvent(summary, /^\d{8}[A-Z]{4}([12])\d{4}$/.exec(gameId)?.[1] ? Number(gameId[12]) : 0);
+      // timeline.json 에 경기 정보와 상태가 같이 들어 있다. 라인업은 자주 안 바뀌어서 따로 캐시한다.
+      const [timeline, lineups] = await Promise.all([get(`sport_events/${id}/timeline.json`), lineupsFor(srId)]);
+      const game = normalizeEvent(timeline, /^\d{8}[A-Z]{4}([12])\d{4}$/.exec(gameId)?.[1] ? Number(gameId[12]) : 0);
       if (!game) throw new UpstreamError(404, gameId, 'not kbo');
-      const totals = summary.statistics?.totals?.competitors;
-      return {
+      const live = liveFrom(timeline.timeline, lineups);
+      if (game.status === 'live' || game.status === 'suspended') {
+        game.inning = game.inning ?? live.inning;
+        game.half = live.half ?? game.half;
+        game.statusText = statusText(game.status, game.inning, game.half);
+      }
+      game.away.starter = lineups.starters.away;
+      game.home.starter = lineups.starters.home;
+      const hasLineups = lineups.away.length && lineups.home.length;
+      const detail = {
         game,
-        lineScore: lineScoreOf(summary.sport_event_status?.period_scores),
-        totals: totals ? null : null,
-        situation: null,
-        plays: playsOf(timeline?.timeline),
+        lineScore: lineScoreOf(timeline.sport_event_status?.period_scores),
+        totals: null,
+        situation: game.status === 'live' ? live.situation : null,
+        plays: live.plays.slice().reverse().slice(0, 40),
         atBat: [],
-        lineups: null,
+        lineups: hasLineups ? { away: lineups.away, home: lineups.home } : null,
         entries: null,
-        pitchers: { win: null, lose: null, awayCurrent: null, homeCurrent: null },
+        pitchers: { win: null, lose: null, awayCurrent: live.situation && game.half === 'bottom' ? live.situation.pitcher.name : null, homeCurrent: live.situation && game.half === 'top' ? live.situation.pitcher.name : null },
         winRate: null,
         fetchedAt: new Date(now()).toISOString(),
       };
+      // 이닝 전체 문자중계(relay 용). 앱에 보내는 JSON 에는 안 실린다
+      Object.defineProperty(detail, '_all', { value: live.plays, enumerable: false });
+      return detail;
     },
 
     async relay(gameId, inning) {
       const d = await this.detail(gameId);
-      return { gameId, inning, away: d.game.away.code, home: d.game.home.code, plays: d.plays.filter((p) => p.inning === inning) };
+      const plays = (d._all ?? d.plays).filter((p) => p.inning === inning).slice().reverse();
+      return { gameId, inning, away: d.game.away.code, home: d.game.home.code, plays };
     },
 
     async winTrend(gameId) {
