@@ -88,3 +88,33 @@ jobs:
           except Exception as e: print('프로필 읽기 실패',e)
           PY
           done
+      - name: 라인업 확인 (경기 요약·라인업 엔드포인트)
+        env:
+          SR_KEY: ${{ secrets.SPORTRADAR_KEY }}
+        run: |
+          set -u
+          base=https://api.sportradar.com/baseball/trial/v2/ko
+          id=sr:sport_event:76122370
+          for ep in "sport_events/$id/summary.json" "sport_events/$id/lineups.json" "sport_events/$id/timeline.json"; do
+            code=$(curl -sS -m 30 -H "x-api-key: $SR_KEY" -o /tmp/x.json -w '%{http_code}' "$base/$ep")
+            echo "== $ep -> HTTP $code"
+            python3 - <<'PY'
+          import json
+          try: d=json.load(open('/tmp/x.json'))
+          except Exception as e: print('읽기 실패',e); raise SystemExit
+          print('최상위 키:',list(d.keys()))
+          st=d.get('sport_event_status',{})
+          print('상태:',json.dumps(st,ensure_ascii=False)[:300])
+          def walk(o,p=''):
+              if isinstance(o,dict):
+                  for k,v in o.items():
+                      if k in ('lineups','lineup','players','probable_pitchers','pitchers','batting_order','starting_lineup'):
+                          print('발견',p+'/'+k, type(v).__name__, (len(v) if hasattr(v,'__len__') else ''))
+                      walk(v,p+'/'+k)
+              elif isinstance(o,list):
+                  for i,v in enumerate(o[:3]): walk(v,p+f'[{i}]')
+          walk(d)
+          print('lineups 일부:',json.dumps(d.get('lineups'),ensure_ascii=False)[:900])
+          print('라인업 후보(statistics):',json.dumps(d.get('statistics'),ensure_ascii=False)[:600])
+          PY
+          done
