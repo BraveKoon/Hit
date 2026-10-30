@@ -6,25 +6,10 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: KBO 시즌 순위 엔드포인트 확인 (키는 출력하지 않음)
+      - name: 429 원인 확인 (한 번만, 키는 출력하지 않음)
         env:
           SR_KEY: ${{ secrets.SPORTRADAR_KEY }}
         run: |
-          base=https://api.sportradar.com/baseball/trial/v2/en
-          get() { for i in 1 2 3 4 5 6; do sleep 4; c=$(curl -sS -m 30 -H "x-api-key: $SR_KEY" -H 'accept: application/json' -o "$2" -w '%{http_code}' "$base/$1"); [ "$c" != 429 ] && break; done; echo "[$c] $1"; }
-          get "schedules/2026-10-28/summaries.json" /tmp/day.json
-          python3 - <<'PY'
-          import json
-          d=json.load(open('/tmp/day.json'))
-          for x in d.get('summaries',[]):
-              c=x['sport_event'].get('sport_event_context',{})
-              if 'KBO' in c.get('competition',{}).get('name',''):
-                  print('competition',c['competition'],'season',c.get('season'),'stage',c.get('stage'),'round',c.get('round'))
-                  open('/tmp/season','w').write(c['season']['id']); break
-          PY
-          s=$(cat /tmp/season); echo "season=$s"
-          get "seasons/$s/standings.json" /tmp/st.json
-          head -c 1500 /tmp/st.json; echo
-          get "seasons/$s/summaries.json" /tmp/sum.json
-          python3 -c "
-          import json;d=json.load(open('/tmp/sum.json'));print(list(d.keys()),len(d.get('summaries',[])))" || head -c 300 /tmp/sum.json
+          curl -sS -m 30 -D /tmp/h.txt -H "x-api-key: $SR_KEY" -H 'accept: application/json' -o /tmp/b.json "https://api.sportradar.com/baseball/trial/v2/en/schedules/2026-10-28/summaries.json" -w '[%{http_code}]\n'
+          grep -iE '^(x-|retry|content-type|http)' /tmp/h.txt | grep -vi 'x-api-key' || true
+          head -c 400 /tmp/b.json; echo
