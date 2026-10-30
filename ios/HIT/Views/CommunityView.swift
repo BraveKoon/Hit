@@ -28,7 +28,7 @@ struct CommunityView: View {
         NavigationStack(path: $model.communityPath) {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    AppHeader(title: "커뮤니티") { model.communityPath.append(.search) }
+                    AppHeader(title: "커뮤니티")
                         .padding(.bottom, 14)
                     PillChips(items: boards, selection: $board)
                         .padding(.bottom, 10)

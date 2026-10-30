@@ -20,7 +20,7 @@ struct MyView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    AppHeader(title: "MY") { path.append(.search) }
+                    AppHeader(title: "MY")
                     profile
 
                     teamCard

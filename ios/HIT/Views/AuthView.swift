@@ -44,20 +44,10 @@ struct AuthView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                     Button {
-                        Task { await auth.signInWithKakao(using: webAuthenticationSession) }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "message.fill")
-                            Text("카카오로 계속하기")
-                        }
-                    }
-                    .buttonStyle(PrimaryButtonStyle(fill: Color(hex: 0xFEE500), text: .black.opacity(0.85)))
-
-                    Button {
                         Task { await auth.signInWithGoogle(using: webAuthenticationSession) }
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: "g.circle.fill")
+                            Image("GoogleG").resizable().scaledToFit().frame(width: 20, height: 20)
                             Text("Google로 계속하기")
                         }
                     }

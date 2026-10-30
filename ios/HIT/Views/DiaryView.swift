@@ -14,7 +14,7 @@ struct DiaryView: View {
         NavigationStack(path: $model.diaryPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    AppHeader(title: "직관") { model.diaryPath.append(.search) }
+                    AppHeader(title: "직관")
                     if !diary.canRecord {
                         GuestDiaryCard()
                     } else {

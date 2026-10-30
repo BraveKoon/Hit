@@ -25,7 +25,7 @@ struct TodayView: View {
         NavigationStack(path: $model.todayPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    AppHeader { model.todayPath.append(.search) }
+                    AppHeader()
                     NoticeBanner(notices: notices)
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 3) {
