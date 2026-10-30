@@ -134,11 +134,19 @@ struct GameDetailView: View {
         .task(id: gameId) {
             await load()
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(detail?.game.status == .live ? 8 : 60))
+                try? await Task.sleep(for: .seconds(pollSeconds))
                 if Task.isCancelled { break }
                 await load()
             }
         }
+    }
+
+    /// 경기 중엔 8초, 시작 시각 전후 20분엔 10초(첫 투구가 나오면 바로 경기 중으로 바뀌게), 그 밖엔 1분
+    private var pollSeconds: Double {
+        guard let game = detail?.game else { return 8 }
+        if game.status == .live { return 8 }
+        if game.status == .scheduled, let start = game.startDate, abs(start.timeIntervalSinceNow) < 20 * 60 { return 10 }
+        return 60
     }
 
     private func load() async {
