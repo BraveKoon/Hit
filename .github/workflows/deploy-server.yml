@@ -3,7 +3,7 @@ name: Deploy server
 # Actions 탭 → Deploy server → Run workflow. 처음엔 Fly 앱과 디스크도 만듭니다.
 # 필요한 것: Secrets 의 FLY_API_TOKEN (fly.io 대시보드에서 만든 조직 토큰).
 # 있으면 서버에 함께 넣는 값(Secrets): NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, KAKAO_REST_API_KEY, KAKAO_CLIENT_SECRET,
-#   APNS_KEY_ID, APNS_TEAM_ID, APNS_KEY_P8 (.p8 원문), HIT_WEATHER_KEY. 번들 ID 는 Variables 의 APP_BUNDLE_ID.
+#   APNS_KEY_ID, APNS_TEAM_ID, APNS_KEY_P8 (.p8 원문), HIT_WEATHER_KEY, SPORTRADAR_KEY(있으면 서버가 Sportradar 로 경기를 읽음). 번들 ID 는 Variables 의 APP_BUNDLE_ID.
 on:
   workflow_dispatch:
     inputs:
@@ -30,6 +30,7 @@ jobs:
       APNS_TEAM_ID: ${{ secrets.APNS_TEAM_ID }}
       APNS_KEY_P8: ${{ secrets.APNS_KEY_P8 }}
       HIT_WEATHER_KEY: ${{ secrets.HIT_WEATHER_KEY }}
+      SPORTRADAR_KEY: ${{ secrets.SPORTRADAR_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
@@ -60,7 +61,7 @@ jobs:
         run: |
           ARGS=("PUBLIC_BASE_URL=https://${APP}.fly.dev")
           [ -n "$APNS_BUNDLE_ID" ] && ARGS+=("APNS_BUNDLE_ID=$APNS_BUNDLE_ID")
-          for n in NAVER_CLIENT_ID NAVER_CLIENT_SECRET KAKAO_REST_API_KEY KAKAO_CLIENT_SECRET APNS_KEY_ID APNS_TEAM_ID HIT_WEATHER_KEY; do
+          for n in NAVER_CLIENT_ID NAVER_CLIENT_SECRET KAKAO_REST_API_KEY KAKAO_CLIENT_SECRET APNS_KEY_ID APNS_TEAM_ID HIT_WEATHER_KEY SPORTRADAR_KEY; do
             [ -n "${!n}" ] && ARGS+=("$n=${!n}")
           done
           if [ -n "$APNS_KEY_P8" ]; then
