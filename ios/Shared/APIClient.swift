@@ -170,6 +170,10 @@ struct APIClient {
         try await send("GET", "v1/games/\(gameId)/weather")
     }
 
+    func notices() async throws -> NoticesResponse {
+        try await send("GET", "v1/notices")
+    }
+
     func news(team: String, tag: String? = nil) async throws -> NewsResponse {
         var q = [URLQueryItem(name: "team", value: team)]
         if let tag { q.append(URLQueryItem(name: "tag", value: tag)) }

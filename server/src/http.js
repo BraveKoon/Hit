@@ -32,7 +32,9 @@
 //   GET    /v1/posts?sort=hot · ?q=검색어             인기 글 (최근 3일) · 글 검색
 //   POST   /v1/blocks { post | comment | chat }     그 글쓴이 차단 · GET /v1/me/blocks · DELETE /v1/me/blocks/:userId
 //   GET    /v1/games/:id/weather                    구장 날씨 (경기 시간대, 우천 취소 가능성)
+//   GET    /v1/notices                              홈 위쪽 공지 배너 (server/src/notices.js)
 //   GET    /v1/news?team=SS&tag=move|injury         내 팀 소식 (네이버 뉴스 검색)
+import { activeNotices } from './notices.js';
 import http from 'node:http';
 import { TEAM_CODES, shortName } from './teams.js';
 import { DEFAULT_PREFS } from './messages.js';
@@ -371,6 +373,7 @@ export function createApi({ provider, store, auth = null, roster = null, uploads
       if (!w) throw new HttpError(404, '이 경기는 날씨 예보가 없어요');
       return w;
     }],
+    ['GET', /^\/v1\/notices$/, async () => ({ notices: activeNotices(now()) })],
     ['GET', /^\/v1\/news$/, async (_m, url) => {
       if (!news) throw new HttpError(503, '뉴스가 설정되지 않았습니다');
       const team = url.searchParams.get('team');
