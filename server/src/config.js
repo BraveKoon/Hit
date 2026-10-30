@@ -6,11 +6,14 @@ export function loadConfig(env = process.env) {
   const apns = keyPem && env.APNS_KEY_ID && env.APNS_TEAM_ID && env.APNS_BUNDLE_ID
     ? { keyPem, keyId: env.APNS_KEY_ID, teamId: env.APNS_TEAM_ID, bundleId: env.APNS_BUNDLE_ID }
     : null;
+  // Sportradar 키가 없으면 네이버로 돌아간다 (키를 안 넣은 채 배포돼도 서버가 죽지 않게)
+  const wanted = env.HIT_PROVIDER === 'replay' ? 'replay' : env.HIT_PROVIDER === 'sportradar' && env.SPORTRADAR_KEY ? 'sportradar' : 'naver';
   return {
     port: Number(env.PORT ?? 8787),
     host: env.HOST ?? '0.0.0.0',
     dbPath: env.HIT_DB ?? 'data/hit.db',
-    provider: env.HIT_PROVIDER === 'replay' ? 'replay' : 'naver',
+    provider: wanted,
+    sportradar: { apiKey: env.SPORTRADAR_KEY ?? null, lang: env.SPORTRADAR_LANG ?? 'ko' },
     pollMs: Math.max(5000, Number(env.POLL_MS ?? 10000)), // 비공식 API라 5초보다 자주 묻지 않는다
     replayStepMs: Math.max(2000, Number(env.REPLAY_STEP_MS ?? 15000)),
     pregameMinutes: Number(env.PREGAME_MINUTES ?? 30),

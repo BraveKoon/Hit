@@ -9,7 +9,8 @@ primary_region = 'nrt'   # 도쿄 (서울 리전 없음)
 [env]
   PORT = '8787'
   HIT_DB = '/data/hit.db'
-  HIT_PROVIDER = 'naver'
+  HIT_PROVIDER = 'sportradar'
+  POLL_MS = '15000'
 
 # 구독·글·기록을 담는 SQLite 파일이 사는 디스크
 [[mounts]]
