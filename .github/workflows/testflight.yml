@@ -90,6 +90,8 @@ jobs:
           fi
           echo "API 키 확인 완료 (Key ID: $ASC_KEY_ID)"
 
+      # 개발 인증서를 매번 새로 만들다 계정 한도에 걸려서, 아카이브는 임시 서명(-)으로 하고
+      # 실제 서명은 내보내기 단계에서 Apple 클라우드 배포 인증서로 한다.
       - name: 아카이브
         working-directory: ios
         run: |
@@ -97,10 +99,7 @@ jobs:
             -project HIT.xcodeproj -scheme HIT -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/HIT.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="-" PROVISIONING_PROFILE_SPECIFIER="" \
             APP_BUNDLE_ID="$APP_BUNDLE_ID" APP_GROUP_ID="$APP_GROUP_ID" \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" HIT_API_BASE_URL="$HIT_API_BASE_URL" \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}"
