@@ -1,0 +1,11 @@
+{
+  "name": "hit-web",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "db:init": "wrangler d1 execute hit-db --file=schema.sql && wrangler d1 execute hit-db --file=seed.sql",
+    "db:init:remote": "wrangler d1 execute hit-db --remote --file=schema.sql && wrangler d1 execute hit-db --remote --file=seed.sql",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": { "wrangler": "^4" }
+}

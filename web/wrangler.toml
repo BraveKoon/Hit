@@ -1,0 +1,9 @@
+name = "hit-web"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# `npx wrangler d1 create hit-db` 실행 후 출력되는 database_id를 아래에 넣으세요.
+[[d1_databases]]
+binding = "DB"
+database_name = "hit-db"
+database_id = "REPLACE_WITH_DATABASE_ID"
