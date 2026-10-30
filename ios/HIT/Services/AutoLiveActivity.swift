@@ -2,7 +2,7 @@ import Foundation
 import UserNotifications
 
 /// 내 팀 경기의 잠금화면·다이내믹 아일랜드 카드를 앱이 직접 켜고 갱신한다 (수동 버튼 없음).
-/// - 경기 시작 30분 전부터 켜고, 경기 중엔 5초마다, 경기 전엔 30초마다 갱신, 끝나면 마지막 점수로 바꾼 뒤 30분 뒤 내린다.
+/// - 경기 시작 30분 전부터 켜고, 경기 중엔 2초마다, 경기 전엔 30초마다 갱신, 끝나면 마지막 점수로 바꾼 뒤 30분 뒤 내린다.
 /// - 경기 30분 전부터 끝날 때까지는 소리 없는 오디오로 백그라운드에서도 계속 돌고(BackgroundKeeper), 득점·종료는 아이폰 알림으로 직접 알린다.
 /// - 앱을 완전히 종료(위로 밀어 닫기)하면 멈춘다. 그 상태에서도 뜨게 하는 건 서버의 push-to-start(알림 키·한국 서버 필요).
 @MainActor
@@ -53,6 +53,20 @@ final class AutoLiveActivity {
         BackgroundKeeper.shared.stop()
     }
 
+    /// 오늘 내 팀 경기. 경기 중엔 목록을 60초에 한 번만 다시 받는다(매번 받으면 갱신이 그만큼 늦어진다)
+    private var cachedGame: (game: Game, at: Date)?
+
+    private func todayGame(team: String) async -> Game? {
+        if let c = cachedGame, c.game.status == .live, c.game.involves(team), Date().timeIntervalSince(c.at) < 60 { return c.game }
+        guard let today = try? await APIClient().games(date: KST.dayString(Date())),
+              let game = today.games.first(where: { $0.involves(team) && $0.status != .canceled }) else {
+            cachedGame = nil
+            return nil
+        }
+        cachedGame = (game, Date())
+        return game
+    }
+
     /// 한 번 확인하고, 다음 확인까지 기다릴 초를 돌려준다
     private func tick() async -> Double {
         let model = AppModel.shared
@@ -61,8 +75,7 @@ final class AutoLiveActivity {
             BackgroundKeeper.shared.stop()
             return 120
         }
-        guard let today = try? await APIClient().games(date: KST.dayString(Date())),
-              let game = today.games.first(where: { $0.involves(team) && $0.status != .canceled }) else {
+        guard let game = await todayGame(team: team) else {
             BackgroundKeeper.shared.stop()
             return 300
         }
@@ -85,8 +98,10 @@ final class AutoLiveActivity {
             if let detail = try? await APIClient().detail(id: game.id) {
                 controller.startOrUpdate(detail: detail)
                 await notifyChanges(detail.game, team: team)
+                // 경기 상태(끝났는지)는 상세에서 바로 알 수 있어서, 목록을 다시 받지 않고 이걸로 갱신한다
+                cachedGame = (detail.game, cachedGame?.at ?? Date())
             }
-            return 5
+            return 2
         case .final:
             if !finished.contains(game.id), controller.activity(for: game.id) != nil,
                let detail = try? await APIClient().detail(id: game.id) {

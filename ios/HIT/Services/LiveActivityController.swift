@@ -79,11 +79,18 @@ final class LiveActivityController {
         observe(activity)
     }
 
+    private var lastSent: [String: (state: GameActivityAttributes.ContentState, at: Date)] = [:]
+
     /// 앱이 직접 켜고 갱신한다 (앱이 열려 있는 동안). 서버 푸시가 되면 서버가 갱신하므로 두 곳이 같은 상태를 쓴다.
     func startOrUpdate(detail: GameDetail) {
         let state = GameActivityAttributes.ContentState(detail: detail)
         if let activity = activity(for: detail.game.id) {
-            let content = ActivityContent(state: state, staleDate: Date().addingTimeInterval(15 * 60))
+            // 바뀐 게 없으면 보내지 않는다. 같은 값을 자주 보내면 iOS 가 갱신 횟수를 제한해서 정작 중요한 변화가 늦게 반영된다.
+            // (15분 넘게 같은 값이면 오래된 정보로 표시되지 않게 한 번은 다시 보낸다)
+            let now = Date()
+            if lastSent[detail.game.id]?.state == state, now.timeIntervalSince(lastSent[detail.game.id]?.at ?? .distantPast) < 10 * 60 { return }
+            lastSent[detail.game.id] = (state, now)
+            let content = ActivityContent(state: state, staleDate: now.addingTimeInterval(15 * 60))
             Task { await activity.update(content) }
         } else {
             try? start(detail: detail)
