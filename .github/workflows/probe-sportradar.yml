@@ -1,0 +1,50 @@
+name: probe-sportradar
+on:
+  push:
+    branches: [claude/probe-sportradar]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sportradar Global Baseball 체험 키로 KBO 데이터 확인 (키는 출력하지 않음)
+        env:
+          SR_KEY: ${{ secrets.SPORTRADAR_KEY }}
+        run: |
+          set -u
+          base=https://api.sportradar.com/baseball/trial/v2/en
+          get() { curl -sS -m 30 -D /tmp/h.txt -H "x-api-key: $SR_KEY" -H 'accept: application/json' -o "$2" -w '[%{http_code}] ' "$base/$1"; echo "$1"; grep -iE '^(x-ratelimit|x-plan|x-forwarded-qps|retry-after)' /tmp/h.txt || true; }
+          day=$(date -u +%F)
+          get "schedules/$day/summaries.json" /tmp/day.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/day.json'))
+          s=d.get('summaries',[])
+          print('UTC 오늘 경기 수:',len(s))
+          comps={}
+          kbo=[]
+          for x in s:
+              se=x['sport_event']; c=se.get('sport_event_context',{}).get('competition',{}).get('name')
+              comps[c]=comps.get(c,0)+1
+              if c and 'KBO' in c: kbo.append(x)
+          print('대회별:',comps)
+          for x in kbo:
+              se=x['sport_event']; st=x.get('sport_event_status',{})
+              print('KBO', se['id'], se['start_time'], [t.get('name') for t in se['competitors']], st.get('status'), st.get('match_status'), st.get('home_score'), st.get('away_score'))
+          json.dump([x['sport_event']['id'] for x in kbo], open('/tmp/kbo_ids.json','w'))
+          if kbo: print('첫 KBO 요약 키:', sorted(kbo[0].keys()))
+          PY
+          echo '--- 라이브 타임라인(전체 중 KBO 있는지)'
+          get "schedules/live/timelines.json" /tmp/live.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/live.json'))
+          print('최상위 키:',list(d.keys()))
+          ids=set(json.load(open('/tmp/kbo_ids.json')))
+          t=d.get('sport_event_timelines') or d.get('timelines') or []
+          print('라이브 경기 수:',len(t))
+          for x in t:
+              if x.get('id') in ids or x.get('sport_event',{}).get('id') in ids:
+                  tl=x.get('timeline',[])
+                  print('KBO 라이브', x.get('id'), '이벤트 수', len(tl))
+                  for e in tl[-5:]: print({k:e.get(k) for k in ('type','time','match_clock','home_score','away_score','description') if k in e})
+          PY
