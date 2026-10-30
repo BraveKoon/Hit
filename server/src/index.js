@@ -2,6 +2,7 @@ import { dirname, join } from 'node:path';
 import { loadConfig } from './config.js';
 import { createNaverProvider } from './naver.js';
 import { createReplayProvider } from './replay.js';
+import { createSportradarProvider } from './sportradar.js';
 import { cached } from './cache.js';
 import { openStore } from './store.js';
 import { createApns, createDryRunApns } from './apns.js';
@@ -16,7 +17,11 @@ import { createNotifier } from './notify.js';
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 const cfg = loadConfig();
 
-const raw = cfg.provider === 'replay' ? createReplayProvider() : createNaverProvider();
+const raw = cfg.provider === 'replay'
+  ? createReplayProvider()
+  : cfg.provider === 'sportradar'
+    ? createSportradarProvider({ ...cfg.sportradar, log })
+    : createNaverProvider();
 const roster = createRoster({ log });
 roster.refresh();
 const provider = cached(withPhotos(raw, roster));
