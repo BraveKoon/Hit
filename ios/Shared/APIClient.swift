@@ -26,6 +26,11 @@ struct APIClient {
         return try await send("POST", "v1/auth/apple", body: Body(identityToken: identityToken, name: name))
     }
 
+    func signInWithGoogle(code: String, verifier: String, redirectUri: String) async throws -> AuthResponse {
+        struct Body: Encodable { let code: String; let verifier: String; let redirectUri: String }
+        return try await send("POST", "v1/auth/google", body: Body(code: code, verifier: verifier, redirectUri: redirectUri))
+    }
+
     func me() async throws -> Account {
         try await send("GET", "v1/me")
     }

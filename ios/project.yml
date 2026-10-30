@@ -54,6 +54,8 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: hit
             CFBundleURLSchemes: [hit]
+          - CFBundleURLName: google
+            CFBundleURLSchemes: [com.googleusercontent.apps.259513225241-se1scmqbdftml01khktdedg2kfklalkh]
         HITAPIBaseURL: $(HIT_API_BASE_URL)
         HITAppGroup: $(APP_GROUP_ID)
         UIAppFonts: &fonts [Pretendard-Regular.otf, Pretendard-Medium.otf, Pretendard-SemiBold.otf, Pretendard-Bold.otf, Pretendard-ExtraBold.otf]

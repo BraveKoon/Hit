@@ -9,6 +9,7 @@
 //   POST   /v1/live-activities              { deviceToken, gameId, token, environment }
 //   DELETE /v1/live-activities/:token
 //   POST   /v1/auth/apple                   { identityToken, name } → { token, user }
+//   POST   /v1/auth/google                  { code, verifier, redirectUri } → { token, user }
 //   GET    /v1/auth/kakao/start             카카오 로그인 페이지로 이동 → 끝나면 hit://auth?token=…
 //   POST   /v1/auth/logout
 //   GET    /v1/me · PUT /v1/me { nickname, team, prefs, players } · DELETE /v1/me (탈퇴)
@@ -194,6 +195,10 @@ export function createApi({ provider, store, auth = null, roster = null, uploads
 
     ['POST', /^\/v1\/auth\/apple$/, async (_m, _u, body) => {
       const { token: t, user } = await needAuth().signInWithApple({ identityToken: body.identityToken, name: body.name });
+      return { token: t, user: publicUser(user) };
+    }],
+    ['POST', /^\/v1\/auth\/google$/, async (_m, _u, body) => {
+      const { token: t, user } = await needAuth().signInWithGoogle({ code: body.code, verifier: body.verifier, redirectUri: body.redirectUri });
       return { token: t, user: publicUser(user) };
     }],
     ['GET', /^\/v1\/auth\/kakao\/start$/, async () => redirect(needAuth().kakaoStartUrl())],

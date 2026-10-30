@@ -1,5 +1,6 @@
 // 회원가입·로그인. 비밀번호는 다루지 않는다.
 //  - Apple: 앱이 받은 identity token(JWT)을 Apple 공개키(JWKS)로 검증
+//  - Google: 앱이 PKCE 로 받은 code 를 서버가 Google 토큰 엔드포인트에서 교환 (id_token 은 Google 에서 직접 받으므로 aud/iss/exp 만 확인)
 //  - 카카오: 서버가 OAuth 를 대신 진행하고 끝나면 hit://auth?token=… 으로 앱에 돌려준다 (앱에 카카오 SDK 불필요)
 // 세션 토큰은 무작위 32바이트, 저장소에는 SHA-256 해시만 남긴다.
 import crypto from 'node:crypto';
@@ -14,7 +15,7 @@ export class AuthError extends Error {
 const b64json = (s) => JSON.parse(Buffer.from(s, 'base64url').toString('utf8'));
 export const hashToken = (t) => crypto.createHash('sha256').update(t).digest('hex');
 
-export function createAuth({ store, fetch = globalThis.fetch, now = () => Date.now(), apple = {}, kakao = {}, appRedirect = 'hit://auth', log = () => {} }) {
+export function createAuth({ store, fetch = globalThis.fetch, now = () => Date.now(), apple = {}, kakao = {}, google = {}, appRedirect = 'hit://auth', log = () => {} }) {
   let jwks = { at: 0, keys: [] };
   const states = new Map(); // 카카오 state → 만료 시각 (서버 한 대 기준)
 
@@ -59,6 +60,29 @@ export function createAuth({ store, fetch = globalThis.fetch, now = () => Date.n
       // Apple 은 이름을 첫 로그인 때 한 번만 준다 → 앱이 받아서 같이 보낸다
       const nickname = typeof name === 'string' && name.trim() ? name.trim().slice(0, 20) : null;
       return startSession(store.upsertUser({ provider: 'apple', subject, nickname, email, avatar: null }));
+    },
+
+    // POST /v1/auth/google { code, verifier, redirectUri }
+    async signInWithGoogle({ code, verifier, redirectUri }) {
+      if (!google.clientId) throw new AuthError(503, 'Google 로그인이 설정되지 않았습니다');
+      if (typeof code !== 'string' || !code || typeof verifier !== 'string' || !verifier || typeof redirectUri !== 'string' || !redirectUri) {
+        throw new AuthError(400, 'Google 로그인 정보가 부족합니다');
+      }
+      const form = new URLSearchParams({ grant_type: 'authorization_code', client_id: google.clientId, code, code_verifier: verifier, redirect_uri: redirectUri });
+      const res = await fetch(google.tokenUrl ?? 'https://oauth2.googleapis.com/token', {
+        method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form, signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) throw new AuthError(401, 'Google 로그인에 실패했습니다');
+      const { id_token: idToken } = await res.json();
+      const parts = String(idToken ?? '').split('.');
+      if (parts.length !== 3) throw new AuthError(401, '잘못된 Google 토큰');
+      let claims;
+      try { claims = b64json(parts[1]); } catch { throw new AuthError(401, '잘못된 Google 토큰'); }
+      if (!['https://accounts.google.com', 'accounts.google.com'].includes(claims.iss) || claims.aud !== google.clientId) throw new AuthError(401, 'Google 토큰 발급처가 맞지 않음');
+      if (typeof claims.exp !== 'number' || claims.exp * 1000 < now()) throw new AuthError(401, 'Google 토큰이 만료됨');
+      if (!claims.sub) throw new AuthError(401, 'Google 토큰에 사용자 정보가 없음');
+      const nickname = typeof claims.name === 'string' && claims.name.trim() ? claims.name.trim().slice(0, 20) : null;
+      return startSession(store.upsertUser({ provider: 'google', subject: String(claims.sub), nickname, email: claims.email ?? null, avatar: claims.picture ?? null }));
     },
 
     // GET /v1/auth/kakao/start → 카카오 로그인 페이지로
