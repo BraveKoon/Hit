@@ -358,7 +358,7 @@ struct RelaySection: View {
     @State private var cache: [Int: [Play]] = [:]
     @State private var loading = false
     @State private var failed = false
-    @State private var showPitches = false
+    @AppStorage("showPitches") private var showPitches = true   // 투구 하나하나를 기본으로 보여 주고, 끈 설정은 기억한다
 
     private var game: Game { detail.game }
 
