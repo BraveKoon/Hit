@@ -284,6 +284,21 @@ struct WeatherHour: Codable, Hashable {
 
 // MARK: - 내 팀 소식
 
+/// 홈 위쪽 공지 배너 (서버 server/src/notices.js). 서버에 못 닿으면 `welcome` 하나만 보인다.
+struct Notice: Codable, Hashable, Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    var icon: String? = nil
+    var link: String? = nil   // hit://game/<번호> 또는 https://…
+
+    static let welcome = Notice(id: "open", title: "HIT 앱 오픈!", subtitle: "내 팀 경기와 문자중계를 한눈에", icon: "baseball.fill", link: nil)
+}
+
+struct NoticesResponse: Codable {
+    let notices: [Notice]
+}
+
 struct NewsResponse: Codable {
     let team: String
     let tags: [NewsTag]

@@ -11,6 +11,7 @@ struct TodayView: View {
     @State private var upcoming: Game?
     @State private var postseason: PostseasonResponse?   // 포스트시즌 기간에만 대진표
     @State private var showDates = false   // 내 팀이 쉬는 날: 앞으로 7일 안의 다음 경기
+    @State private var notices: [Notice] = [.welcome]   // 공지 배너 (서버에 못 닿으면 기본 하나)
 
     private var dayString: String { KST.dayString(date) }
     private var isToday: Bool { KST.calendar.isDate(date, inSameDayAs: Date()) }
@@ -25,6 +26,7 @@ struct TodayView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     AppHeader { model.todayPath.append(.search) }
+                    NoticeBanner(notices: notices)
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(KST.short.string(from: date)).font(Typo.style(.subheadline)).foregroundStyle(Palette.muted)
@@ -65,6 +67,10 @@ struct TodayView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
             .refreshable { await load() }
+            .task {
+                // 공지는 앱을 켤 때 한 번 받는다 (실패하면 기본 공지 그대로)
+                if let r = try? await APIClient().notices(), !r.notices.isEmpty { notices = r.notices }
+            }
             .task(id: dayString) {
                 loaded = false
                 await load()
