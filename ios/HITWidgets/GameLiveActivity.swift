@@ -211,22 +211,86 @@ struct LockScreenScoreboard: View {
     }
 
     var body: some View {
+        Group {
+            if state.status == "scheduled" { pregame } else { live }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .foregroundStyle(.white)
+        // 바탕은 시스템 여백(세이프 에어리어)까지 채운다. 안 그러면 카드 위아래에 어두운 띠가 남는다
+        .background { Self.background(for: attributes, theme: theme).ignoresSafeArea() }
+    }
+
+    /// 경기 전: 엠블럼과 팀 이름, 가운데 큰 시작 시각, 아래에 구장과 시작까지 남은 시간
+    private var pregame: some View {
+        VStack(spacing: 12) {
+            HStack(alignment: .center, spacing: 0) {
+                teamBlock(code: attributes.awayCode, name: attributes.awayName)
+                VStack(spacing: 1) {
+                    Text("VS")
+                        .font(Typo.font(10.5, .heavy))
+                        .tracking(1.5)
+                        .foregroundStyle(.white.opacity(0.65))
+                    Text(attributes.startClock.isEmpty ? "경기 전" : attributes.startClock)
+                        .font(Typo.font(36, .heavy))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize()
+                    Text("플레이볼")
+                        .font(Typo.font(10.5, .semibold))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .padding(.horizontal, 8)
+                teamBlock(code: attributes.homeCode, name: attributes.homeName)
+            }
+
+            HStack(spacing: 8) {
+                if !attributes.stadium.isEmpty {
+                    chip { Label(attributes.stadium, systemImage: "mappin.and.ellipse") }
+                }
+                if let start = KST.iso.date(from: attributes.startsAt), start > Date() {
+                    chip {
+                        HStack(spacing: 4) {
+                            Text("시작까지")
+                            Text(start, style: .timer).monospacedDigit()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func teamBlock(code: String, name: String) -> some View {
+        VStack(spacing: 5) {
+            TeamBadge(code: code, size: 40)
+            Text(name)
+                .font(Typo.font(16, .heavy))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func chip<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        content()
+            .font(Typo.font(11.5, .semibold))
+            .lineLimit(1)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(.black.opacity(0.24)))
+            .overlay(Capsule().strokeBorder(.white.opacity(0.1), lineWidth: 0.5))
+    }
+
+    /// 경기 중·끝: 점수·주자·이닝·타자/투수·카운트·방금 장면
+    private var live: some View {
         VStack(spacing: 8) {
             HStack(spacing: 0) {
                 teamName(attributes.awayName, alignment: .leading)
-                if state.status == "scheduled" {
-                    // 경기 전: 0 : 0 과 빈 주자 표시 대신 시작 시각
-                    Text(attributes.startClock.isEmpty ? "VS" : attributes.startClock)
-                        .font(Typo.font(30, .heavy))
-                        .monospacedDigit()
-                        .padding(.horizontal, 14)
-                } else {
-                    score(state.awayScore)
-                    BasesView(bases: state.bases, dimmed: !state.isLive)
-                        .frame(width: 58, height: 30)
-                        .padding(.horizontal, 10)
-                    score(state.homeScore)
-                }
+                score(state.awayScore)
+                BasesView(bases: state.bases, dimmed: !state.isLive)
+                    .frame(width: 58, height: 30)
+                    .padding(.horizontal, 10)
+                score(state.homeScore)
                 teamName(attributes.homeName, alignment: .trailing)
             }
 
@@ -256,10 +320,6 @@ struct LockScreenScoreboard: View {
                 .background(Capsule().fill(.black.opacity(0.22)))
                 .overlay(Capsule().strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .foregroundStyle(.white)
-        .background(Self.background(for: attributes, theme: theme))
     }
 
     var theme: LiveTheme = SharedSettings.liveTheme
