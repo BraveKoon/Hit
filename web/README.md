@@ -1,12 +1,20 @@
-# HIT 소개 웹 (Cloudflare Workers + D1)
+# HIT! 소개 웹 (Cloudflare Workers + D1)
 
-기능 목록은 D1 `features` 테이블에서 읽어 렌더링하고, 출시 알림 신청은 `waitlist` 테이블에 저장합니다.
+- `public/` — 소개 페이지(`index.html`)와 로고·아이콘. Workers Static Assets 로 서빙
+- `src/index.js` — 출시 알림 신청 API (`POST /api/waitlist`, `GET /api/waitlist/count`)
+- `schema.sql` — D1 `waitlist` 테이블
+
+## 배포
+
+Windows: `web` 폴더에서 `powershell -ExecutionPolicy Bypass -File deploy.ps1`
+
+직접 하려면:
 
 ```bash
 cd web && npm install
 npx wrangler login
 npx wrangler d1 create hit-db        # 출력된 database_id를 wrangler.toml에 붙여넣기
-npm run db:init:remote               # 스키마 + 시드를 D1에 업로드
+npm run db:init:remote
 npm run deploy                       # https://hit-web.<계정>.workers.dev
 ```
 

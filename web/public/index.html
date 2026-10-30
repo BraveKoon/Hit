@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>HIT! — 내 팀 경기가 터지는 순간</title>
+<meta name="description" content="KBO 야구 알림 앱 HIT!. 내 팀 경기의 시작·득점·홈런·종료를 잠금화면과 다이내믹 아일랜드로 바로 알려드립니다." />
+<link rel="icon" href="img/favicon.png" />
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+<meta name="theme-color" content="#0A0A0A" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="HIT!" />
+<meta property="og:title" content="HIT! — 내 팀 경기가 터지는 순간" />
+<meta property="og:description" content="득점·홈런·역전을 내 팀 기준으로. 잠금화면 실시간 점수판까지." />
+<meta property="og:image" content="img/app-icon.png" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+  /* ============================================================
+     HIT! 소개 페이지
+     - 앱 팔레트(ios/Shared/Theme.swift)를 그대로 쓴다: 검정 바탕 + 탠저린 강조.
+     - 로고는 앱의 템플릿 이미지(Logo.png)를 mask 로 얹어 색을 CSS 로 바꾼다.
+     ============================================================ */
+  :root {
+    --bg: #000;
+    --surface: #1C1C1E;
+    --surface-high: #2C2C2E;
+    --line: rgba(255, 255, 255, 0.09);
+    --text: #fff;
+    --muted: #8E8E93;
+    --accent: #FF8A4C;     /* Palette.accent (탠저린) */
+    --live: #36D583;       /* Palette.live */
+    --red: #E2544A;        /* Palette.red */
+    --clay: #B4512F;       /* Palette.clay — 내야 흙 */
+    --navy: #14223F;       /* 잠금화면 카드 기본 테마 */
+    --nav-h: 60px;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; scroll-padding-top: var(--nav-h); }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+                 "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+    word-break: keep-all;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { max-width: 100%; display: block; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+  .wrap { width: min(1140px, 100% - 48px); margin-inline: auto; }
+  @media (max-width: 640px) { .wrap { width: calc(100% - 32px); } }
+
+  /* 로고 — 템플릿 PNG 를 마스크로 써서 어떤 색이든 칠한다 */
+  .logo {
+    display: inline-block;
+    aspect-ratio: 1046 / 359;
+    background: currentColor;
+    -webkit-mask: url(img/logo.png) center / contain no-repeat;
+            mask: url(img/logo.png) center / contain no-repeat;
+  }
+
+  /* ---------- 타이포 ---------- */
+  .eyebrow {
+    font-size: 13px; font-weight: 800; letter-spacing: 0.12em;
+    color: var(--accent); text-transform: uppercase; margin: 0 0 14px;
+  }
+  h1 {
+    font-size: clamp(46px, 8.6vw, 104px);
+    line-height: 1.02; letter-spacing: -0.04em; font-weight: 900; margin: 0;
+  }
+  h2 {
+    font-size: clamp(32px, 4.8vw, 62px);
+    line-height: 1.1; letter-spacing: -0.035em; font-weight: 850; margin: 0 0 18px;
+  }
+  h3 { font-size: clamp(18px, 1.6vw, 21px); line-height: 1.35; letter-spacing: -0.02em; font-weight: 750; margin: 0 0 8px; }
+  .lead { font-size: clamp(16px, 1.45vw, 20px); color: var(--muted); margin: 18px 0 0; max-width: 44ch; }
+  .note { font-size: 13px; color: var(--muted); }
+  .center { text-align: center; }
+  .center .lead { margin-inline: auto; }
+
+  /* ---------- 내비 ---------- */
+  .nav {
+    position: fixed; inset: 0 0 auto 0; height: var(--nav-h); z-index: 100;
+    display: flex; align-items: center;
+    border-bottom: 1px solid transparent;
+    transition: background 0.35s var(--ease), border-color 0.35s var(--ease);
+  }
+  .nav.solid {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom-color: var(--line);
+  }
+  .nav-inner { display: flex; align-items: center; gap: 26px; }
+  .brand { display: flex; align-items: center; color: var(--accent); text-decoration: none; }
+  .brand .logo { height: 24px; }
+  .nav-links { display: flex; gap: 24px; margin-left: auto; font-size: 14px; color: var(--muted); }
+  .nav-links a { text-decoration: none; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--text); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: 0; border-radius: 999px; cursor: pointer;
+    font: inherit; font-weight: 750; text-decoration: none; white-space: nowrap;
+    transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease), background 0.2s;
+  }
+  .btn-accent { background: var(--accent); color: #0A0A0A; padding: 15px 26px; font-size: 16px; box-shadow: 0 10px 30px -10px rgba(255, 138, 76, 0.6); }
+  .btn-accent:hover { transform: translateY(-2px); box-shadow: 0 16px 36px -10px rgba(255, 138, 76, 0.75); }
+  .btn-ghost { background: rgba(255, 255, 255, 0.08); color: var(--text); padding: 15px 24px; font-size: 16px; }
+  .btn-ghost:hover { background: rgba(255, 255, 255, 0.14); }
+  .nav .btn-accent { padding: 9px 18px; font-size: 14px; box-shadow: none; }
+  @media (max-width: 820px) { .nav-links { display: none; } .nav .btn { margin-left: auto; } }
+
+  /* ---------- 스크롤 등장 ---------- */
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  /* ---------- 히어로 ---------- */
+  .hero { position: relative; padding: calc(var(--nav-h) + clamp(40px, 8vh, 96px)) 0 clamp(56px, 9vh, 110px); overflow: hidden; }
+  .hero::before {
+    content: ''; position: absolute; top: -30%; left: 62%;
+    width: min(1100px, 140vw); aspect-ratio: 1; transform: translateX(-50%);
+    background: radial-gradient(circle, rgba(255, 138, 76, 0.22) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  /* 다이아몬드(내야) 라인 — 배경에 은은하게 */
+  .hero::after {
+    content: ''; position: absolute; right: -12%; bottom: -38%;
+    width: min(760px, 110vw); aspect-ratio: 1;
+    border: 1px solid rgba(255, 138, 76, 0.12);
+    transform: rotate(45deg);
+    pointer-events: none;
+  }
+  .hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(28px, 4vw, 64px); align-items: center; }
+  .hero-logo { color: var(--accent); margin-bottom: 26px; }
+  .hero-logo .logo { height: clamp(46px, 6vw, 72px); }
+  h1 .l { display: block; overflow: hidden; padding-bottom: 0.04em; }
+  h1 .l > span { display: block; transform: translateY(108%); transition: transform 1s var(--ease); }
+  .hero.ready h1 .l > span { transform: none; }
+  h1 .l:nth-child(2) > span { transition-delay: 0.1s; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .hero-copy > *:not(h1) { opacity: 0; transform: translateY(16px); transition: opacity 0.7s var(--ease) 0.4s, transform 0.7s var(--ease) 0.4s; }
+  .hero.ready .hero-copy > *:not(h1) { opacity: 1; transform: none; }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+  .stats { display: flex; gap: clamp(22px, 3.4vw, 48px); margin-top: 42px; flex-wrap: wrap; }
+  .stat-n { font-size: clamp(24px, 2.5vw, 32px); font-weight: 850; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .stat-n small { font-size: 0.6em; color: var(--muted); font-weight: 700; margin-left: 2px; }
+  .stat-l { font-size: 12.5px; color: var(--muted); }
+  @media (max-width: 920px) {
+    .hero-grid { grid-template-columns: 1fr; text-align: center; }
+    .hero .lead { margin-inline: auto; }
+    .ctas, .stats { justify-content: center; }
+    .hero::after { display: none; }
+  }
+
+  /* ---------- 폰 + 잠금화면 ---------- */
+  .phone-stage { display: flex; justify-content: center; perspective: 1400px; }
+  .phone {
+    position: relative; width: min(320px, 78vw); aspect-ratio: 402 / 874;
+    background: #151515; border-radius: 13.5% / 6.2%; padding: 3%;
+    box-shadow: 0 50px 100px -24px rgba(255, 138, 76, 0.28), 0 30px 60px -20px rgba(0, 0, 0, 0.8), inset 0 0 0 1.5px rgba(255, 255, 255, 0.1);
+    transition: transform 0.5s var(--ease); transform-style: preserve-3d;
+  }
+  .screen {
+    position: relative; height: 100%; border-radius: 11.5% / 5.3%; overflow: hidden;
+    background:
+      radial-gradient(120% 60% at 20% 0%, #3a2a57 0%, transparent 60%),
+      radial-gradient(100% 60% at 100% 100%, #5a2a1a 0%, transparent 55%),
+      #0e0e14;
+    container-type: inline-size;
+  }
+  .island {
+    position: absolute; top: 2.6%; left: 50%; transform: translateX(-50%);
+    width: 30%; height: 3.4%; background: #000; border-radius: 999px; z-index: 3;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 4cqw;
+    font-size: 3.6cqw; font-weight: 800; color: #fff;
+    transition: width 0.6s var(--ease);
+  }
+  .island .is-l, .island .is-r { opacity: 0; transition: opacity 0.4s 0.2s; display: flex; align-items: center; gap: 1.2cqw; white-space: nowrap; }
+  .island.expanded { width: 72%; }
+  .island.expanded .is-l, .island.expanded .is-r { opacity: 1; }
+  .island .dot { width: 1.6cqw; height: 1.6cqw; border-radius: 50%; background: var(--live); }
+  .ls-date { text-align: center; margin-top: 15%; font-size: 4.4cqw; font-weight: 600; opacity: 0.85; }
+  .ls-time { text-align: center; font-size: 22cqw; font-weight: 700; line-height: 1; letter-spacing: -0.02em; margin-top: 1%; }
+  .ls-stack { position: absolute; left: 4.5%; right: 4.5%; bottom: 6%; display: flex; flex-direction: column; gap: 2.4cqw; }
+
+  /* 라이브 액티비티 카드 */
+  .la {
+    background: var(--navy); border-radius: 6cqw; padding: 4.4cqw 5cqw 4cqw;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  }
+  .la-top { display: flex; align-items: center; justify-content: space-between; font-size: 3.2cqw; color: rgba(255, 255, 255, 0.6); font-weight: 600; }
+  .la-top .logo { height: 3.6cqw; color: var(--accent); }
+  .la-live { display: inline-flex; align-items: center; gap: 1.2cqw; color: var(--live); font-weight: 800; }
+  .la-live i { width: 1.6cqw; height: 1.6cqw; border-radius: 50%; background: currentColor; animation: pulse 1.6s infinite; }
+  .la-main { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-top: 2.6cqw; }
+  .la-team { display: flex; flex-direction: column; gap: 0.6cqw; }
+  .la-team.r { align-items: flex-end; }
+  .la-name { font-size: 3.6cqw; font-weight: 700; opacity: 0.85; }
+  .la-score { font-size: 10cqw; font-weight: 850; line-height: 1; font-variant-numeric: tabular-nums; transition: transform 0.3s var(--ease), color 0.3s; }
+  .la-score.bump { transform: scale(1.25); color: var(--accent); }
+  .la-mid { display: flex; flex-direction: column; align-items: center; gap: 1.6cqw; }
+  .la-inn { font-size: 3.4cqw; font-weight: 750; }
+  .bases { position: relative; width: 11cqw; height: 7.4cqw; }
+  .bases b { position: absolute; width: 3.6cqw; height: 3.6cqw; transform: rotate(45deg); border: 0.4cqw solid rgba(255, 255, 255, 0.85); border-radius: 0.6cqw; transition: background 0.3s; }
+  .bases b.on { background: var(--accent); border-color: var(--accent); }
+  .bases .b2 { top: 0; left: 50%; margin-left: -1.8cqw; }
+  .bases .b3 { bottom: 0; left: 0.4cqw; }
+  .bases .b1 { bottom: 0; right: 0.4cqw; }
+  .bso { display: flex; gap: 1.8cqw; font-size: 2.6cqw; font-weight: 800; color: rgba(255, 255, 255, 0.55); }
+  .bso span { display: inline-flex; gap: 0.6cqw; align-items: center; }
+  .bso i { width: 1.6cqw; height: 1.6cqw; border-radius: 50%; background: rgba(255, 255, 255, 0.22); }
+  .bso i.on.b { background: var(--live); } .bso i.on.s { background: #F5C542; } .bso i.on.o { background: var(--red); }
+  .la-play { margin-top: 3cqw; font-size: 3.1cqw; color: rgba(255, 255, 255, 0.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity 0.3s; }
+
+  /* 잠금화면 알림 */
+  .noti {
+    display: flex; gap: 3cqw; align-items: flex-start;
+    background: rgba(40, 40, 46, 0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-radius: 5cqw; padding: 3.4cqw 3.8cqw;
+    animation: notiIn 0.6s var(--ease) both;
+  }
+  .noti img { width: 8.6cqw; height: 8.6cqw; border-radius: 2cqw; flex: none; }
+  .noti-b { min-width: 0; flex: 1; }
+  .noti-h { display: flex; justify-content: space-between; font-size: 3.2cqw; font-weight: 750; }
+  .noti-h small { font-weight: 500; opacity: 0.55; }
+  .noti-t { font-size: 3.4cqw; font-weight: 750; margin-top: 0.3cqw; }
+  .noti-m { font-size: 3cqw; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @keyframes notiIn { from { opacity: 0; transform: translateY(-14px) scale(0.96); } to { opacity: 1; transform: none; } }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.75); } }
+
+  /* ---------- 섹션 공통 ---------- */
+  .band { padding: clamp(80px, 12vh, 150px) 0; position: relative; }
+  .band.alt { background: #0B0B0C; border-block: 1px solid var(--line); }
+  .sec-head { max-width: 760px; margin-bottom: clamp(36px, 5vw, 64px); }
+  .sec-head.center { margin-inline: auto; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 5vw, 80px); align-items: center; }
+  .split.flip > :first-child { order: 2; }
+  @media (max-width: 920px) { .split, .split.flip { grid-template-columns: 1fr; } .split.flip > :first-child { order: 0; } }
+
+  /* ---------- 내 팀 기준 알림 ---------- */
+  .seg { display: inline-flex; background: var(--surface); border-radius: 999px; padding: 4px; margin-top: 28px; }
+  .seg button {
+    border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 750; font-size: 15px;
+    padding: 10px 22px; border-radius: 999px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+    transition: background 0.3s var(--ease), color 0.3s;
+  }
+  .seg button i { width: 10px; height: 10px; border-radius: 50%; }
+  .seg button[aria-pressed="true"] { background: var(--surface-high); color: var(--text); }
+  .feed { display: flex; flex-direction: column; gap: 12px; }
+  .feed-item {
+    display: flex; gap: 14px; align-items: center;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 16px 18px;
+    transition: border-color 0.4s;
+  }
+  .feed-item img { width: 40px; height: 40px; border-radius: 10px; flex: none; }
+  .feed-b { flex: 1; min-width: 0; }
+  .feed-t { font-weight: 800; font-size: 16px; display: flex; justify-content: space-between; gap: 10px; }
+  .feed-t small { color: var(--muted); font-weight: 500; font-size: 12px; flex: none; }
+  .feed-m { color: var(--muted); font-size: 14px; margin-top: 2px; }
+  .feed-m b { font-weight: 800; transition: color 0.35s; }
+  .feed-m b.good { color: var(--live); }
+  .feed-m b.bad { color: var(--red); }
+  .feed-item.hr { border-color: rgba(255, 138, 76, 0.45); }
+
+  /* ---------- 게임데이 카드 ---------- */
+  .gd {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 28px; padding: 22px;
+    box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.9);
+  }
+  .gd-head { display: flex; justify-content: space-between; align-items: center; }
+  .gd-score { display: flex; align-items: center; gap: 14px; font-weight: 850; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .gd-score span { color: var(--muted); font-weight: 700; font-size: 15px; }
+  .pill { background: var(--surface-high); border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 750; }
+  .gd-body { display: grid; grid-template-columns: 1.2fr 1fr; gap: 18px; margin-top: 18px; }
+  @media (max-width: 520px) { .gd-body { grid-template-columns: 1fr; } }
+  .field { position: relative; aspect-ratio: 1; border-radius: 18px; overflow: hidden; background: radial-gradient(circle at 50% 100%, #2f6e3a 0%, #1f4f29 70%); }
+  .field svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .field .tag {
+    position: absolute; transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.62); border-radius: 999px; padding: 2px 8px;
+    font-size: 11px; font-weight: 700; white-space: nowrap; transition: opacity 0.3s;
+  }
+  .field .tag.run { background: var(--accent); color: #0A0A0A; }
+  .zone { background: #111; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; }
+  .zone-t { font-size: 12px; color: var(--muted); font-weight: 700; }
+  .zone-box { position: relative; flex: 1; min-height: 170px; margin-top: 10px; }
+  .zone-box .sz { position: absolute; inset: 18% 22%; border: 1.5px solid rgba(255, 255, 255, 0.5); }
+  .zone-box .sz::before, .zone-box .sz::after { content: ''; position: absolute; inset: 0; border: solid rgba(255, 255, 255, 0.12); }
+  .zone-box .sz::before { border-width: 0 1px; left: 33.3%; right: 33.3%; }
+  .zone-box .sz::after { border-width: 1px 0; top: 33.3%; bottom: 33.3%; }
+  .pitch {
+    position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 11px; font-weight: 850; color: #0A0A0A;
+    animation: pop 0.45s var(--ease) both;
+  }
+  .pitch.ball { background: var(--live); } .pitch.strike { background: #F5C542; } .pitch.inplay { background: var(--accent); }
+  @keyframes pop { from { transform: scale(0); } 60% { transform: scale(1.25); } to { transform: scale(1); } }
+  .zone-last { font-size: 13px; font-weight: 700; margin-top: 8px; min-height: 1.6em; }
+  .zone-last small { color: var(--muted); font-weight: 500; }
+  .gd-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; font-size: 14px; flex-wrap: wrap; gap: 8px; }
+  .gd-foot .bso { font-size: 12px; gap: 12px; }
+  .gd-foot .bso i { width: 9px; height: 9px; }
+  .gd-foot .bso span { gap: 4px; }
+
+  /* ---------- 기능 그리드 ---------- */
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 920px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 600px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .fcard {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 26px 24px;
+    transition: transform 0.4s var(--ease), border-color 0.4s;
+  }
+  .fcard:hover { transform: translateY(-5px); border-color: rgba(255, 138, 76, 0.4); }
+  .ficon {
+    width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; margin-bottom: 18px;
+    background: rgba(255, 138, 76, 0.12); color: var(--accent);
+  }
+  .ficon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .fcard p { color: var(--muted); font-size: 14.5px; margin: 0; }
+
+  /* ---------- 팬 (응원톡 + 승부예측) ---------- */
+  .fan-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 14px; }
+  @media (max-width: 920px) { .fan-grid { grid-template-columns: minmax(0, 1fr); } }
+  .panel { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 28px; padding: 24px; }
+  .panel-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .panel-h h3 { margin: 0; }
+  .mood { margin-bottom: 16px; }
+  .mood-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--surface-high); }
+  .mood-bar i { transition: width 0.8s var(--ease); }
+  .mood-l { display: flex; justify-content: space-between; font-size: 13px; font-weight: 750; margin-top: 6px; }
+  .chat { display: flex; flex-direction: column; gap: 10px; height: 260px; overflow: hidden; mask-image: linear-gradient(transparent, #000 22%); -webkit-mask-image: linear-gradient(transparent, #000 22%); justify-content: flex-end; }
+  .msg { display: flex; gap: 10px; align-items: flex-start; animation: notiIn 0.5s var(--ease) both; }
+  .msg .av { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 11px; font-weight: 850; color: #fff; }
+  .msg .who { font-size: 12px; color: var(--muted); font-weight: 650; }
+  .msg .txt { background: var(--surface-high); padding: 8px 13px; border-radius: 4px 16px 16px 16px; font-size: 14.5px; margin-top: 3px; display: inline-block; }
+  .chat-in { display: flex; gap: 8px; margin-top: 14px; }
+  .chat-in input { flex: 1; min-width: 0; }
+
+  .pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pick button {
+    border: 1.5px solid var(--line); background: var(--surface-high); color: var(--text); border-radius: 18px;
+    padding: 18px 10px; font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    transition: border-color 0.3s, transform 0.2s var(--ease);
+  }
+  .pick button:hover { transform: translateY(-2px); }
+  .pick button[aria-pressed="true"] { border-color: var(--accent); }
+  .pick .emb { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 13px; color: #fff; }
+  .pick b { font-size: 16px; }
+  .pick .pct { font-size: 24px; font-weight: 850; font-variant-numeric: tabular-nums; color: var(--muted); transition: color 0.3s; }
+  .pick button[aria-pressed="true"] .pct { color: var(--accent); }
+  .pred-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; margin-top: 16px; background: var(--surface-high); }
+  .pred-bar i { transition: width 0.8s var(--ease); }
+  .my-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 18px; text-align: center; }
+  .my-stats div { background: #111; border-radius: 14px; padding: 12px 6px; }
+  .my-stats b { display: block; font-size: 20px; font-weight: 850; }
+  .my-stats span { font-size: 11.5px; color: var(--muted); }
+
+  /* ---------- 입력 ---------- */
+  input, select {
+    font: inherit; font-size: 15px; color: var(--text);
+    background: var(--surface-high); border: 1px solid var(--line); border-radius: 14px; padding: 13px 16px;
+    outline: none; transition: border-color 0.2s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  select { appearance: none; padding-right: 36px; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 20px) 52%, calc(100% - 15px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+  .btn-sm { padding: 12px 18px; font-size: 14px; }
+
+  /* ---------- 출시 알림 CTA ---------- */
+  .final { position: relative; overflow: hidden; }
+  .final::before {
+    content: ''; position: absolute; left: 50%; bottom: -60%; transform: translateX(-50%);
+    width: min(1200px, 150vw); aspect-ratio: 1;
+    background: radial-gradient(circle, rgba(255, 138, 76, 0.25) 0%, transparent 58%);
+    pointer-events: none;
+  }
+  .final .wrap { position: relative; }
+  .app-mark { width: 96px; height: 96px; border-radius: 24px; margin: 0 auto 28px; box-shadow: 0 24px 50px -16px rgba(255, 138, 76, 0.6); }
+  .wl {
+    display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+    max-width: 620px; margin: 34px auto 0;
+  }
+  .wl input { flex: 1 1 240px; }
+  .wl select { flex: 0 1 160px; }
+  .wl-msg { min-height: 1.6em; margin-top: 14px; font-size: 14px; color: var(--muted); }
+  .wl-msg.ok { color: var(--live); }
+  .wl-msg.err { color: var(--red); }
+  .wl-count { margin-top: 6px; font-size: 14px; color: var(--muted); }
+  .wl-count b { color: var(--text); }
+
+  /* ---------- 푸터 ---------- */
+  footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13px; color: var(--muted); }
+  .foot-row { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+  .foot-row .logo { height: 18px; color: var(--muted); }
+  .foot-copy { margin-left: auto; }
+  @media (max-width: 640px) { .foot-copy { margin-left: 0; width: 100%; } }
+
+  /* ---------- 꽃가루 (홈런 연출) ---------- */
+  .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 200; overflow: hidden; }
+  .confetti i { position: absolute; top: -12px; width: 8px; height: 12px; border-radius: 2px; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translate3d(var(--dx), 110vh, 0) rotate(var(--rot)); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+    .reveal, .hero-copy > *:not(h1) { opacity: 1; transform: none; }
+    h1 .l > span { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top" aria-label="HIT! 홈"><span class="logo"></span></a>
+    <div class="nav-links">
+      <a href="#alerts">알림</a>
+      <a href="#gameday">게임데이</a>
+      <a href="#features">기능</a>
+      <a href="#fans">팬</a>
+    </div>
+    <a class="btn btn-accent" href="#waitlist">출시 알림 받기</a>
+  </div>
+</nav>
+
+<!-- ================= 히어로 ================= -->
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <div class="hero-logo"><span class="logo" role="img" aria-label="HIT!"></span></div>
+      <h1><span class="l"><span>터지는 순간,</span></span><span class="l"><span><em>바로 HIT!</em></span></span></h1>
+      <p class="lead">내 팀 경기가 시작하고, 점수가 나고, 끝나는 순간을 잠금화면으로 알려드려요. 경기 중엔 잠금화면과 다이내믹 아일랜드에 실시간 점수판이 떠요.</p>
+      <div class="ctas">
+        <a class="btn btn-accent" href="#waitlist">출시 알림 받기</a>
+        <a class="btn btn-ghost" href="#alerts">어떻게 오는지 보기</a>
+      </div>
+      <div class="stats">
+        <div><div class="stat-n" data-count="10">10<small>초</small></div><div class="stat-l">경기 상황 확인 주기</div></div>
+        <div><div class="stat-n" data-count="9">9<small>종</small></div><div class="stat-l">골라 받는 알림</div></div>
+        <div><div class="stat-n" data-count="10">10<small>개</small></div><div class="stat-l">KBO 전 구단</div></div>
+      </div>
+    </div>
+
+    <div class="phone-stage">
+      <div class="phone" id="heroPhone" role="img" aria-label="잠금화면에 뜬 HIT! 실시간 점수판과 득점 알림">
+        <div class="screen">
+          <div class="island" id="island">
+            <span class="is-l"><span class="dot"></span>KIA <b id="isA">1</b></span>
+            <span class="is-r"><b id="isH">0</b> 삼성</span>
+          </div>
+          <div class="ls-date">10월 27일 월요일</div>
+          <div class="ls-time" id="lsTime">19:42</div>
+          <div class="ls-stack">
+            <div id="notiSlot"></div>
+            <div class="la">
+              <div class="la-top"><span class="logo"></span><span class="la-live" id="laLive"><i></i>LIVE · 플레이오프 2차전</span></div>
+              <div class="la-main">
+                <div class="la-team"><span class="la-name">KIA</span><span class="la-score" id="laA">1</span></div>
+                <div class="la-mid">
+                  <span class="la-inn" id="laInn">3회말</span>
+                  <div class="bases" id="laBases"><b class="b2"></b><b class="b3"></b><b class="b1"></b></div>
+                  <div class="bso">
+                    <span>B<span id="laB"><i class="b"></i><i class="b"></i><i class="b"></i></span></span>
+                    <span>S<span id="laS"><i class="s"></i><i class="s"></i></span></span>
+                    <span>O<span id="laO"><i class="o"></i><i class="o"></i></span></span>
+                  </div>
+                </div>
+                <div class="la-team r"><span class="la-name">삼성</span><span class="la-score" id="laH">0</span></div>
+              </div>
+              <div class="la-play" id="laPlay">경기 시작 — 대구 삼성라이온즈파크</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ================= 내 팀 기준 알림 ================= -->
+<section class="band alt" id="alerts">
+  <div class="wrap split">
+    <div class="reveal">
+      <p class="eyebrow">내 팀 기준 알림</p>
+      <h2>같은 홈런,<br />다른 알림.</h2>
+      <p class="lead">"삼성 득점"인지 "삼성 실점"인지, 내가 응원하는 팀 입장에서 알려드려요. 아래 응원 팀을 바꿔 보세요.</p>
+      <div class="seg" role="group" aria-label="응원 팀 고르기">
+        <button type="button" data-team="삼성" aria-pressed="true"><i style="background:#074CA1"></i>삼성 팬</button>
+        <button type="button" data-team="KIA" aria-pressed="false"><i style="background:#EA0029"></i>KIA 팬</button>
+      </div>
+      <p class="note" style="margin-top:20px">2026 플레이오프 2차전(10.27 대구) 실제 알림을 다시 재생했어요.</p>
+    </div>
+    <div class="feed reveal" id="feed"></div>
+  </div>
+</section>
+
+<!-- ================= 게임데이 ================= -->
+<section class="band" id="gameday">
+  <div class="wrap split flip">
+    <div class="reveal">
+      <p class="eyebrow">게임데이 카드</p>
+      <h2>지금 몇 볼<br />몇 스트라이크인지.</h2>
+      <p class="lead">이닝·아웃·볼카운트, 그라운드 위 주자와 수비, 이번 타석 투구 위치·구종·구속까지. 문자중계 탭 맨 위 한 장에 다 있어요.</p>
+      <p class="note" style="margin-top:22px">아래 카드는 앱 화면 구성을 옮긴 데모예요.</p>
+    </div>
+    <div class="reveal">
+      <div class="gd" role="img" aria-label="게임데이 카드 데모">
+        <div class="gd-head">
+          <div class="gd-score"><span>KIA</span><b id="gdA">1</b>:<b id="gdH">3</b><span>삼성</span></div>
+          <span class="pill" id="gdInn">3회말 · 1사</span>
+        </div>
+        <div class="gd-body">
+          <div class="field">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <path d="M50 92 L14 56 A51 51 0 0 1 86 56 Z" fill="#2c6a35" />
+              <path d="M50 88 L30 68 L50 48 L70 68 Z" fill="#B4512F" opacity="0.9" />
+              <path d="M50 84 L34 68 L50 52 L66 68 Z" fill="#2f7a3b" />
+              <circle cx="50" cy="68" r="3.4" fill="#B4512F" />
+              <g fill="#fff"><rect x="48.4" y="86.4" width="3.2" height="3.2" transform="rotate(45 50 88)" /><rect x="68.4" y="66.4" width="3.2" height="3.2" transform="rotate(45 70 68)" /><rect x="48.4" y="46.4" width="3.2" height="3.2" transform="rotate(45 50 48)" /><rect x="28.4" y="66.4" width="3.2" height="3.2" transform="rotate(45 30 68)" /></g>
+              <path d="M50 88 L8 46 M50 88 L92 46" stroke="#fff" stroke-width="0.5" opacity="0.6" />
+            </svg>
+            <span class="tag" style="left:50%;top:60%">양현종</span>
+            <span class="tag" style="left:50%;top:95%" id="gdBatter">구자욱</span>
+            <span class="tag run" style="left:70%;top:74%" id="run1">박승규</span>
+            <span class="tag" style="left:50%;top:16%">최원준</span>
+            <span class="tag" style="left:20%;top:30%">이창진</span>
+            <span class="tag" style="left:80%;top:30%">나성범</span>
+            <span class="tag" style="left:72%;top:41%">김선빈</span>
+            <span class="tag" style="left:28%;top:41%">박찬호</span>
+          </div>
+          <div class="zone">
+            <div class="zone-t">이번 타석 투구</div>
+            <div class="zone-box" id="zone"><div class="sz"></div></div>
+            <div class="zone-last" id="zoneLast"></div>
+          </div>
+        </div>
+        <div class="gd-foot">
+          <span><span class="note">투수</span> <b>양현종</b> <span class="note">vs 타자</span> <b id="gdBatter2">구자욱</b> <span class="note">· 오늘 1타수 1안타</span></span>
+          <div class="bso">
+            <span>B<span id="gdB"><i class="b"></i><i class="b"></i><i class="b"></i></span></span>
+            <span>S<span id="gdS"><i class="s"></i><i class="s"></i></span></span>
+            <span>O<span id="gdO"><i class="o"></i><i class="o"></i></span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 기능 ================= -->
+<section class="band alt" id="features">
+  <div class="wrap">
+    <div class="sec-head center reveal">
+      <p class="eyebrow">기능</p>
+      <h2>야구 보는 데 필요한 건<br />다 넣었어요.</h2>
+    </div>
+    <div class="grid">
+      <div class="fcard reveal">
+        <div class="ficon"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg></div>
+        <h3>골라 받는 알림 9종</h3>
+        <p>시작 30분 전, 선발 발표, 시작, 득점, 홈런, 역전·동점, 연장, 종료, 취소·중단. 원하는 것만 켜세요.</p>
+      </div>
+      <div class="fcard reveal">
+        <div class="ficon"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="3" /><path d="M9 6h6" /><rect x="8" y="13" width="8" height="5" rx="1.5" /></svg></div>
+        <h3>잠금화면 자동 점수판</h3>
+        <p>버튼 없이 내 팀 경기 30분 전부터 잠금화면과 다이내믹 아일랜드에 떠요. 테마도 4가지.</p>
+      </div>
+      <div class="fcard reveal">
+        <div class="ficon"><svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4.5L18.5 21 12 16.5 5.5 21l2-7.5L2 9h7z" /></svg></div>
+        <h3>관심 선수 알림</h3>
+        <p>★ 한 선수만 따로. 타자는 타석 결과마다, 투수는 등판·강판 때 알려드려요.</p>
+      </div>
+      <div class="fcard reveal">
+        <div class="ficon"><svg viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 0 0 6v3a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3a3 3 0 0 0 0-6V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" /><path d="M13 5v2M13 17v2M13 11v2" /></svg></div>
+        <h3>직관 인증 · 직관 일기</h3>
+        <p>티켓 사진을 휴대폰 안에서 읽어 인증해요. 인증한 직관만으로 직관 승률과 연승을 세요.</p>
+      </div>
+      <div class="fcard reveal">
+        <div class="ficon"><svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9" /><path d="M8 22l1-2M12 22l1-2M16 22l1-2" /></svg></div>
+        <h3>구장 날씨 · 우천 취소</h3>
+        <p>경기 시간대 하늘·기온·강수 확률과 우천 취소 가능성. 비 예보가 있으면 시작 전 알림에 한 줄.</p>
+      </div>
+      <div class="fcard reveal">
+        <div class="ficon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18" /><path d="M7 15l4-4 3 3 5-6" /></svg></div>
+        <h3>승리 확률 · 기록</h3>
+        <p>타석별 승리 확률 그래프, 이닝별 점수, 팀 순위, 투수·타자 TOP20, 초성 선수 검색(ㄱㄷㅇ → 김도영).</p>
+      </div>
+      <div class="fcard reveal">
+        <div class="ficon"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H5.17L4 17.17z" /><path d="M8 8h8M8 12h5" /></svg></div>
+        <h3>내 팀 소식</h3>
+        <p>홈에 내 팀 최신 기사. 오프시즌엔 이적·계약·부상 소식을 맨 위로 올려요.</p>
+      </div>
+      <div class="fcard reveal">
+        <div class="ficon"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z" /><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4" /></svg></div>
+        <h3>포스트시즌 대진표</h3>
+        <p>가을야구엔 WC·준PO·PO·KS 대진표가 홈 맨 위에. "플레이오프 3차전 · 1승 1패"까지.</p>
+      </div>
+      <div class="fcard reveal">
+        <div class="ficon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></svg></div>
+        <h3>홈 화면 위젯</h3>
+        <p>내 팀 오늘 경기를 홈 화면에서. 알림을 누르면 그 장면의 문자중계로 바로 가요.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 팬 ================= -->
+<section class="band" id="fans">
+  <div class="wrap">
+    <div class="sec-head center reveal">
+      <p class="eyebrow">같이 보는 야구</p>
+      <h2>혼자 봐도, 같이 응원.</h2>
+      <p class="lead">경기 당일 열리는 응원톡, 팀별 커뮤니티, 승부예측과 오늘의 MVP 투표. 자동 검열로 깨끗하게 지켜요.</p>
+    </div>
+    <div class="fan-grid">
+      <div class="panel reveal">
+        <div class="panel-h"><h3>응원톡</h3><span class="pill" style="color:var(--live)">● 1,284명 응원 중</span></div>
+        <div class="mood">
+          <div class="mood-bar"><i id="moodA" style="width:42%;background:#EA0029"></i><i id="moodH" style="width:58%;background:#074CA1"></i></div>
+          <div class="mood-l"><span>KIA <span id="moodAp">42</span>%</span><span class="note">팬 분위기</span><span><span id="moodHp">58</span>% 삼성</span></div>
+        </div>
+        <div class="chat" id="chat"></div>
+        <form class="chat-in" id="chatForm">
+          <input id="chatInput" maxlength="40" placeholder="응원 한마디 (데모)" aria-label="응원 메시지" />
+          <button class="btn btn-accent btn-sm" type="submit">보내기</button>
+        </form>
+      </div>
+      <div class="panel reveal">
+        <div class="panel-h"><h3>승부예측</h3><span class="pill">플레이오프 3차전</span></div>
+        <p class="note" style="margin:0 0 14px">이길 팀을 골라 보세요. 경기 시작 전까지 바꿀 수 있어요.</p>
+        <div class="pick" id="pick">
+          <button type="button" data-side="a" aria-pressed="false"><span class="emb" style="background:#EA0029">KIA</span><b>KIA</b><span class="pct" id="pA">47%</span></button>
+          <button type="button" data-side="h" aria-pressed="false"><span class="emb" style="background:#074CA1">삼성</span><b>삼성</b><span class="pct" id="pH">53%</span></button>
+        </div>
+        <div class="pred-bar"><i id="pbA" style="width:47%;background:#EA0029"></i><i id="pbH" style="width:53%;background:#074CA1"></i></div>
+        <div class="my-stats">
+          <div><b>68%</b><span>적중률</span></div>
+          <div><b>17</b><span>맞힘</span></div>
+          <div><b style="color:var(--accent)">4</b><span>연속 적중</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 출시 알림 ================= -->
+<section class="band alt final" id="waitlist">
+  <div class="wrap center reveal">
+    <img class="app-mark" src="img/app-icon.png" alt="HIT! 앱 아이콘" />
+    <h2>다음 시즌,<br />첫 홈런부터 같이.</h2>
+    <p class="lead">곧 App Store에 나와요. 이메일을 남겨 주시면 출시되는 날 가장 먼저 알려드릴게요.</p>
+    <form class="wl" id="wl">
+      <input name="email" type="email" required placeholder="이메일 주소" aria-label="이메일 주소" autocomplete="email" />
+      <select name="team" aria-label="응원 팀">
+        <option value="">응원 팀</option>
+        <option>KIA</option><option>삼성</option><option>LG</option><option>두산</option><option>KT</option>
+        <option>SSG</option><option>롯데</option><option>한화</option><option>NC</option><option>키움</option>
+      </select>
+      <button class="btn btn-accent" type="submit">알림 신청</button>
+    </form>
+    <p class="wl-msg" id="wlMsg" role="status"></p>
+    <p class="wl-count" id="wlCount" hidden><b id="wlN">0</b>명이 기다리고 있어요</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-row">
+    <span class="logo" role="img" aria-label="HIT!"></span>
+    <span>KBO 야구 알림 앱 · iOS 17.2+</span>
+    <span class="foot-copy">© 2026 HIT!</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var $ = function (id) { return document.getElementById(id); };
+  var each = function (list, fn) { Array.prototype.forEach.call(list, fn); };
+
+  /* ---------- 히어로 입장 · 내비 ---------- */
+  var hero = $('top');
+  requestAnimationFrame(function () { hero.classList.add('ready'); });
+  var nav = $('nav');
+  function onNav() { nav.classList.toggle('solid', window.scrollY > 12); }
+  window.addEventListener('scroll', onNav, { passive: true });
+  onNav();
+
+  /* ---------- 스크롤 등장 ---------- */
+  var reveals = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window && !reduced) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var sib = Array.prototype.slice.call(e.target.parentNode.children);
+        e.target.style.transitionDelay = Math.min(sib.indexOf(e.target), 4) * 0.07 + 's';
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      });
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.1 });
+    each(reveals, function (el) { io.observe(el); });
+  } else {
+    each(reveals, function (el) { el.classList.add('in'); });
+  }
+
+  /* ---------- 숫자 카운트업 ---------- */
+  if ('IntersectionObserver' in window && !reduced) {
+    var cio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var el = e.target, unit = el.querySelector('small').outerHTML;
+        var target = +el.getAttribute('data-count'), start = null;
+        (function step(ts) {
+          if (start === null) start = ts;
+          var p = Math.min((ts - start) / 900, 1);
+          el.innerHTML = Math.round(target * (1 - Math.pow(1 - p, 3))) + unit;
+          if (p < 1) requestAnimationFrame(step);
+        })(performance.now());
+        cio.unobserve(el);
+      });
+    }, { threshold: 0.8 });
+    each(document.querySelectorAll('[data-count]'), function (el) { cio.observe(el); });
+  }
+
+  /* ---------- 폰 기울기 (데스크톱) ---------- */
+  var phone = $('heroPhone');
+  if (window.matchMedia('(hover:hover) and (min-width: 921px)').matches && !reduced) {
+    window.addEventListener('mousemove', function (e) {
+      var x = (e.clientX / window.innerWidth - 0.5) * 2, y = (e.clientY / window.innerHeight - 0.5) * 2;
+      phone.style.transform = 'rotateY(' + (x * 8) + 'deg) rotateX(' + (-y * 5) + 'deg)';
+    }, { passive: true });
+  }
+
+  /* ---------- 공용: 볼카운트 점 · 꽃가루 ---------- */
+  function light(box, n) { each(box.children, function (d, i) { d.classList.toggle('on', i < n); }); }
+  function confetti() {
+    if (reduced) return;
+    var c = document.createElement('div'); c.className = 'confetti';
+    var colors = ['#FF8A4C', '#FFB08A', '#fff', '#F5C542', '#36D583'];
+    for (var i = 0; i < 70; i++) {
+      var p = document.createElement('i');
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.background = colors[i % colors.length];
+      p.style.setProperty('--dx', (Math.random() - 0.5) * 200 + 'px');
+      p.style.setProperty('--rot', Math.random() * 720 + 'deg');
+      p.style.animationDuration = 1.6 + Math.random() * 1.4 + 's';
+      p.style.animationDelay = Math.random() * 0.3 + 's';
+      c.appendChild(p);
+    }
+    document.body.appendChild(c);
+    setTimeout(function () { c.remove(); }, 3600);
+  }
+
+  /* ---------- 실제 경기 장면 (2026 PO 2차전, README 의 재생 결과) ---------- */
+  // side: 점수 낸 팀(a=KIA 원정, h=삼성 홈)
+  var PLAYS = [
+    { kind: '선취점!', inn: '3회초', a: 1, h: 0, side: 'a', who: '이호연 : 중견수 희생플라이 아웃', bases: [0, 0, 0], b: 0, s: 1, o: 2, t: '19:21' },
+    { kind: '동점!', inn: '3회말', a: 1, h: 1, side: 'h', who: '박승규 : 좌익선상 2루타', bases: [0, 1, 0], b: 1, s: 1, o: 0, t: '19:33' },
+    { kind: '역전!', inn: '3회말', a: 1, h: 2, side: 'h', who: '구자욱 : 중견수 앞 1루타', bases: [1, 0, 0], b: 2, s: 2, o: 1, t: '19:38' },
+    { kind: '홈런!', inn: '3회말', a: 1, h: 4, side: 'h', who: '디아즈 : 우중간 담장 넘어가는 홈런', bases: [0, 0, 0], b: 1, s: 0, o: 1, t: '19:42', hr: true },
+    { kind: '경기 종료', inn: '9회초', a: 3, h: 8, side: 'end', who: '삼성 승리 · 승 후라도', bases: [0, 0, 0], b: 0, s: 0, o: 3, t: '21:47' }
+  ];
+  var myTeam = '삼성';
+  function verdict(p) {
+    if (p.side === 'end') return p.h > p.a ? (myTeam === '삼성' ? ['승리', 'good'] : ['패배', 'bad']) : (myTeam === 'KIA' ? ['승리', 'good'] : ['패배', 'bad']);
+    var scorer = p.side === 'a' ? 'KIA' : '삼성';
+    return scorer === myTeam ? ['득점', 'good'] : ['실점', 'bad'];
+  }
+  function line(p) {
+    var v = verdict(p);
+    if (p.side === 'end') return '<b class="' + v[1] + '">' + myTeam + ' ' + v[0] + '</b> · 승 후라도';
+    return '<b class="' + v[1] + '">' + myTeam + ' ' + v[0] + '</b> · ' + p.inn + ' · ' + p.who;
+  }
+  function title(p) { return (p.side === 'end' ? '경기 종료 · ' : p.kind + ' ') + 'KIA ' + p.a + ' : ' + p.h + ' 삼성'; }
+
+  /* 히어로 잠금화면 — 장면을 순서대로 재생 */
+  var laA = $('laA'), laH = $('laH');
+  function bump(el, v) {
+    if (el.textContent === String(v)) return;
+    el.textContent = v; el.classList.add('bump');
+    setTimeout(function () { el.classList.remove('bump'); }, 450);
+  }
+  function heroScene(i) {
+    var p = PLAYS[i];
+    bump(laA, p.a); bump(laH, p.h);
+    $('isA').textContent = p.a; $('isH').textContent = p.h;
+    $('laInn').textContent = p.side === 'end' ? '경기 종료' : p.inn;
+    $('lsTime').textContent = p.t;
+    light($('laB'), p.b); light($('laS'), p.s); light($('laO'), p.o);
+    each($('laBases').children, function (b) {
+      var idx = b.classList.contains('b1') ? 0 : b.classList.contains('b2') ? 1 : 2;
+      b.classList.toggle('on', !!p.bases[idx]);
+    });
+    $('laPlay').textContent = p.who;
+    $('laLive').innerHTML = p.side === 'end' ? '플레이오프 2차전 · 종료' : '<i></i>LIVE · 플레이오프 2차전';
+    $('laLive').style.color = p.side === 'end' ? 'rgba(255,255,255,0.6)' : '';
+    var v = verdict(p);
+    $('notiSlot').innerHTML =
+      '<div class="noti"><img src="img/app-icon.png" alt="" /><div class="noti-b">' +
+      '<div class="noti-h"><span>HIT!</span><small>지금</small></div>' +
+      '<div class="noti-t">' + title(p) + '</div>' +
+      '<div class="noti-m">' + myTeam + ' ' + v[0] + (p.side === 'end' ? ' · 승 후라도' : ' · ' + p.inn + ' · ' + p.who) + '</div></div></div>';
+    var island = $('island');
+    island.classList.add('expanded');
+    setTimeout(function () { island.classList.remove('expanded'); }, 2200);
+  }
+  var heroI = 0;
+  heroScene(heroI);
+  if (!reduced) setInterval(function () { heroI = (heroI + 1) % PLAYS.length; heroScene(heroI); }, 3400);
+
+  /* 내 팀 기준 알림 피드 */
+  function renderFeed() {
+    $('feed').innerHTML = PLAYS.map(function (p) {
+      return '<div class="feed-item' + (p.hr ? ' hr' : '') + '"><img src="img/app-icon.png" alt="" />' +
+        '<div class="feed-b"><div class="feed-t"><span>' + title(p) + '</span><small>' + p.t + '</small></div>' +
+        '<div class="feed-m">' + line(p) + '</div></div></div>';
+    }).join('');
+  }
+  renderFeed();
+  each(document.querySelectorAll('.seg button'), function (btn) {
+    btn.addEventListener('click', function () {
+      each(document.querySelectorAll('.seg button'), function (b) { b.setAttribute('aria-pressed', 'false'); });
+      btn.setAttribute('aria-pressed', 'true');
+      myTeam = btn.getAttribute('data-team');
+      renderFeed();
+      heroScene(heroI);
+    });
+  });
+
+  /* ---------- 게임데이 카드 — 구자욱 타석을 한 구씩 ---------- */
+  // x,y: 존 박스 기준 %, kind: ball/strike/inplay
+  var PITCHES = [
+    { x: 28, y: 30, k: 'strike', n: '포심 146km', r: '스트라이크 (헛스윙)', b: 0, s: 1 },
+    { x: 84, y: 66, k: 'ball', n: '슬라이더 132km', r: '볼', b: 1, s: 1 },
+    { x: 18, y: 82, k: 'ball', n: '체인지업 128km', r: '볼', b: 2, s: 1 },
+    { x: 62, y: 44, k: 'strike', n: '포심 147km', r: '파울', b: 2, s: 2 },
+    { x: 50, y: 56, k: 'inplay', n: '커브 118km', r: '중견수 앞 1루타 — 역전!', b: 2, s: 2, done: true }
+  ];
+  var zone = $('zone'), pi = 0, gdTimer = null;
+  function resetAtBat() {
+    each(zone.querySelectorAll('.pitch'), function (n) { n.remove(); });
+    light($('gdB'), 0); light($('gdS'), 0); light($('gdO'), 1);
+    $('gdA').textContent = 1; $('gdH').textContent = 1;
+    $('zoneLast').innerHTML = '<small>양현종 → 구자욱</small>';
+    $('run1').style.left = '50%'; $('run1').style.top = '44%'; $('run1').style.opacity = 1;
+  }
+  function nextPitch() {
+    if (pi >= PITCHES.length) { pi = 0; resetAtBat(); return; }
+    var p = PITCHES[pi++];
+    var d = document.createElement('span');
+    d.className = 'pitch ' + p.k; d.textContent = pi;
+    d.style.left = p.x + '%'; d.style.top = p.y + '%';
+    zone.appendChild(d);
+    light($('gdB'), p.b); light($('gdS'), p.s);
+    $('zoneLast').innerHTML = p.n + ' <small>· ' + p.r + '</small>';
+    if (p.done) {
+      $('gdH').textContent = 2;
+      $('run1').style.opacity = 0;
+      pi = PITCHES.length;
+    }
+  }
+  resetAtBat();
+  if ('IntersectionObserver' in window && !reduced) {
+    new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting && !gdTimer) gdTimer = setInterval(nextPitch, 1500);
+        else if (!e.isIntersecting && gdTimer) { clearInterval(gdTimer); gdTimer = null; }
+      });
+    }, { threshold: 0.3 }).observe(zone);
+  } else {
+    PITCHES.forEach(function () { nextPitch(); });
+  }
+
+  /* ---------- 응원톡 데모 ---------- */
+  var CHAT = [
+    ['KIA', '#EA0029', '타이거즈', '양현종 오늘 공 좋다'],
+    ['삼성', '#074CA1', '사자굴', '구자욱 해줘라!!!'],
+    ['삼성', '#074CA1', '푸른피', '역전이다 ㅋㅋㅋㅋ'],
+    ['KIA', '#EA0029', '광주맨', '아직 3회다 침착하자'],
+    ['삼성', '#074CA1', '라팍직관', '디아즈 홈런!!!! 담장 넘어갔다'],
+    ['KIA', '#EA0029', '호랑이굴', '뒤집을 수 있다 KIA 화이팅'],
+    ['삼성', '#074CA1', '대구토박이', '후라도 오늘 완벽하네']
+  ];
+  var chat = $('chat'), ci = 0, a = 42;
+  function addMsg(team, color, who, txt) {
+    var m = document.createElement('div'); m.className = 'msg';
+    m.innerHTML = '<span class="av" style="background:' + color + '">' + team + '</span><div><div class="who"></div><div class="txt"></div></div>';
+    m.querySelector('.who').textContent = who + ' · ' + team + ' 팬';
+    m.querySelector('.txt').textContent = txt;
+    chat.appendChild(m);
+    while (chat.children.length > 6) chat.removeChild(chat.firstChild);
+  }
+  function setMood(v) {
+    a = Math.max(20, Math.min(80, v));
+    $('moodA').style.width = a + '%'; $('moodH').style.width = (100 - a) + '%';
+    $('moodAp').textContent = a; $('moodHp').textContent = 100 - a;
+  }
+  for (var k = 0; k < 3; k++) { addMsg.apply(null, CHAT[k]); }
+  ci = 3;
+  if (!reduced) setInterval(function () {
+    var c = CHAT[ci++ % CHAT.length];
+    addMsg.apply(null, c);
+    setMood(a + (c[0] === 'KIA' ? 2 : -2));
+  }, 2800);
+  $('chatForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = $('chatInput').value.trim();
+    if (!v) return;
+    addMsg('나', '#FF8A4C', '나', v);
+    $('chatInput').value = '';
+  });
+
+  /* ---------- 승부예측 데모 ---------- */
+  var votes = { a: 47, h: 53 };
+  each(document.querySelectorAll('#pick button'), function (btn) {
+    btn.addEventListener('click', function () {
+      var side = btn.getAttribute('data-side');
+      var cur = document.querySelector('#pick button[aria-pressed="true"]');
+      if (cur === btn) return;
+      if (cur) votes[cur.getAttribute('data-side')] -= 1;
+      votes[side] += 1;
+      each(document.querySelectorAll('#pick button'), function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
+      var t = votes.a + votes.h, pa = Math.round(votes.a / t * 100);
+      $('pA').textContent = pa + '%'; $('pH').textContent = (100 - pa) + '%';
+      $('pbA').style.width = pa + '%'; $('pbH').style.width = (100 - pa) + '%';
+    });
+  });
+
+  /* ---------- 출시 알림 신청 (D1 저장) ---------- */
+  function loadCount() {
+    fetch('/api/waitlist/count').then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (j && j.count > 0) { $('wlN').textContent = j.count.toLocaleString('ko-KR'); $('wlCount').hidden = false; }
+    }).catch(function () {});
+  }
+  loadCount();
+  $('wl').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var form = e.target, msg = $('wlMsg'), btn = form.querySelector('button');
+    btn.disabled = true;
+    fetch('/api/waitlist', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(Object.fromEntries(new FormData(form)))
+    }).then(function (r) {
+      return r.json().then(function (j) { return { ok: r.ok, j: j }; });
+    }).then(function (res) {
+      msg.className = 'wl-msg ' + (res.ok ? 'ok' : 'err');
+      msg.textContent = res.ok ? '신청 완료! 출시되는 날 바로 알려드릴게요 ⚾' : (res.j.error || '잠시 후 다시 시도해 주세요');
+      if (res.ok) { form.reset(); confetti(); loadCount(); }
+    }).catch(function () {
+      msg.className = 'wl-msg err'; msg.textContent = '연결이 불안정해요. 잠시 후 다시 시도해 주세요';
+    }).then(function () { btn.disabled = false; });
+  });
+})();
+</script>
+</body>
+</html>
