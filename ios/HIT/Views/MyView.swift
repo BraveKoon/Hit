@@ -23,23 +23,7 @@ struct MyView: View {
                     AppHeader(title: "MY") { path.append(.search) }
                     profile
 
-                    SectionHeader(title: "응원 팀")
-                    Button { showTeams = true } label: {
-                        HStack(spacing: 14) {
-                            if let team = model.team {
-                                TeamBadge(code: team.code, size: 48)
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(team.name).font(Typo.font(17, .bold))
-                                    Text("홈구장 \(team.home)").font(Typo.style(.caption)).foregroundStyle(Palette.muted)
-                                }
-                            }
-                            Spacer()
-                            Text("변경").font(Typo.style(.subheadline, .semibold)).foregroundStyle(Palette.accent)
-                        }
-                        .padding(16)
-                        .glassCard(20)
-                    }
-                    .buttonStyle(.press)
+                    teamCard
 
                     if auth.state == .signedIn {
                         SectionHeader(title: "승부예측")
@@ -57,22 +41,24 @@ struct MyView: View {
                     }
                     .buttonStyle(.press)
 
-                    SectionHeader(title: "설정")
+                    SectionHeader(title: "앱 설정")
                     VStack(spacing: 0) {
-                        row("bell.badge.fill", "알림 설정") { showSettings = true }
-                        Divider().overlay(Palette.surfaceHigh)
-                        row("lock.iphone", "잠금화면 테마") { showTheme = true }
-                        Divider().overlay(Palette.surfaceHigh)
+                        row("bell.badge.fill", "알림 설정", color: Color(hex: 0xE2544A)) { showSettings = true }
+                        Divider().overlay(Palette.surfaceHigh).padding(.leading, 58)
+                        row("lock.iphone", "잠금화면 테마", color: Color(hex: 0x5B6CF0)) { showTheme = true }
+                    }
+                    .glassCard(20)
+
+                    SectionHeader(title: "계정")
+                    VStack(spacing: 0) {
                         if auth.state == .signedIn {
-                            row("hand.raised.fill", "차단한 사용자") { showBlocks = true }
-                            Divider().overlay(Palette.surfaceHigh)
-                        }
-                        if auth.state == .signedIn {
-                            row("rectangle.portrait.and.arrow.right", "로그아웃") { Task { await auth.signOut() } }
-                            Divider().overlay(Palette.surfaceHigh)
-                            row("person.crop.circle.badge.xmark", "회원 탈퇴", tint: Palette.red) { confirmDelete = true }
+                            row("hand.raised.fill", "차단한 사용자", color: Color(hex: 0x8A8F98)) { showBlocks = true }
+                            Divider().overlay(Palette.surfaceHigh).padding(.leading, 58)
+                            row("rectangle.portrait.and.arrow.right", "로그아웃", color: Color(hex: 0x8A8F98)) { Task { await auth.signOut() } }
+                            Divider().overlay(Palette.surfaceHigh).padding(.leading, 58)
+                            row("person.crop.circle.badge.xmark", "회원 탈퇴", color: Palette.red, tint: Palette.red) { confirmDelete = true }
                         } else {
-                            row("person.crop.circle.badge.plus", "로그인 · 회원가입", tint: Palette.accent) { Task { await auth.signOut() } }
+                            row("person.crop.circle.badge.plus", "로그인 · 회원가입", color: Palette.accent, tint: Palette.accent) { Task { await auth.signOut() } }
                         }
                     }
                     .glassCard(20)
@@ -95,6 +81,7 @@ struct MyView: View {
             .sheet(isPresented: $showTheme) { LiveThemeSheet().presentationDetents([.large]) }
             .task(id: auth.state) {
                 if auth.state == .signedIn {
+                    await DiaryModel.shared.load()
                     record = try? await APIClient().myPredictions()
                 } else {
                     record = nil
@@ -114,42 +101,94 @@ struct MyView: View {
     }
 
     private var profile: some View {
-        HStack(spacing: 14) {
-            AccountAvatar(size: 64)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(auth.displayName).font(Typo.font(21, .heavy))
-                    if auth.state == .signedIn {
-                        Button {
-                            newName = auth.account?.nickname ?? ""
-                            renaming = true
-                        } label: { Image(systemName: "pencil").font(.subheadline) }
-                        .foregroundStyle(Palette.muted)
-                        .accessibilityLabel("닉네임 바꾸기")
+        let color = model.team?.color ?? Palette.accent
+        let diary = DiaryModel.shared
+        let visits = diary.entries.filter { $0.mode == .stadium }.count
+        return VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 14) {
+                AccountAvatar(size: 64)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(auth.displayName).font(Typo.font(21, .heavy))
+                        if auth.state == .signedIn {
+                            Button {
+                                newName = auth.account?.nickname ?? ""
+                                renaming = true
+                            } label: { Image(systemName: "pencil").font(.subheadline) }
+                            .foregroundStyle(Palette.muted)
+                            .accessibilityLabel("닉네임 바꾸기")
+                        }
                     }
+                    Text(auth.state == .signedIn ? "\(auth.account?.providerLabel ?? "")로 로그인" : "로그인하지 않음")
+                        .font(Typo.style(.caption))
+                        .foregroundStyle(Palette.text.opacity(0.7))
                 }
-                Text(auth.state == .signedIn ? "\(auth.account?.providerLabel ?? "")로 로그인" : "로그인하지 않음")
-                    .font(Typo.style(.caption))
-                    .foregroundStyle(Palette.muted)
+                Spacer()
             }
-            Spacer()
+            if auth.state == .signedIn {
+                HStack(spacing: 8) {
+                    summary("\(visits)번", "직관")
+                    summary(diary.stats?.pct.map { "\(Int(($0 * 100).rounded()))%" } ?? "-", "승요력")
+                    summary(record?.rate.map { "\(Int(($0 * 100).rounded()))%" } ?? "-", "예측 적중")
+                }
+            }
         }
         .padding(18)
-        .background(TeamGlow(colors: [model.team?.color ?? Palette.accent]))
+        .background(TeamGlow(colors: [color]))
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
     }
 
-    private func row(_ icon: String, _ title: String, tint: Color = Palette.text, action: @escaping () -> Void) -> some View {
+    private func summary(_ value: String, _ label: String) -> some View {
+        VStack(spacing: 3) {
+            Text(value).font(Typo.font(18, .heavy)).monospacedDigit()
+            Text(label).font(Typo.style(.caption2, .semibold)).foregroundStyle(Palette.text.opacity(0.7))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    /// 응원 팀: 구단 색이 은은하게 깔린 카드
+    private var teamCard: some View {
+        Button { showTeams = true } label: {
+            HStack(spacing: 14) {
+                if let team = model.team {
+                    TeamBadge(code: team.code, size: 52)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("응원 팀").font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.muted)
+                        Text(team.name).font(Typo.font(18, .heavy))
+                        Text("홈구장 \(team.home)").font(Typo.style(.caption)).foregroundStyle(Palette.text.opacity(0.7))
+                    }
+                }
+                Spacer()
+                Text("변경")
+                    .font(Typo.style(.footnote, .bold))
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(.white.opacity(0.12), in: Capsule())
+            }
+            .padding(16)
+            .background(LinearGradient(colors: [(model.team?.color ?? Palette.accent).opacity(0.35), (model.team?.color ?? Palette.accent).opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing))
+            .glassCard(22)
+        }
+        .buttonStyle(.press)
+    }
+
+    private func row(_ icon: String, _ title: String, color: Color = Palette.accent, tint: Color = Palette.text, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon).frame(width: 24)
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
+                    .background(color.opacity(0.9), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 Text(title)
                 Spacer()
                 Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Palette.muted)
             }
             .font(Typo.font(16, .medium))
             .foregroundStyle(tint)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 14)
             .frame(height: 54)
             .contentShape(Rectangle())
         }
@@ -276,26 +315,52 @@ struct PredictionRecordCard: View {
     let record: PredictionRecord?
 
     var body: some View {
-        HStack(spacing: 0) {
-            stat(record?.rate.map { "\(Int(($0 * 100).rounded()))%" } ?? "-", "적중률", accent: true)
-            stat(record.map { "\($0.correct)/\($0.decided)" } ?? "-", "맞힘")
-            stat(record.map { "\($0.streak)" } ?? "-", "연속 적중")
-        }
-        .padding(.vertical, 16)
-        .glassCard(20)
-        .overlay(alignment: .bottom) {
+        let rate = record?.rate ?? 0
+        VStack(spacing: 14) {
+            HStack(spacing: 20) {
+                ZStack {
+                    Circle().stroke(.white.opacity(0.1), lineWidth: 10)
+                    Circle()
+                        .trim(from: 0, to: CGFloat(rate))
+                        .stroke(Palette.accent, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.snappy(duration: 0.8), value: rate)
+                    VStack(spacing: 0) {
+                        Text(record?.rate.map { "\(Int(($0 * 100).rounded()))%" } ?? "-")
+                            .font(Typo.score(26))
+                            .foregroundStyle(Palette.accent)
+                        Text("적중률").font(Typo.style(.caption2, .semibold)).foregroundStyle(Palette.muted)
+                    }
+                }
+                .frame(width: 98, height: 98)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    line("checkmark.circle.fill", "맞힌 경기", record.map { "\($0.correct) / \($0.decided)" } ?? "-")
+                    line("flame.fill", "연속 적중", record.map { "\($0.streak)연속" } ?? "-")
+                    line("flag.fill", "전체 예측", record.map { "\($0.total)경기" } ?? "-")
+                }
+                Spacer(minLength: 0)
+            }
             if record?.total == 0 {
-                Text("경기 프리뷰에서 이길 팀을 골라 보세요").font(Typo.style(.caption2)).foregroundStyle(Palette.muted).padding(.bottom, 4)
+                Text("경기 프리뷰에서 이길 팀을 골라 보세요")
+                    .font(Typo.style(.caption))
+                    .foregroundStyle(Palette.muted)
+                    .frame(maxWidth: .infinity)
             }
         }
+        .padding(18)
+        .background(LinearGradient(colors: [Palette.accent.opacity(0.14), Palette.accent.opacity(0.02)], startPoint: .topLeading, endPoint: .bottomTrailing))
+        .glassCard(22)
+        .accessibilityElement(children: .combine)
     }
 
-    private func stat(_ value: String, _ label: String, accent: Bool = false) -> some View {
-        VStack(spacing: 4) {
-            Text(value).font(Typo.score(24)).foregroundStyle(accent ? Palette.accent : Palette.text)
-            Text(label).font(Typo.style(.caption)).foregroundStyle(Palette.muted)
+    private func line(_ icon: String, _ label: String, _ value: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon).font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.accent).frame(width: 16)
+            Text(label).font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+            Spacer(minLength: 8)
+            Text(value).font(Typo.font(15, .heavy)).monospacedDigit()
         }
-        .frame(maxWidth: .infinity)
     }
 }
 
