@@ -46,5 +46,7 @@ jobs:
               if x.get('id') in ids or x.get('sport_event',{}).get('id') in ids:
                   tl=x.get('timeline',[])
                   print('KBO 라이브', x.get('id'), '이벤트 수', len(tl))
-                  for e in tl[-5:]: print({k:e.get(k) for k in ('type','time','match_clock','home_score','away_score','description') if k in e})
+                  print('최상위 키:', sorted(x.keys()), '/ 상태:', json.dumps(x.get('sport_event_status',{}),ensure_ascii=False)[:400])
+                  print('이벤트 종류:', sorted({e.get('type') for e in tl}))
+                  for e in tl[-4:]: print(json.dumps(e,ensure_ascii=False)[:700])
           PY
