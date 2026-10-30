@@ -9,7 +9,7 @@ jobs:
       - name: 네이버 응답 비교 (헤더만 다르게, 각 1회)
         run: |
           u='https://api-gw.sports.naver.com/schedule/games?fields=basic&upperCategoryId=kbaseball&categoryId=kbo&fromDate=2026-10-30&toDate=2026-10-30&size=500'
-          echo "runner ip country: $(curl -sS -m 10 https://ipinfo.io/country)"
-          c1=$(curl -sS -m 20 -o /tmp/a.json -w '%{http_code}' -H 'Referer: https://m.sports.naver.com/' -H 'User-Agent: Mozilla/5.0 (compatible; HIT/0.1)' "$u"); echo "현재 헤더: $c1"; head -c 120 /tmp/a.json; echo
+          echo "runner ip country: $(curl -sS -m 10 https://ipinfo.io/country)"; set +e
+          c1=$(curl -sS -m 20 -o /tmp/a.json -w '%{http_code}' -H 'Referer: https://m.sports.naver.com/' -H 'User-Agent: Mozilla/5.0 (compatible; HIT/0.1)' "$u" || true); echo "현재 헤더: $c1"; head -c 120 /tmp/a.json; echo
           sleep 2
-          c2=$(curl -sS -m 20 -o /tmp/b.json -w '%{http_code}' -H 'Referer: https://m.sports.naver.com/' -H 'User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' "$u"); echo "브라우저형 헤더: $c2"; head -c 120 /tmp/b.json; echo
+          c2=$(curl -sS -m 20 -o /tmp/b.json -w '%{http_code}' -H 'Referer: https://m.sports.naver.com/' -H 'User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' "$u" || true); echo "브라우저형 헤더: $c2"; head -c 120 /tmp/b.json; echo
