@@ -97,7 +97,7 @@ struct GameDetailView: View {
                     .transition(.opacity)
             }
         }
-        .navigationTitle(detail.map { "\($0.game.away.name) 대 \($0.game.home.name)" } ?? "중계")
+        .navigationTitle(detail.map { "\($0.game.away.name) VS \($0.game.home.name)" } ?? "중계")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Palette.background, for: .navigationBar)
         .toolbar {

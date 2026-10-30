@@ -89,7 +89,7 @@ final class AutoLiveActivity {
         if game.status == .live, !notifiedStart.contains(game.id) {
             notifiedStart.insert(game.id)
             if prefs.start, lastScores[game.id] == nil, a + h == 0 {
-                await post(game, id: "local-start-\(game.id)", title: "\(game.away.name) 대 \(game.home.name) 경기 시작", body: game.stadium ?? "")
+                await post(game, id: "local-start-\(game.id)", title: "\(game.away.name) VS \(game.home.name) 경기 시작", body: game.stadium ?? "")
             }
         }
         if game.status == .final {

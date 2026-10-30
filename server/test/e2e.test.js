@@ -49,8 +49,8 @@ test('재생 경기 한 판: 응원 팀별 알림, 라이브 액티비티, 중�
 
   const ss = alertsTo(apns, SS_FAN);
   assert.deepEqual(ss.map((a) => a.title), [
-    'KIA 대 삼성 · 5분 뒤 시작',
-    '경기 시작 · KIA 대 삼성',
+    'KIA VS 삼성 · 5분 뒤 시작',
+    '경기 시작 · KIA VS 삼성',
     '선취점! KIA 1 : 0 삼성',
     '동점! KIA 1 : 1 삼성',
     '역전! KIA 1 : 2 삼성',
@@ -73,7 +73,7 @@ test('재생 경기 한 판: 응원 팀별 알림, 라이브 액티비티, 중�
   assert.deepEqual(alertsTo(apns, LG_FAN), [], 'LG 팬에게는 아무것도 안 간다');
 
   const picky = alertsTo(apns, PICKY).map((a) => a.title);
-  assert.deepEqual(picky, ['KIA 대 삼성 · 5분 뒤 시작', '경기 시작 · KIA 대 삼성', '동점! KIA 1 : 1 삼성', '역전! KIA 1 : 2 삼성', '경기 종료 · KIA 3 : 8 삼성']);
+  assert.deepEqual(picky, ['KIA VS 삼성 · 5분 뒤 시작', '경기 시작 · KIA VS 삼성', '동점! KIA 1 : 1 삼성', '역전! KIA 1 : 2 삼성', '경기 종료 · KIA 3 : 8 삼성']);
   assert.equal(alertsTo(apns, PICKY).at(-1).subtitle, 'KIA 패배');
 
   const la = apns.sent.filter((m) => m.token === SS_ACTIVITY);

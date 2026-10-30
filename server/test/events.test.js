@@ -135,7 +135,7 @@ test('문구: 종료는 승패와 승리·패전 투수', () => {
 test('문구: 경기 전 알림은 남은 분과 선발', () => {
   const now = Date.parse('2026-10-29T18:20:00+09:00');
   const m = render({ type: 'pregame' }, game({ status: 'scheduled' }), ['HT'], { now });
-  assert.equal(m.title, '삼성 대 KIA · 10분 뒤 시작');
+  assert.equal(m.title, '삼성 VS KIA · 10분 뒤 시작');
   assert.equal(m.body, '18:30 광주 · 선발 최원태 대 시라카와');
 });
 
@@ -149,7 +149,7 @@ test('라인업 발표: 경기 전에 양 팀 타순이 처음 나오면 한 번
 test('문구: 라인업은 내 팀 타순을 보여 주고, 득점 알림은 이닝을 싣는다', () => {
   const lineups = { away: [{ order: 1, name: '김지찬' }, { order: 2, name: '구자욱' }], home: [{ order: 1, name: '박찬호' }] };
   const m = render({ type: 'lineup', lineups }, game({ status: 'scheduled', inning: null, half: null }), ['SS']);
-  assert.equal(m.title, '삼성 선발 라인업 · 삼성 대 KIA');
+  assert.equal(m.title, '삼성 선발 라인업 · 삼성 VS KIA');
   assert.equal(m.body, '1 김지찬 2 구자욱');
   assert.equal(m.level, 'passive');
   assert.equal(m.inning, null);
