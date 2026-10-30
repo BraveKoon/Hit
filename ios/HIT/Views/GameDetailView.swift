@@ -370,6 +370,16 @@ struct RelaySection: View {
 
     private var game: Game { detail.game }
 
+    /// 선수 이름 → 사진. 타석이 진행 중이면 결과 줄이 없어 사진이 안 붙으니 라인업·엔트리에서 찾는다.
+    private var photos: [String: String] {
+        var map: [String: String] = [:]
+        for e in (detail.lineups?.away ?? []) + (detail.lineups?.home ?? []) { if let u = e.photo { map[e.name] = u } }
+        for t in [detail.entries?.away, detail.entries?.home] {
+            for e in (t?.batters ?? []) + (t?.pitchers ?? []) { if let u = e.photo, map[e.name] == nil { map[e.name] = u } }
+        }
+        return map
+    }
+
     /// 지금까지 열린 이닝 수 (진행 이닝, 이닝별 점수, 받은 문자중계 중 가장 큰 값)
     private var innings: Int {
         let played = detail.lineScore.map { line in
@@ -413,7 +423,7 @@ struct RelaySection: View {
                         }
                     }
                 } else {
-                    PlayTimeline(game: game, plays: plays, showPitches: showPitches)
+                    PlayTimeline(game: game, plays: plays, showPitches: showPitches, photos: photos)
                 }
             }
             .id(selected)
@@ -826,6 +836,7 @@ struct PlayTimeline: View {
     let game: Game
     let plays: [Play]
     let showPitches: Bool
+    var photos: [String: String] = [:]
 
     private struct AtBat: Identifiable {
         let id: Int
@@ -923,7 +934,7 @@ struct PlayTimeline: View {
             if let name = ab.name {
                 let hr = main.map { isHomer($0.text) } ?? false
                 HStack(spacing: 10) {
-                    PlayerAvatar(url: main?.photo, name: name, team: team, size: 32)
+                    PlayerAvatar(url: main?.photo ?? photos[name], name: name, team: team, size: 32)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(ab.order.map { "\($0)번 " } ?? "")\(name)")
                             .font(Typo.style(.subheadline, .bold))
