@@ -1,0 +1,7 @@
+name = "hit-naver-probe"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# 서울 근처 AWS 리전에서 실행하도록 힌트 (Smart Placement)
+[placement]
+region = "aws:ap-northeast-2"
