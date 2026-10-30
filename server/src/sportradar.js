@@ -41,6 +41,19 @@ function statusText(status, inning, half) {
   return '경기 전';
 }
 
+// Sportradar 구장 이름은 영어로 온다. 앱엔 네이버처럼 도시 이름(광주, 잠실…)을 보여 준다.
+const CITY = [
+  [/gwangju/i, '광주'], [/jamsil|jamshil/i, '잠실'], [/munhak|incheon|ssg landers/i, '문학'], [/suwon|kt wiz/i, '수원'],
+  [/daejeon|hanbat/i, '대전'], [/daegu|samsung lions park/i, '대구'], [/sajik|busan/i, '사직'], [/changwon|masan/i, '창원'],
+  [/gocheok|seoul|kiwoom/i, '고척'], [/pohang/i, '포항'], [/ulsan/i, '울산'], [/cheongju/i, '청주'],
+];
+const HOME_PARK = { HT: '광주', LG: '잠실', OB: '잠실', SK: '문학', KT: '수원', HH: '대전', SS: '대구', LT: '사직', NC: '창원', WO: '고척' };
+
+export function stadiumOf(venueName, homeCode) {
+  const hit = venueName ? CITY.find(([re]) => re.test(venueName)) : null;
+  return hit ? hit[1] : /[가-힣]/.test(venueName ?? '') ? venueName : HOME_PARK[homeCode] ?? venueName ?? null;
+}
+
 const codeOf = (c) => teamCode(c?.name) ?? teamCode(c?.abbreviation) ?? null;
 
 // KBO 가 아닌 경기(멕시코·쿠바 리그 등)는 걸러낸다
@@ -85,7 +98,7 @@ export function normalizeEvent(summary, dh = 0) {
     srId: e.id,
     date,
     startsAt,
-    stadium: e.venue?.name ?? null,
+    stadium: stadiumOf(e.venue?.name, homeCode),
     status,
     statusText: statusText(status, inning, half),
     inning,

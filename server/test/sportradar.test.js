@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createSportradarProvider, normalizeEvent, mapStatus, parseInning, gameIdOf, playsOf } from '../src/sportradar.js';
+import { createSportradarProvider, stadiumOf, normalizeEvent, mapStatus, parseInning, gameIdOf, playsOf } from '../src/sportradar.js';
 import { loadConfig } from '../src/config.js';
 
 // 실제 응답에서 확인한 필드만 쓴 시험용 자료 (경기 시작 전 상태). 경기 중 필드는 모양을 확인하면서 보강한다.
@@ -13,7 +13,7 @@ const event = (over = {}, status = {}) => ({
       { id: 'sr:competitor:249977', name: '삼성 라이온즈', abbreviation: 'LIO', qualifier: 'away' },
       { id: 'sr:competitor:249965', name: 'KIA 타이거즈', abbreviation: 'TIG', qualifier: 'home' },
     ],
-    venue: { name: '광주-기아 챔피언스 필드' },
+    venue: { name: 'Gwangju-Kia Champions Field' },
     ...over,
   },
   sport_event_status: { status: 'not_started', match_status: 'not_started', ...status },
@@ -27,7 +27,9 @@ test('Sportradar 경기를 네이버 경기 번호 형식으로 바꾼다', () =
   assert.equal(g.away.name, '삼성');
   assert.equal(g.home.name, 'KIA');
   assert.equal(g.away.score, null);
-  assert.equal(g.stadium, '광주-기아 챔피언스 필드');
+  assert.equal(g.stadium, '광주');
+  assert.equal(stadiumOf('Some Park', 'LG'), '잠실');
+  assert.equal(stadiumOf('Pohang Baseball Stadium', 'SS'), '포항');
   assert.equal(gameIdOf('2026-10-30', 'SS', 'HT', 2), '20261030SSHT22026');
 });
 
