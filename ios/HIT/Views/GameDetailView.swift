@@ -134,11 +134,19 @@ struct GameDetailView: View {
         .task(id: gameId) {
             await load()
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(detail?.game.status == .live ? 8 : 60))
+                try? await Task.sleep(for: .seconds(pollSeconds))
                 if Task.isCancelled { break }
                 await load()
             }
         }
+    }
+
+    /// 경기 중엔 8초, 시작 시각 전후 20분엔 10초(첫 투구가 나오면 바로 경기 중으로 바뀌게), 그 밖엔 1분
+    private var pollSeconds: Double {
+        guard let game = detail?.game else { return 8 }
+        if game.status == .live { return 8 }
+        if game.status == .scheduled, let start = game.startDate, abs(start.timeIntervalSinceNow) < 20 * 60 { return 10 }
+        return 60
     }
 
     private func load() async {
@@ -358,7 +366,7 @@ struct RelaySection: View {
     @State private var cache: [Int: [Play]] = [:]
     @State private var loading = false
     @State private var failed = false
-    @AppStorage("showPitches") private var showPitches = true   // 투구 하나하나를 기본으로 보여 주고, 끈 설정은 기억한다
+    @AppStorage("showPitchDetail") private var showPitches = false   // 투구 점은 항상 보이고, 줄글 투구는 켠 선택을 기억한다
 
     private var game: Game { detail.game }
 
@@ -383,7 +391,7 @@ struct RelaySection: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 SectionHeader(title: "문자중계")
-                Toggle("투구 보기", isOn: $showPitches)
+                Toggle("투구 자세히", isOn: $showPitches)
                     .toggleStyle(.button)
                     .font(Typo.style(.caption, .semibold))
                     .tint(Palette.accent)
@@ -812,31 +820,72 @@ struct DecisionCard: View {
     }
 }
 
-/// 문자중계: 반 이닝마다 묶고, 득점·홈런은 눈에 띄게
+/// 문자중계: 반 이닝마다 묶고, 그 안에서 타석마다 카드처럼 정리한다.
+/// 타석 하나 = 타자(타순·사진) · 결과 한 줄 · 투구 번호 점(볼·스트라이크·파울·타격) · 주자·득점 줄. 투구 자세히는 스위치로 펼친다.
 struct PlayTimeline: View {
     let game: Game
     let plays: [Play]
     let showPitches: Bool
 
+    private struct AtBat: Identifiable {
+        let id: Int
+        var order: Int?
+        var name: String?
+        var pitches: [Play] = []
+        var results: [Play] = []
+    }
+
     private struct Half: Identifiable {
         let id: String
         let title: String
+        let team: String
         var plays: [Play]
+    }
+
+    /// "3번타자 구자욱" → (3, 구자욱)
+    private static func batterHeader(_ text: String) -> (Int, String)? {
+        guard let m = text.range(of: #"^\d+번타자\s+"#, options: .regularExpression) else { return nil }
+        let order = Int(text.prefix { $0.isNumber }) ?? 0
+        return (order, String(text[m.upperBound...]).trimmingCharacters(in: .whitespaces))
+    }
+
+    private static func isHalfTitle(_ text: String) -> Bool {
+        text.range(of: #"^\d+회[초말]\s.*공격$"#, options: .regularExpression) != nil
+    }
+
+    private static func isRunnerLine(_ text: String) -> Bool {
+        text.range(of: #"^\d루주자\s"#, options: .regularExpression) != nil
     }
 
     private var halves: [Half] {
         var out: [Half] = []
-        for p in plays where showPitches || !p.isPitch {
+        for p in plays where !Self.isHalfTitle(p.text) {
             let key = "\(p.inning ?? 0)-\(p.half ?? "")"
             if out.last?.id == key {
                 out[out.count - 1].plays.append(p)
             } else {
                 let team = p.half == "top" ? game.away.name : p.half == "bottom" ? game.home.name : ""
+                let code = p.half == "top" ? game.away.code : game.home.code
                 let title = p.inning.map { "\($0)회\(p.half == "top" ? "초" : p.half == "bottom" ? "말" : "") \(team) 공격" } ?? "경기"
-                out.append(Half(id: key, title: title, plays: [p]))
+                out.append(Half(id: key, title: title, team: code, plays: [p]))
             }
         }
         return out
+    }
+
+    /// 한 반 이닝의 줄을 시간 순으로 훑어 타석으로 묶는다. 진행 중인 이닝은 최신 타석이 위로.
+    private func atBats(_ half: Half) -> [AtBat] {
+        let newestFirst = (half.plays.first?.seq ?? 0) > (half.plays.last?.seq ?? 0)
+        var out: [AtBat] = []
+        for p in half.plays.sorted(by: { $0.seq < $1.seq }) {
+            if let (order, name) = Self.batterHeader(p.text) {
+                out.append(AtBat(id: p.seq, order: order, name: name))
+            } else {
+                if out.isEmpty { out.append(AtBat(id: p.seq)) }
+                if p.isPitch { out[out.count - 1].pitches.append(p) } else { out[out.count - 1].results.append(p) }
+            }
+        }
+        return newestFirst ? out.reversed() : out
     }
 
     var body: some View {
@@ -848,8 +897,10 @@ struct PlayTimeline: View {
                         .foregroundStyle(Palette.muted)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                    ForEach(half.plays) { play in
-                        row(play)
+                    let list = atBats(half)
+                    ForEach(Array(list.enumerated()), id: \.element.id) { i, ab in
+                        if i > 0 { Divider().overlay(.white.opacity(0.07)).padding(.horizontal, 14) }
+                        atBatView(ab, team: half.team)
                     }
                 }
                 .glassCard(18)
@@ -857,33 +908,128 @@ struct PlayTimeline: View {
         }
     }
 
+    private func isHomer(_ text: String) -> Bool { text.contains("홈런") && !text.contains("홈런성") }
+
+    private func resultText(_ text: String) -> String {
+        let parts = text.components(separatedBy: " : ")
+        return parts.count > 1 ? parts.dropFirst().joined(separator: " : ") : text
+    }
+
+    @ViewBuilder
+    private func atBatView(_ ab: AtBat, team: String) -> some View {
+        let main = ab.results.first { $0.text.contains(" : ") && !Self.isRunnerLine($0.text) }
+        let others = ab.results.filter { $0.id != main?.id }
+        VStack(alignment: .leading, spacing: 8) {
+            if let name = ab.name {
+                let hr = main.map { isHomer($0.text) } ?? false
+                HStack(spacing: 10) {
+                    PlayerAvatar(url: main?.photo, name: name, team: team, size: 32)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(ab.order.map { "\($0)번 " } ?? "")\(name)")
+                            .font(Typo.style(.subheadline, .bold))
+                        if let main {
+                            Text(resultText(main.text))
+                                .font(Typo.style(.footnote, hr ? .bold : .medium))
+                                .foregroundStyle(hr ? Palette.red : Palette.text.opacity(0.85))
+                        } else {
+                            Text("타석 진행 중").font(Typo.style(.footnote)).foregroundStyle(Palette.muted)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                    if hr {
+                        Text("홈런").font(Typo.style(.caption2, .heavy)).padding(.horizontal, 7).padding(.vertical, 3)
+                            .background(Palette.red.opacity(0.2), in: Capsule()).foregroundStyle(Palette.red)
+                    }
+                }
+                if !ab.pitches.isEmpty { PitchDots(pitches: ab.pitches) }
+            }
+            ForEach(others) { play in row(play) }
+            if showPitches && !ab.pitches.isEmpty {
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(ab.pitches.sorted { $0.seq < $1.seq }) { p in
+                        Text(p.text).font(Typo.style(.caption)).foregroundStyle(Palette.muted)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(main.map { isHomer($0.text) } == true ? Palette.red.opacity(0.06) : .clear)
+    }
+
+    /// 주자 이동·득점 같은 줄
     @ViewBuilder
     private func row(_ play: Play) -> some View {
-        let hr = play.text.contains("홈런") && !play.text.contains("홈런성")
         let scored = play.text.contains("홈인")
-        HStack(alignment: .top, spacing: 10) {
-            Capsule()
-                .fill(hr ? Palette.red : scored ? Palette.accent : .clear)
-                .frame(width: 3)
-            if let batter = play.batterName {
-                PlayerAvatar(url: play.photo, name: batter,
-                             team: play.half == "top" ? game.away.code : game.home.code, size: 26)
-            }
+        HStack(alignment: .top, spacing: 8) {
+            Capsule().fill(scored ? Palette.accent : Palette.muted.opacity(0.5)).frame(width: 3, height: 14).padding(.top, 2)
             Text(play.text)
-                .font(play.isPitch ? Typo.style(.caption) : Typo.style(.subheadline, hr || scored ? .semibold : .regular))
-                .foregroundStyle(play.isPitch ? Palette.muted : Palette.text)
+                .font(Typo.style(.footnote, scored ? .semibold : .regular))
+                .foregroundStyle(scored ? Palette.text : Palette.text.opacity(0.75))
                 .frame(maxWidth: .infinity, alignment: .leading)
-            if hr {
-                Text("홈런").font(Typo.style(.caption2, .heavy)).padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(Palette.red.opacity(0.2), in: Capsule()).foregroundStyle(Palette.red)
-            } else if scored {
+            if scored {
                 Text("득점").font(Typo.style(.caption2, .heavy)).padding(.horizontal, 6).padding(.vertical, 2)
                     .background(Palette.accent.opacity(0.2), in: Capsule()).foregroundStyle(Palette.accent)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
-        .background(hr ? Palette.red.opacity(0.06) : scored ? Palette.accent.opacity(0.05) : .clear)
+    }
+}
+
+/// 한 타석의 투구를 번호 점으로: 볼(초록) · 스트라이크(노랑) · 파울(회색) · 타격(주황)
+private struct PitchDots: View {
+    let pitches: [Play]
+
+    private enum Kind { case ball, strike, foul, hit, other }
+
+    private func kind(_ text: String) -> Kind {
+        if text.contains("타격") { return .hit }
+        if text.contains("파울") { return .foul }
+        if text.contains("볼") { return .ball }
+        if text.contains("스트라이크") || text.contains("헛스윙") || text.contains("루킹") { return .strike }
+        return .other
+    }
+
+    private func color(_ k: Kind) -> Color {
+        switch k {
+        case .ball: Palette.live
+        case .strike: Color(hex: 0xF5C542)
+        case .foul: Color.white.opacity(0.45)
+        case .hit: Palette.accent
+        case .other: Color.white.opacity(0.3)
+        }
+    }
+
+    var body: some View {
+        let sorted = pitches.sorted { $0.seq < $1.seq }
+        let kinds = sorted.map { kind($0.text) }
+        VStack(alignment: .leading, spacing: 5) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 5) {
+                    ForEach(Array(sorted.enumerated()), id: \.element.id) { i, p in
+                        Text("\(number(p, i))")
+                            .font(Typo.font(10.5, .heavy))
+                            .monospacedDigit()
+                            .foregroundStyle(.black.opacity(0.8))
+                            .frame(width: 22, height: 22)
+                            .background(color(kinds[i]), in: Circle())
+                    }
+                }
+            }
+            Text(summary(kinds))
+                .font(Typo.style(.caption2))
+                .foregroundStyle(Palette.muted)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("투구 \(sorted.count)개. \(summary(kinds))")
+    }
+
+    private func number(_ p: Play, _ index: Int) -> Int {
+        Int(String(p.text.prefix { $0.isNumber })) ?? index + 1
+    }
+
+    private func summary(_ kinds: [Kind]) -> String {
+        let n = { (k: Kind) in kinds.filter { $0 == k }.count }
+        return ["볼 \(n(.ball))", "스트라이크 \(n(.strike))", "파울 \(n(.foul))"].joined(separator: " · ")
     }
 }
 
