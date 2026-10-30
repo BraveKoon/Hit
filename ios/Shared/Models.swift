@@ -739,12 +739,47 @@ struct CalendarResponse: Codable {
     let games: [Game]
 }
 
+/// 부문별 TOP20 한 부문 (다승·탈삼진·이닝·타율·홈런…). players 는 1등부터.
+struct LeaderCategory: Codable, Hashable, Identifiable {
+    let stat: String
+    let label: String
+    let players: [Player]
+    var id: String { stat }
+}
+
+struct LeaderCategoriesResponse: Codable {
+    let type: String
+    let categories: [LeaderCategory]
+}
+
 struct LeadersResponse: Codable {
     let type: String
     let players: [Player]
 }
 
 enum StatFormat {
+    /// 부문(stat)에 맞는 값 글자: 평균자책 3.12, 타율 .347, 이닝 171 1/3 …
+    static func value(_ stat: String, _ p: Player) -> String {
+        let s = p.stats
+        switch stat {
+        case "era": return fixed(s.era)
+        case "whip": return fixed(s.whip)
+        case "wins": return int(s.wins)
+        case "so": return int(s.so)
+        case "saves": return int(s.saves)
+        case "holds": return int(s.holds)
+        case "innings": return s.innings ?? "-"
+        case "avg": return rate(s.avg)
+        case "ops": return rate(s.ops)
+        case "hr": return int(s.hr)
+        case "rbi": return int(s.rbi)
+        case "hits": return int(s.hits)
+        case "sb": return int(s.sb)
+        case "runs": return int(s.runs)
+        default: return fixed(s.war)
+        }
+    }
+
     /// .347 / 1.067
     static func rate(_ v: Double?) -> String {
         guard let v else { return "-" }

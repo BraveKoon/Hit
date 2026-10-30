@@ -49,6 +49,10 @@ struct APIClient {
         try await send("GET", "v1/leaders", query: [URLQueryItem(name: "type", value: type)])
     }
 
+    func leaderCategories(type: String) async throws -> LeaderCategoriesResponse {
+        try await send("GET", "v1/leaders/categories", query: [URLQueryItem(name: "type", value: type)])
+    }
+
     func signOut() async throws {
         let _: Ack = try await send("POST", "v1/auth/logout")
     }

@@ -343,9 +343,6 @@ struct LiveTab: View {
             default:
                 EmptyView()
             }
-            if detail.game.status != .canceled, detail.game.date == KST.dayString(Date()) {
-                LiveChatPanel(game: detail.game)
-            }
             if detail.plays.isEmpty && detail.game.status == .scheduled {
                 Card { Label("경기가 시작하면 문자중계가 여기에 나와요", systemImage: "text.bubble").foregroundStyle(Palette.muted) }
             } else if !detail.plays.isEmpty || detail.lineScore != nil {
