@@ -7,6 +7,7 @@ struct DiaryView: View {
     @Environment(AppModel.self) private var model
     private var diary: DiaryModel { DiaryModel.shared }
     private var auth: AuthManager { AuthManager.shared }
+    @State private var showStats = false
 
     var body: some View {
         @Bindable var model = model
@@ -19,6 +20,8 @@ struct DiaryView: View {
                     } else {
                         WinRateHero(stats: diary.stats, team: model.myTeam)
                             .appearIn(0)
+                        GradeCard(count: diary.entries.filter { $0.mode == .stadium }.count, team: model.myTeam) { showStats = true }
+                            .appearIn(1)
                     }
                     MonthCalendar(team: model.myTeam, entries: diary.entries) { model.diaryPath.append(.game($0)) }
                         .appearIn(1)
@@ -52,6 +55,9 @@ struct DiaryView: View {
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
             .refreshable { await diary.load() }
             .task(id: auth.state) { await diary.load() }
+            .sheet(isPresented: $showStats) {
+                DiaryStatsView(stats: diary.stats, count: diary.entries.filter { $0.mode == .stadium }.count, team: model.myTeam)
+            }
             .alert("직관 기록", isPresented: Binding(get: { diary.error != nil }, set: { if !$0 { diary.error = nil } })) {
                 Button("확인", role: .cancel) {}
             } message: { Text(diary.error ?? "") }
@@ -271,7 +277,7 @@ struct TicketShape: Shape {
 struct TicketCard: View {
     let entry: DiaryEntry
     let team: String?
-    private let top: CGFloat = 104
+    private let top: CGFloat = 124
 
     var body: some View {
         let game = entry.game
@@ -279,17 +285,20 @@ struct TicketCard: View {
         let theirs = Team.color(for: game?.opponent(of: team).code)
         VStack(spacing: 0) {
             HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("ADMIT ONE").font(Typo.font(9.5, .heavy)).tracking(1.6).foregroundStyle(.white.opacity(0.55))
                     Text(KST.ticketDate(entry.date)).font(Typo.font(26, .heavy))
                     Text(KST.weekdayOf(entry.date) + (game?.stadium.map { " · \($0)" } ?? ""))
                         .font(Typo.style(.caption, .semibold)).foregroundStyle(Palette.text.opacity(0.75))
                 }
                 Spacer(minLength: 0)
                 if let game {
-                    HStack(spacing: 8) {
-                        TeamBadge(code: game.away.code, size: 34)
-                        Text(score(game)).font(Typo.font(20, .heavy)).monospacedDigit()
-                        TeamBadge(code: game.home.code, size: 34)
+                    VStack(spacing: 4) {
+                        HStack(spacing: 8) {
+                            TeamBadge(code: game.away.code, size: 40)
+                            Text(score(game)).font(Typo.font(22, .heavy)).monospacedDigit()
+                            TeamBadge(code: game.home.code, size: 40)
+                        }
                     }
                 }
                 stamp
@@ -318,6 +327,7 @@ struct TicketCard: View {
                     Text(memo).font(Typo.style(.caption)).foregroundStyle(Palette.text.opacity(0.75)).lineLimit(1)
                 }
                 Spacer(minLength: 0)
+                if entry.mode == .stadium && entry.isVerified { BarcodeMark() }
             }
             .padding(.horizontal, 20)
             .frame(height: 44)
@@ -341,10 +351,12 @@ struct TicketCard: View {
     private var stamp: some View {
         let r = entry.result
         Text(r?.title ?? "–")
-            .font(Typo.font(17, .black))
+            .font(Typo.font(19, .black))
             .foregroundStyle(r == .win ? Palette.accent : Palette.text.opacity(0.7))
-            .frame(width: 42, height: 42)
-            .overlay(Circle().strokeBorder(r == .win ? Palette.accent : .white.opacity(0.35), lineWidth: 2))
+            .frame(width: 50, height: 50)
+            .background(Circle().fill((r == .win ? Palette.accent : Color.white).opacity(0.12)))
+            .overlay(Circle().strokeBorder(r == .win ? Palette.accent : .white.opacity(0.35), lineWidth: 2.4))
+            .overlay(Circle().strokeBorder(.white.opacity(0.18), lineWidth: 0.8).padding(4))
             .rotationEffect(.degrees(-12))
     }
 }
