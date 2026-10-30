@@ -10,8 +10,28 @@ final class AutoLiveActivity {
     static let shared = AutoLiveActivity()
     private var task: Task<Void, Never>?
     private var finished: Set<String> = []
-    private var lastScores: [String: [Int]] = [:]
-    private var notifiedStart: Set<String> = []
+    private let defaults = UserDefaults.standard
+
+    /// 이미 띄운 알림 (앱을 껐다 켜도 같은 알림을 또 띄우지 않게 저장한다. 최근 300개만 남긴다)
+    private func markSent(_ key: String) -> Bool {
+        var sent = defaults.stringArray(forKey: "hit.sentAlerts") ?? []
+        guard !sent.contains(key) else { return false }
+        sent.append(key)
+        defaults.set(Array(sent.suffix(300)), forKey: "hit.sentAlerts")
+        return true
+    }
+
+    /// 경기마다 마지막으로 본 점수 (득점이 났는지 비교하는 기준. 앱을 껐다 켜도 이어 간다)
+    private func lastScore(_ id: String) -> [Int]? {
+        (defaults.dictionary(forKey: "hit.lastScores") as? [String: [Int]])?[id]
+    }
+
+    private func saveLastScore(_ id: String, _ score: [Int]) {
+        var all = (defaults.dictionary(forKey: "hit.lastScores") as? [String: [Int]]) ?? [:]
+        all[id] = score
+        if all.count > 40 { all = Dictionary(uniqueKeysWithValues: all.sorted { $0.key > $1.key }.prefix(20).map { ($0.key, $0.value) }) }
+        defaults.set(all, forKey: "hit.lastScores")
+    }
     private init() {}
 
     func run() {
@@ -81,24 +101,25 @@ final class AutoLiveActivity {
         }
     }
 
-    /// 앱이 직접 읽은 점수로 득점·시작·종료 알림을 띄운다 (서버 푸시와 별개)
+    /// 앱이 직접 읽은 점수로 득점·시작·종료 알림을 띄운다 (서버 푸시와 별개). 같은 알림은 한 번만.
     private func notifyChanges(_ game: Game, team: String) async {
         let prefs = AppModel.shared.prefs
         let a = game.away.score ?? 0, h = game.home.score ?? 0
-        defer { lastScores[game.id] = [a, h] }
-        if game.status == .live, !notifiedStart.contains(game.id) {
-            notifiedStart.insert(game.id)
-            if prefs.start, lastScores[game.id] == nil, a + h == 0 {
-                await post(game, id: "local-start-\(game.id)", title: "\(game.away.name) VS \(game.home.name) 경기 시작", body: game.stadium ?? "")
-            }
+        let previous = lastScore(game.id)
+        defer { saveLastScore(game.id, [a, h]) }
+
+        // 경기 시작: 1회 0:0 일 때만 (경기 중간에 앱을 켰을 땐 "시작"이라 하지 않는다)
+        if game.status == .live, prefs.start, (game.inning ?? 1) <= 1, a + h == 0, markSent("start-\(game.id)") {
+            await post(game, id: "local-start-\(game.id)", title: "\(game.away.name) VS \(game.home.name) 경기 시작", body: game.stadium ?? "")
         }
         if game.status == .final {
-            guard prefs.end, !finished.contains(game.id) else { return }
+            guard prefs.end, markSent("end-\(game.id)") else { return }
             let result = game.winner == nil ? "무승부" : (game.winner == team ? "승리" : "패배")
             await post(game, id: "local-end-\(game.id)", title: "경기 종료 · \(result)", body: "\(game.away.name) \(a) : \(h) \(game.home.name)")
             return
         }
-        guard prefs.score, let last = lastScores[game.id], last != [a, h] else { return }
+        // 득점: 지난번 본 점수가 있을 때만 비교한다 (처음 본 점수는 기준만 잡는다)
+        guard prefs.score, let last = previous, last != [a, h], markSent("score-\(game.id)-\(a)-\(h)") else { return }
         let scorer = (a > last[0]) ? game.away.name : game.home.name
         await post(game, id: "local-score-\(game.id)-\(a)-\(h)", title: "\(scorer) 득점", body: "\(game.away.name) \(a) : \(h) \(game.home.name) · \(game.statusText)")
     }
