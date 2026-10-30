@@ -1,6 +1,8 @@
 # HIT! 소개 웹 (Cloudflare Workers + D1)
 
 - `public/` — 소개 페이지(`index.html`)와 로고·아이콘. Workers Static Assets 로 서빙
+- `public/fonts/` — Pretendard(한글, 필요한 글자 조각만 내려받음)·Barlow Condensed(숫자). 둘 다 SIL OFL
+- 구단 엠블럼은 앱과 같은 네이버 스포츠 이미지를 불러오고, 못 불러오면 팀 색 배지로 대신합니다
 - `src/index.js` — 출시 알림 신청 API (`POST /api/waitlist`, `GET /api/waitlist/count`)
 - `schema.sql` — D1 `waitlist` 테이블
 
