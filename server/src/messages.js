@@ -36,7 +36,7 @@ export function wants(prefs, event) {
 export const inningLabel = (inning, half) => (inning ? `${inning}회${half === 'top' ? '초' : half === 'bottom' ? '말' : ''}` : '');
 
 const scoreLine = (g) => `${g.away.name} ${g.away.score ?? 0} : ${g.home.score ?? 0} ${g.home.name}`;
-const matchup = (g) => `${g.away.name} 대 ${g.home.name}`;
+const matchup = (g) => `${g.away.name} VS ${g.home.name}`;
 const starters = (g) => (g.away.starter && g.home.starter ? `선발 ${g.away.starter} 대 ${g.home.starter}` : null);
 const join = (...parts) => parts.filter(Boolean).join(' · ');
 

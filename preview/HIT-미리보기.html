@@ -779,7 +779,7 @@ ol.steps{margin:0;padding-left:1.3em;font-size:13.5px;color:var(--ink-2);line-he
         <div class="tblwrap"><table class="trig">
           <thead><tr><th>트리거</th><th>잠금화면에 뜨는 문구</th></tr></thead>
           <tbody>
-            <tr><td class="w">경기 시작 10분 전</td><td class="q"><em>삼성 대 KIA · 10분 뒤 시작</em> — 18:30 광주 · 선발 최원태 대 시라카와</td></tr>
+            <tr><td class="w">경기 시작 10분 전</td><td class="q"><em>삼성 VS KIA · 10분 뒤 시작</em> — 18:30 광주 · 선발 최원태 대 시라카와</td></tr>
             <tr><td class="w">선취점</td><td class="q"><em>선취점! KIA 1 : 0 삼성</em> — 삼성 실점 · 3회초 · 이호연 : 중견수 희생플라이 아웃</td></tr>
             <tr><td class="w">역전</td><td class="q"><em>역전! KIA 1 : 2 삼성</em> — 삼성 득점 · 3회말 · 구자욱 : 중견수 앞 1루타</td></tr>
             <tr><td class="w">홈런</td><td class="q"><em>홈런! KIA 2 : 8 삼성</em> — 7회말 · 최형우 : 우측 담장 넘어가는 홈런</td></tr>
@@ -938,7 +938,7 @@ function po2Final(){ var g=po2Base(); PO2_STEPS.forEach(function(s){ applyStep(g
 
 /* 이미 와 있는 실제 알림 */
 var SEED = [
-  {k:'start',t:'삼성 대 KIA · 내일 18:30',s:'PO 3차전 선발 예고',b:'최원태 대 시라카와 · 시리즈 1승 1패',tm:'오늘'},
+  {k:'start',t:'삼성 VS KIA · 내일 18:30',s:'PO 3차전 선발 예고',b:'최원태 대 시라카와 · 시리즈 1승 1패',tm:'오늘'},
   {k:'end',t:'경기 종료 · KIA 3 : 8 삼성',s:{SS:'삼성 승리',HT:'KIA 패배'},b:'승 후라도 · 시리즈 1승 1패',tm:'어제'},
   {k:'hr',t:'홈런! KIA 2 : 8 삼성',s:{SS:'삼성 득점',HT:'KIA 실점'},b:'7회말 · 최형우 : 우측 담장 넘어가는 홈런',tm:'어제'},
   {k:'end',t:'경기 종료 · KIA 5 : 1 삼성',s:{SS:'삼성 패배',HT:'KIA 승리'},b:'데일리 MVP 카스트로 · 3타점',tm:'10.26'}
@@ -1158,7 +1158,7 @@ function gcard(g){
 function vGame(){
   var g=gameById(S.seg), has=g.status!=='scheduled', as=score(g,'a'), hs=score(g,'h');
   var rec=S.user&&S.diary.some(function(e){ return e.id===g.id; });
-  var h=nav(T[g.a].s+' 대 '+T[g.h].s).replace('<span></span></div>','<button class="tkbtn'+(rec?' on':'')+'" data-act="diaryopen" data-v="'+g.id+'">'+ICON.ticket+(rec?'기록됨':'직관 기록')+'</button></div>')+'<div class="pad">';
+  var h=nav(T[g.a].s+' VS '+T[g.h].s).replace('<span></span></div>','<button class="tkbtn'+(rec?' on':'')+'" data-act="diaryopen" data-v="'+g.id+'">'+ICON.ticket+(rec?'기록됨':'직관 기록')+'</button></div>')+'<div class="pad">';
   function side(c,won){
     var sub=g.status==='scheduled'?'<small style="font-size:11.5px;font-weight:600;color:var(--mu);min-height:13px">'+esc((c===g.a?g.sp.a:g.sp.h)||'선발 미정')+'</small>'
       :'<small style="font-size:11px;font-weight:700;color:var(--am);min-height:13px">'+(won?'승리':'')+'</small>';

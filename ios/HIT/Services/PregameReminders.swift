@@ -35,7 +35,7 @@ enum PregameReminders {
             guard fire > now, fire < now.addingTimeInterval(8 * 86_400) else { continue }
 
             let content = UNMutableNotificationContent()
-            content.title = "\(game.away.name) 대 \(game.home.name) · \(leadMinutes)분 뒤 시작"
+            content.title = "\(game.away.name) VS \(game.home.name) · \(leadMinutes)분 뒤 시작"
             let starters = (game.away.starter != nil && game.home.starter != nil) ? "선발 \(game.away.starter!) vs \(game.home.starter!)" : nil
             content.body = [game.clockText, game.stadium, starters, game.broadcast].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
             content.sound = .default
