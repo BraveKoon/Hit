@@ -84,12 +84,12 @@ final class AutoLiveActivity {
         switch game.status {
         case .scheduled:
             guard let start = game.startDate else { return 300 }
-            let untilWindow = start.timeIntervalSinceNow - 30 * 60
-            if untilWindow > 0 {
-                // 창이 열리기 전에 앱이 깨어 있도록 마지막 5분은 미리 오디오를 켠다
-                if untilWindow < 300 { BackgroundKeeper.shared.start() } else { BackgroundKeeper.shared.stop() }
-                return min(untilWindow, 60)
-            }
+            let untilStart = start.timeIntervalSinceNow
+            // 경기 3시간 전부터 소리 없는 오디오를 켜 둔다. iOS 는 앱이 화면에 있을 때만 오디오를 시작할 수 있어서,
+            // 경기 직전에 켜려다가는 이미 백그라운드라 못 켠다. 켜 두면 화면을 꺼도 앱이 안 잠든다.
+            if untilStart < 3 * 3600 { BackgroundKeeper.shared.start() } else { BackgroundKeeper.shared.stop() }
+            let untilWindow = untilStart - 30 * 60
+            if untilWindow > 0 { return min(untilWindow, 60) }
             BackgroundKeeper.shared.start()
             if let detail = try? await APIClient().detail(id: game.id) { controller.startOrUpdate(detail: detail) }
             return 30

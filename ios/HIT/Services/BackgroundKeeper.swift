@@ -14,7 +14,7 @@ final class BackgroundKeeper {
     func start() {
         guard player == nil, let player = try? AVAudioPlayer(data: Self.silentWAV()) else { return }
         player.numberOfLoops = -1
-        player.volume = 0
+        player.volume = 1   // 소리는 전부 0 이라 안 들린다. 볼륨이 0 이면 iOS 가 재생 중으로 안 칠 수 있다
         self.player = player
         ensurePlaying()
 
