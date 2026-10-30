@@ -1,0 +1,19 @@
+name: cf-probe
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cloudflare Worker 배포 (시험용)
+        working-directory: tools/cf-probe
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID secret 이 없습니다"; exit 1; fi
+          npx --yes wrangler@3 deploy 2>&1 | tee /tmp/deploy.txt
+          url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' /tmp/deploy.txt | head -1)
+          echo "worker: $url"
+          sleep 8
+          for i in 1 2 3; do curl -sS -m 30 "$url" && echo; sleep 3; done
