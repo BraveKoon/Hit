@@ -76,7 +76,7 @@ jobs:
           PY
           ids=$(python3 -c "import json;print(' '.join(json.load(open('/tmp/team_ids.json'))))")
           for id in $ids; do
-            code=$(curl -sS -m 30 -H "x-api-key: $SR_KEY" -o /tmp/prof.json -w '%{http_code}' "https://api.sportradar.com/baseball/trial/v2/en/competitors/$id/profile.json")
+            code=$(curl -sS -m 30 -H "x-api-key: $SR_KEY" -o /tmp/prof.json -w '%{http_code}' "https://api.sportradar.com/baseball/trial/v2/ko/competitors/$id/profile.json")
             echo "프로필 $id -> HTTP $code"
             python3 - <<'PY'
           import json
