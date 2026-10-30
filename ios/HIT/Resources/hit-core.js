@@ -1139,7 +1139,8 @@ function createEmbedded({ fetch, now = () => Date.now(), log = () => {} }) {
   const raw = createNaverProvider({ fetch });
   const roster = createRoster({ fetch, now, log });
   roster.refresh();
-  const provider = cached(withPhotos(raw, roster), { now });
+  // 폰 한 대만 쓰므로 서버(5초)보다 짧게: 볼·스트라이크가 늦게 바뀌지 않게
+  const provider = cached(withPhotos(raw, roster), { now, scheduleMs: 8_000, detailMs: 2_000 });
   const routes = readRoutes({ provider, roster, now });
 
   /** "/v1/games?date=2026-10-29" → { status, body } (body 는 JSON 문자열) */

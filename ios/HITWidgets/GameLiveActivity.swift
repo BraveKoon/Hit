@@ -288,7 +288,7 @@ struct LockScreenScoreboard: View {
                 teamName(attributes.awayName, alignment: .leading)
                 score(state.awayScore)
                 BasesView(bases: state.bases, dimmed: !state.isLive)
-                    .frame(width: 58, height: 30)
+                    .frame(width: 64, height: 40)
                     .padding(.horizontal, 10)
                 score(state.homeScore)
                 teamName(attributes.homeName, alignment: .trailing)
@@ -397,11 +397,15 @@ struct BasesView: View {
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width, h = geo.size.height
-            let side = min(w / 3.1, h / 1.55)
+            // 마름모(정사각형을 45° 돌린 것)가 서로 닿기만 하고 겹치지 않게: 옆 간격 = 위아래 간격 = 0.8 변
+            let side = min(w / 3.0, h / 2.25)
+            let r = side * 0.7071          // 마름모 반 대각선
+            let d = side * 0.8
+            let top = (h - (2 * r + d)) / 2 + r
             ZStack {
-                base(on(2), side).position(x: w / 2 - side * 0.78, y: h - side * 0.72)   // 3루
-                base(on(1), side).position(x: w / 2, y: side * 0.72)                    // 2루
-                base(on(0), side).position(x: w / 2 + side * 0.78, y: h - side * 0.72)   // 1루
+                base(on(2), side).position(x: w / 2 - d, y: top + d)   // 3루
+                base(on(1), side).position(x: w / 2, y: top)           // 2루
+                base(on(0), side).position(x: w / 2 + d, y: top + d)   // 1루
             }
         }
         .accessibilityElement()

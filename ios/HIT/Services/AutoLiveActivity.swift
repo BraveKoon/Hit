@@ -2,7 +2,7 @@ import Foundation
 import UserNotifications
 
 /// 내 팀 경기의 잠금화면·다이내믹 아일랜드 카드를 앱이 직접 켜고 갱신한다 (수동 버튼 없음).
-/// - 경기 시작 30분 전부터 켜고, 경기 중엔 10초마다, 경기 전엔 30초마다 갱신, 끝나면 마지막 점수로 바꾼 뒤 30분 뒤 내린다.
+/// - 경기 시작 30분 전부터 켜고, 경기 중엔 5초마다, 경기 전엔 30초마다 갱신, 끝나면 마지막 점수로 바꾼 뒤 30분 뒤 내린다.
 /// - 경기 30분 전부터 끝날 때까지는 소리 없는 오디오로 백그라운드에서도 계속 돌고(BackgroundKeeper), 득점·종료는 아이폰 알림으로 직접 알린다.
 /// - 앱을 완전히 종료(위로 밀어 닫기)하면 멈춘다. 그 상태에서도 뜨게 하는 건 서버의 push-to-start(알림 키·한국 서버 필요).
 @MainActor
@@ -66,7 +66,7 @@ final class AutoLiveActivity {
                 controller.startOrUpdate(detail: detail)
                 await notifyChanges(detail.game, team: team)
             }
-            return 10
+            return 5
         case .final:
             if !finished.contains(game.id), controller.activity(for: game.id) != nil,
                let detail = try? await APIClient().detail(id: game.id) {
