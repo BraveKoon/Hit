@@ -118,3 +118,28 @@ jobs:
           print('라인업 후보(statistics):',json.dumps(d.get('statistics'),ensure_ascii=False)[:600])
           PY
           done
+      - name: 타임라인 이벤트 실제 모양 (경기 중)
+        env:
+          SR_KEY: ${{ secrets.SPORTRADAR_KEY }}
+        run: |
+          set -u
+          id=sr:sport_event:76122370
+          curl -sS -m 30 -H "x-api-key: $SR_KEY" -o /tmp/t.json "https://api.sportradar.com/baseball/trial/v2/ko/sport_events/$id/timeline.json"
+          python3 - <<'PY'
+          import json, collections
+          d=json.load(open('/tmp/t.json'))
+          tl=d.get('timeline',[])
+          print('이벤트 수:',len(tl))
+          c=collections.Counter(e.get('type') for e in tl)
+          print('종류별:',dict(c))
+          keys=collections.Counter(k for e in tl for k in e.keys())
+          print('필드:',dict(keys))
+          for e in tl[:3]: print('처음',json.dumps(e,ensure_ascii=False)[:600])
+          for e in tl[-4:]: print('최근',json.dumps(e,ensure_ascii=False)[:600])
+          # 한 번만 나오는 종류별 예시
+          seen=set()
+          for e in tl:
+              t=e.get('type')
+              if t not in seen:
+                  seen.add(t); print('예시',t,json.dumps(e,ensure_ascii=False)[:450])
+          PY
