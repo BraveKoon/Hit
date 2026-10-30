@@ -130,42 +130,70 @@ function withDoubleheaders(summaries) {
 
 export const playsOf = (events) => liveFrom(events).plays.reverse();
 
-export function createSportradarProvider({ apiKey, lang = 'ko', fetch = globalThis.fetch, base = SPORTRADAR_BASE, timeoutMs = 10_000, now = () => Date.now(), log = () => {} } = {}) {
+export function createSportradarProvider({ apiKey, lang = 'ko', fetch = globalThis.fetch, base = SPORTRADAR_BASE, timeoutMs = 10_000, now = () => Date.now(), log = () => {}, minGapMs = 1100, scheduleTtlMs = 12_000 } = {}) {
   if (!apiKey) throw new Error('SPORTRADAR_KEY 가 필요합니다');
   let calls = 0;
   let windowStart = now();
 
-  async function get(path) {
-    calls++;
-    if (now() - windowStart > 3600_000) {
-      log(`Sportradar 요청 ${calls}회/시간`);
-      calls = 0;
-      windowStart = now();
-    }
-    const res = await fetch(`${base}/${lang}/${path}`, {
-      headers: { 'x-api-key': apiKey, Accept: 'application/json' },
-      signal: AbortSignal.timeout(timeoutMs),
+  // 체험 키는 초당 1번만 받는다(429 Too Many Requests). 모든 요청을 한 줄로 세워 최소 간격을 두고, 429 가 오면 잠시 쉰다.
+  let queue = Promise.resolve();
+  let nextAt = 0;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  function get(path) {
+    const run = queue.then(async () => {
+      const wait = nextAt - now();
+      if (wait > 0) await sleep(wait);
+      nextAt = now() + minGapMs;
+      calls++;
+      if (now() - windowStart > 3600_000) {
+        log(`Sportradar 요청 ${calls}회/시간`);
+        calls = 0;
+        windowStart = now();
+      }
+      const res = await fetch(`${base}/${lang}/${path}`, {
+        headers: { 'x-api-key': apiKey, Accept: 'application/json' },
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      const text = await res.text();
+      if (res.status === 429) nextAt = now() + 5000;
+      if (!res.ok) throw new UpstreamError(res.status, path, text.slice(0, 200));
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new UpstreamError(res.status, path, 'invalid json');
+      }
     });
-    const text = await res.text();
-    if (!res.ok) throw new UpstreamError(res.status, path, text.slice(0, 200));
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw new UpstreamError(res.status, path, 'invalid json');
-    }
+    queue = run.catch(() => {});
+    return run;
   }
 
-  // KST 하루 = UTC 로 전날 15시~당일 15시. 경기는 UTC 같은 날에 들어오지만 안전하게 앞뒤 하루를 합친다.
+  const days = new Map(); // 날짜 → { at, value, pending } (같은 날 일정은 잠깐 재사용)
+  function summariesOf(day) {
+    const hit = days.get(day);
+    if (hit?.pending) return hit.pending;
+    if (hit?.value && now() - hit.at < scheduleTtlMs) return Promise.resolve(hit.value);
+    const pending = get(`schedules/${day}/summaries.json`).then(
+      (value) => { days.set(day, { at: now(), value }); return value; },
+      (err) => {
+        if (err.status === 404) return { summaries: [] };
+        days.delete(day);
+        if (hit?.value) return hit.value; // 429 같은 일시 오류엔 지난 값을 쓴다
+        throw err;
+      },
+    );
+    days.set(day, { ...hit, pending });
+    return pending;
+  }
+
+  // KBO 경기는 모두 한국 시간 낮~저녁에 시작해서 UTC 날짜도 같은 날이다. 그 날짜만 받는다.
   async function summariesFor(from, to) {
-    const days = new Set();
-    for (let t = Date.parse(`${from}T00:00:00Z`) - 86_400_000; t <= Date.parse(`${to}T00:00:00Z`); t += 86_400_000) days.add(new Date(t).toISOString().slice(0, 10));
+    const dayList = [];
+    for (let t = Date.parse(`${from}T00:00:00Z`); t <= Date.parse(`${to}T00:00:00Z`); t += 86_400_000) dayList.push(new Date(t).toISOString().slice(0, 10));
     const all = [];
     const seen = new Set();
-    for (const d of days) {
-      const r = await get(`schedules/${d}/summaries.json`).catch((err) => {
-        if (err.status === 404) return { summaries: [] };
-        throw err;
-      });
+    for (const d of dayList) {
+      const r = await summariesOf(d);
       all.push(...(r.summaries ?? []).filter((s) => isKbo(s.sport_event) && !seen.has(s.sport_event.id) && seen.add(s.sport_event.id)));
     }
     return withDoubleheaders(all).filter((g) => g.date >= from && g.date <= to);

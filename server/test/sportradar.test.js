@@ -57,7 +57,7 @@ test('KBO 가 아닌 경기와 모르는 구단은 버리고, 하루 두 경기�
     calls.push({ url, key: opts.headers['x-api-key'] });
     return { ok: true, status: 200, text: async () => JSON.stringify({ summaries: url.includes('2026-10-30') ? [event(), second, other] : [] }) };
   };
-  const p = createSportradarProvider({ apiKey: 'K', fetch });
+  const p = createSportradarProvider({ apiKey: 'K', fetch, minGapMs: 0, scheduleTtlMs: 0 });
   const games = await p.schedule('2026-10-30');
   assert.deepEqual(games.map((g) => g.id), ['20261030SSHT12026', '20261030SSHT22026']);
   assert.ok(calls.every((c) => c.key === 'K' && c.url.includes('/ko/')));
@@ -132,7 +132,7 @@ test('경기 상세는 타임라인·라인업에서 만든다', async () => {
         : { ...event({}, { status: 'live', match_status: '1st_inning', home_score: 0, away_score: 1, period_scores: [{ number: 1, home_score: 0, away_score: 1 }] }), timeline: EVENTS };
     return { ok: true, status: 200, text: async () => JSON.stringify(body) };
   };
-  const p = createSportradarProvider({ apiKey: 'K', fetch });
+  const p = createSportradarProvider({ apiKey: 'K', fetch, minGapMs: 0, scheduleTtlMs: 0 });
   const d = await p.detail('20261030SSHT02026');
   assert.equal(d.game.status, 'live');
   assert.deepEqual([d.game.inning, d.game.half, d.game.statusText], [1, 'top', '1회초']);
@@ -145,6 +145,39 @@ test('경기 상세는 타임라인·라인업에서 만든다', async () => {
   const relay = await p.relay('20261030SSHT02026', 1);
   assert.equal(relay.plays.length, 7);
   assert.ok(calls.every((u) => !u.endsWith('/summary.json')));
+});
+
+test('요청은 한 줄로 세워 최소 간격을 두고, 일정은 그날 하루만 받는다', async () => {
+  const times = [];
+  const urls = [];
+  const fetch = async (url) => {
+    times.push(Date.now());
+    urls.push(url);
+    return { ok: true, status: 200, text: async () => JSON.stringify({ summaries: [event()] }) };
+  };
+  const p = createSportradarProvider({ apiKey: 'K', fetch, minGapMs: 40, scheduleTtlMs: 0 });
+  await Promise.all([p.schedule('2026-10-30'), p.schedule('2026-10-31'), p.schedule('2026-11-01'), p.schedule('2026-11-01')]);
+  assert.deepEqual(urls.map((u) => /schedules\/([\d-]+)\//.exec(u)[1]), ['2026-10-30', '2026-10-31', '2026-11-01'], '날짜마다 한 번, 앞날은 안 받고, 같은 날 동시 요청은 하나로');
+  assert.ok(times[1] - times[0] >= 35 && times[2] - times[1] >= 35, '요청 사이에 간격이 있다');
+});
+
+test('같은 날 일정은 잠깐 재사용하고, 429 가 오면 지난 값을 쓴다', async () => {
+  let n = 0;
+  let clock = 1000;
+  const fetch = async () => {
+    n++;
+    return n === 1
+      ? { ok: true, status: 200, text: async () => JSON.stringify({ summaries: [event()] }) }
+      : { ok: false, status: 429, text: async () => '{"message":"Too Many Requests"}' };
+  };
+  const p = createSportradarProvider({ apiKey: 'K', fetch, now: () => clock, minGapMs: 0, scheduleTtlMs: 5000 });
+  assert.equal((await p.schedule('2026-10-30')).length, 1);
+  clock += 1000;
+  assert.equal((await p.schedule('2026-10-30')).length, 1); // 재사용(요청 안 감)
+  assert.equal(n, 1);
+  clock += 10_000;
+  assert.equal((await p.schedule('2026-10-30')).length, 1); // 429 → 지난 값
+  assert.equal(n, 2);
 });
 
 test('키가 없으면 네이버로 돌아간다', () => {
