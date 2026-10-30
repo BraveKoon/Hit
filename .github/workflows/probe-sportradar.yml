@@ -11,7 +11,7 @@ jobs:
           SR_KEY: ${{ secrets.SPORTRADAR_KEY }}
         run: |
           base=https://api.sportradar.com/baseball/trial/v2/en
-          get() { sleep 1.2; curl -sS -m 30 -H "x-api-key: $SR_KEY" -H 'accept: application/json' -o "$2" -w '[%{http_code}] ' "$base/$1"; echo "$1"; }
+          get() { for i in 1 2 3 4 5 6; do sleep 4; c=$(curl -sS -m 30 -H "x-api-key: $SR_KEY" -H 'accept: application/json' -o "$2" -w '%{http_code}' "$base/$1"); [ "$c" != 429 ] && break; done; echo "[$c] $1"; }
           get "schedules/2026-10-28/summaries.json" /tmp/day.json
           python3 - <<'PY'
           import json
